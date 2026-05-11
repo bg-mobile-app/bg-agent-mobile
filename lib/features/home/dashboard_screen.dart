@@ -110,27 +110,84 @@ class _DashboardBreadcrumbs extends StatelessWidget {
 }
 
 const List<SidebarLink> kDashboardSidebarLinks = [
+  SidebarLink(name: 'Home', icon: Icons.home_outlined, href: '/home'),
   SidebarLink(name: 'Dashboard', icon: Icons.dashboard, href: '/dashboard/customer'),
   SidebarLink(name: 'My Profile', icon: Icons.person, href: '/dashboard/customer/profile'),
-  SidebarLink(name: 'My Favourite', icon: Icons.favorite_border, href: '/dashboard/customer/favourite'),
-    SidebarLink(
-      name: 'My Booking',
-      icon: Icons.grid_view,
-      children: [
-        SidebarLink(name: 'My Booking', href: '/dashboard/booking/my'),
-        SidebarLink(name: 'Success File', href: '/dashboard/booking/my/success-file'),
-        SidebarLink(name: 'Return Passport', href: '/dashboard/booking/my/return-passport'),
-      ],
-    ),
-    SidebarLink(
-      name: 'Appointment Booking',
-      icon: Icons.calendar_month,
-      href: '/dashboard/booking/appointment',
-    ),
-    SidebarLink(name: 'Check Status', icon: Icons.radio_button_checked, href: '/dashboard/customer/check-status'),
-    SidebarLink(name: 'Payment', icon: Icons.payment, href: '/dashboard/my-payments'),
-    SidebarLink(name: 'Notifications', icon: Icons.notifications_none, href: '/dashboard/notifications'),
-    SidebarLink(name: 'Change Password', icon: Icons.swap_horiz, href: '/dashboard/customer/change-password'),
+  SidebarLink(name: 'Create Ads', icon: Icons.add_box_outlined, href: '/dashboard/ads/create'),
+  SidebarLink(name: 'My Ads', icon: Icons.campaign_outlined, href: '/dashboard/ads/my'),
+  SidebarLink(
+    name: 'Receive Booking List',
+    icon: Icons.fact_check_outlined,
+    children: [
+      SidebarLink(name: 'All Booking', href: '/dashboard/receive-booking/all-booking'),
+      SidebarLink(name: 'Applied Booking', href: '/dashboard/receive-booking/applied-booking'),
+      SidebarLink(name: 'BG Collect Passport', href: '/dashboard/receive-booking/bg-collect-passport'),
+      SidebarLink(name: 'BG Sent Passport', href: '/dashboard/receive-booking/bg-sent-passport'),
+      SidebarLink(name: 'Receive Passport', href: '/dashboard/receive-booking/receive-passport'),
+      SidebarLink(name: 'Under Processing', href: '/dashboard/receive-booking/under-processing'),
+      SidebarLink(name: 'Visa Approved', href: '/dashboard/receive-booking/visa-approved'),
+      SidebarLink(name: 'BMET Done', href: '/dashboard/receive-booking/bmet-done'),
+      SidebarLink(name: 'Ticket Done', href: '/dashboard/receive-booking/ticket-done'),
+      SidebarLink(name: 'PP Sent to BG', href: '/dashboard/receive-booking/pp-sent-to-bg'),
+      SidebarLink(name: 'BG Receive Passport', href: '/dashboard/receive-booking/bg-receive-passport'),
+      SidebarLink(name: 'Ready For Flight', href: '/dashboard/receive-booking/ready-for-flight'),
+      SidebarLink(name: 'Success Flight', href: '/dashboard/receive-booking/success-flight'),
+      SidebarLink(name: 'Reject File', href: '/dashboard/receive-booking/reject-file'),
+    ],
+  ),
+  SidebarLink(
+    name: 'Passport Return List',
+    icon: Icons.assignment_return_outlined,
+    children: [
+      SidebarLink(name: 'Return Request/Review', href: '/dashboard/passport-return/request-review'),
+      SidebarLink(name: 'Return Accept', href: '/dashboard/passport-return/accept'),
+      SidebarLink(name: 'Return PP Sent to BG', href: '/dashboard/passport-return/pp-sent-to-bg'),
+      SidebarLink(name: 'BG Collect Return PP', href: '/dashboard/passport-return/bg-collect-return-pp'),
+      SidebarLink(name: 'BG Handover PP to Customer', href: '/dashboard/passport-return/bg-handover-pp-to-customer'),
+    ],
+  ),
+  SidebarLink(
+    name: 'My Booking List',
+    icon: Icons.grid_view,
+    children: [
+      SidebarLink(name: 'All Booking', href: '/dashboard/booking/my'),
+      SidebarLink(name: 'Success Flight', href: '/dashboard/booking/my/success-file'),
+      SidebarLink(name: 'Return Passport', href: '/dashboard/booking/my/return-passport'),
+    ],
+  ),
+  SidebarLink(name: 'Appointment Booking', icon: Icons.calendar_month, href: '/dashboard/booking/appointment'),
+  SidebarLink(
+    name: 'Reminder List',
+    icon: Icons.alarm_outlined,
+    children: [
+      SidebarLink(name: 'Medical Expiry', href: '/dashboard/reminder/medical-expiry'),
+      SidebarLink(name: 'Police Clearance Expiry', href: '/dashboard/reminder/police-clearance-expiry'),
+      SidebarLink(name: 'Visa Expiry', href: '/dashboard/reminder/visa-expiry'),
+    ],
+  ),
+  SidebarLink(name: 'Check Status', icon: Icons.radio_button_checked, href: '/dashboard/customer/check-status'),
+  SidebarLink(name: 'My Payments', icon: Icons.payment, href: '/dashboard/my-payments'),
+  SidebarLink(
+    name: 'Receive Payment',
+    icon: Icons.payments_outlined,
+    children: [
+      SidebarLink(name: 'All Request Payment', href: '/dashboard/receive-payment/all-request-payment'),
+      SidebarLink(name: 'Approve Payment', href: '/dashboard/receive-payment/approve-payment'),
+      SidebarLink(name: 'Receive Payment', href: '/dashboard/receive-payment/receive-payment'),
+    ],
+  ),
+  SidebarLink(
+    name: 'Refund Payment',
+    icon: Icons.request_page_outlined,
+    children: [
+      SidebarLink(name: 'Request List', href: '/dashboard/refund-payment/request-list'),
+      SidebarLink(name: 'Manage Bill', href: '/dashboard/refund-payment/manage-bill'),
+    ],
+  ),
+  SidebarLink(name: 'Commission', icon: Icons.account_balance_wallet_outlined, href: '/dashboard/commission'),
+  SidebarLink(name: 'Notifications', icon: Icons.notifications_none, href: '/dashboard/notifications'),
+  SidebarLink(name: 'Change Password', icon: Icons.swap_horiz, href: '/dashboard/customer/change-password'),
+  SidebarLink(name: 'Terms & Conditions', icon: Icons.gavel_outlined, href: '/dashboard/terms-and-conditions'),
 ];
 
 class DashboardPageScaffold extends StatelessWidget {
