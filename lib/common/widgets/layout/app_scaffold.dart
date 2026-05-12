@@ -10,6 +10,7 @@ import '../../../features/home/check_status_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
 import '../../../features/home/home_screen.dart';
+import '../../../features/home/my_ads_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
@@ -81,6 +82,8 @@ class _DashboardHostScreen extends StatelessWidget {
         return const PaymentsScreen();
       case '/dashboard/notifications':
         return const NotificationsScreen();
+      case '/dashboard/ads/my':
+        return const MyAdsScreen();
       default:
         return DashboardDummyScreen(title: route.split('/').last.replaceAll('-', ' '));
     }
