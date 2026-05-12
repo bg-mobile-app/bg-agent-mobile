@@ -16,13 +16,13 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      minimum: const EdgeInsets.fromLTRB(0, 0, 0, 0),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFE5EAF3)),
+          // border: Border.all(color: const Color(0xFFE5EAF3)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x18000000),
@@ -68,8 +68,8 @@ class AppBottomNav extends StatelessWidget {
                                 scale: isSelected ? 0.88 : 1.0,
                                 child: FUI(
                                   isSelected ? item.selectedIcon : item.icon,
-                                  width: isSelected ? 19 : 24,
-                                  height: isSelected ? 19 : 24,
+                                  width: isSelected ? 23 : 28,
+                                  height: isSelected ? 23 : 28,
                                   color: isSelected
                                       ? primaryColor
                                       : const Color(0xFF98A1AF),
