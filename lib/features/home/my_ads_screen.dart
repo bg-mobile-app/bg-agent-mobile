@@ -62,7 +62,9 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _TopBar(onHelpTap: () => _showInfo('Ads guide is coming soon')),
+                    _TopBar(
+                      onHelpTap: () => _showInfo('Ads guide is coming soon'),
+                    ),
                     const SizedBox(height: 18),
                     _CreateButton(
                       onTap: () => context.push('/dashboard/ads/create'),
@@ -103,9 +105,11 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                         padding: const EdgeInsets.only(bottom: 14),
                         child: _AdCard(
                           ad: ad,
-                          onTap: () => _showInfo('Opening ad #${ad.id} details'),
+                          onTap: () =>
+                              _showInfo('Opening ad #${ad.id} details'),
                           onEdit: () => _showInfo('Editing ad #${ad.id}'),
-                          onPromote: () => _showInfo('Promote ad #${ad.id} request sent'),
+                          onPromote: () =>
+                              _showInfo('Promote ad #${ad.id} request sent'),
                         ),
                       ),
                     ),
@@ -181,7 +185,7 @@ class _CreateButton extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               'CREATE NEW ADS',
-              style: AppTextStyles.subtitle1.copyWith(
+              style: AppTextStyles.button.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1,
@@ -228,7 +232,12 @@ class _SearchBox extends StatelessWidget {
               controller: controller,
               onChanged: onChanged,
               decoration: const InputDecoration(
+                fillColor: Colors.white,
+
+               
                 border: InputBorder.none,
+                 enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 hintText: 'Search by title, country or post ID',
                 hintStyle: TextStyle(color: Color(0xFF64748B)),
               ),
@@ -341,7 +350,12 @@ class _AdCard extends StatelessWidget {
                 topLeft: Radius.circular(22),
                 bottomLeft: Radius.circular(22),
               ),
-              child: Image.asset(ad.image, width: 120, height: 150, fit: BoxFit.cover),
+              child: Image.asset(
+                ad.image,
+                width: 120,
+                height: 150,
+                fit: BoxFit.cover,
+              ),
             ),
             Expanded(
               child: Padding(
@@ -391,9 +405,17 @@ class _AdCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        _ActionButton(label: 'Edit', icon: Icons.edit_outlined, onTap: onEdit),
+                        _ActionButton(
+                          label: 'Edit',
+                          icon: Icons.edit_outlined,
+                          onTap: onEdit,
+                        ),
                         const SizedBox(width: 8),
-                        _ActionButton(label: 'Boost', icon: Icons.trending_up, onTap: onPromote),
+                        _ActionButton(
+                          label: 'Boost',
+                          icon: Icons.trending_up,
+                          onTap: onPromote,
+                        ),
                       ],
                     ),
                   ],
@@ -408,7 +430,11 @@ class _AdCard extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.label, required this.icon, required this.onTap});
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
 
   final String label;
   final IconData icon;
