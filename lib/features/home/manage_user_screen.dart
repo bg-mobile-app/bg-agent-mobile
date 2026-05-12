@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
 import '../../common/theme/app_text_styles.dart';
+import '../../common/widgets/app_search_bar.dart';
 import 'dashboard_screen.dart';
 
 class ManageUserScreen extends StatefulWidget {
@@ -158,22 +160,86 @@ class _SearchAndActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      Row(children: [
-        _viewButton('List', !isCardView, () => onViewChanged(false)),
-        const SizedBox(width: AppSpacing.xs),
-        _viewButton('Card', isCardView, () => onViewChanged(true)),
-      ]),
+      Row(
+        children: [
+          _viewSwitch(isCardView: isCardView, onChanged: onViewChanged),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () => context.go('/dashboard/user/create-user'),
+                icon: const Icon(Icons.person_add),
+                label: const Text('Add Member'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  elevation: 4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      AppSearchBar(
+        controller: controller,
+        hintText: 'Search by user ID, email, phone, role...',
+        onChanged: onQueryChanged,
+        onSearchTap: () => onQueryChanged(controller.text),
+      ),
       const SizedBox(height: AppSpacing.sm),
       Row(children: [
-        Expanded(flex: 2, child: TextField(controller: controller, onChanged: onQueryChanged, decoration: const InputDecoration(hintText: 'Search by user ID, email, phone, role... ', prefixIcon: Icon(Icons.search)))),
+        Expanded(
+          child: DropdownButtonFormField<_RoleFilter>(
+            value: selectedFilter,
+            decoration: const InputDecoration(labelText: 'Role filter'),
+            items: _RoleFilter.values.map((item) => DropdownMenuItem(value: item, child: Text(item.label))).toList(),
+            onChanged: (value) {
+              if (value != null) onFilterChanged(value);
+            },
+          ),
+        ),
         const SizedBox(width: AppSpacing.sm),
-        Expanded(child: DropdownButtonFormField<_RoleFilter>(value: selectedFilter, decoration: const InputDecoration(labelText: 'Role filter'), items: _RoleFilter.values.map((item) => DropdownMenuItem(value: item, child: Text(item.label))).toList(), onChanged: (value) { if (value != null) onFilterChanged(value);})),
+        ElevatedButton.icon(
+          onPressed: () {},
+          icon: const Icon(Icons.download_rounded),
+          label: const Text('Export'),
+        ),
       ])
     ]);
   }
 
-  Widget _viewButton(String text, bool active, VoidCallback onTap) => InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs), decoration: BoxDecoration(color: active ? AppPalette.brandBlue : AppPalette.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppPalette.borderNeutral)), child: Text(text, style: AppTextStyles.caption.copyWith(color: active ? Colors.white : AppPalette.textPrimary))));
-}
+
+  Widget _viewSwitch({required bool isCardView, required ValueChanged<bool> onChanged}) {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => onChanged(!isCardView),
+          child: Container(
+            width: 40,
+            height: 20,
+            decoration: BoxDecoration(
+              color: isCardView ? Theme.of(context).colorScheme.primary : const Color(0xFFC3C6D7),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Align(
+              alignment: isCardView ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                margin: const EdgeInsets.all(2),
+                width: 16,
+                height: 16,
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Text(isCardView ? 'Card' : 'List', style: AppTextStyles.caption.copyWith(color: AppPalette.textPrimary)),
+      ],
+    );
+  }
 
 class _UserTableCard extends StatelessWidget {
   const _UserTableCard({required this.members, required this.canManage, required this.onToggleBlock});
@@ -183,9 +249,84 @@ class _UserTableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const currentUserRole = 'Admin';
+    final isAdmin = currentUserRole == 'Admin';
+
     return Container(
-      decoration: BoxDecoration(color: AppPalette.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppPalette.borderNeutral)),
-      child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: DataTable(columns: const [DataColumn(label: Text('User ID')), DataColumn(label: Text('Email')), DataColumn(label: Text('Phone Number')), DataColumn(label: Text('Role')), DataColumn(label: Text('Designation')), DataColumn(label: Text('Activity')), DataColumn(label: Text('Status Controls'))], rows: members.map((member) { final hasPermission = canManage(member); return DataRow(cells: [DataCell(Text(member.userId)), DataCell(Text(member.email)), DataCell(Text(member.phone)), DataCell(_RoleBadge(role: member.role, color: member.roleColor)), DataCell(Text(member.designation)), DataCell(hasPermission ? TextButton(onPressed: () {}, child: const Text('See Activity')) : const Text('No permission')), DataCell(hasPermission ? Row(mainAxisSize: MainAxisSize.min, children: [TextButton(onPressed: () => onToggleBlock(member), child: Text(member.isBlocked ? 'Unblock' : 'Block')), TextButton(onPressed: () {}, child: const Text('Edit'))]) : const Text('No permission'))]); }).toList())),
+      margin: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF12051B).withValues(alpha: 0.08),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+            spreadRadius: -4,
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFC3C6D7).withValues(alpha: 0.3)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F3FF)),
+          dataRowMaxHeight: 72,
+          columnSpacing: 28,
+          headingTextStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF434655), letterSpacing: 0.5),
+          columns: [
+            const DataColumn(label: Text('USER ID')),
+            const DataColumn(label: Text('EMAIL')),
+            const DataColumn(label: Text('PHONE')),
+            const DataColumn(label: Text('ROLE')),
+            const DataColumn(label: Text('DESIGNATION')),
+            if (isAdmin) const DataColumn(label: Text('ACTIVITY')),
+            const DataColumn(label: Text('STATUS / ACTIONS')),
+          ],
+          rows: members.map((member) {
+            final hasPermission = canManage(member);
+            return DataRow(cells: [
+              DataCell(Text('#${member.userId}', style: const TextStyle(color: Color(0xFF737686), fontWeight: FontWeight.w500))),
+              DataCell(Text(member.email, style: const TextStyle(color: Color(0xFF434655)))),
+              DataCell(Text(member.phone, style: const TextStyle(color: Color(0xFF434655)))),
+              DataCell(Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: member.roleColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
+                child: Text(member.role, style: TextStyle(color: member.roleColor, fontSize: 12, fontWeight: FontWeight.bold)),
+              )),
+              DataCell(Text(member.designation, style: const TextStyle(color: Color(0xFF141B2B)))),
+              if (isAdmin)
+                DataCell(
+                  TextButton(
+                    onPressed: hasPermission ? () {} : null,
+                    child: const Text('See Activity', style: TextStyle(color: Color(0xFF004AC6), fontWeight: FontWeight.w600, decoration: TextDecoration.underline)),
+                  ),
+                ),
+              DataCell(
+                Row(children: [
+                  if (hasPermission) ...[
+                    Switch(
+                      value: !member.isBlocked,
+                      onChanged: (_) => onToggleBlock(member),
+                      activeTrackColor: const Color(0xFF004AC6),
+                      inactiveTrackColor: const Color(0xFFC3C6D7),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(member.isBlocked ? 'Blocked' : 'Active', style: TextStyle(fontSize: 12, color: member.isBlocked ? AppPalette.danger : AppPalette.success, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    IconButton(icon: const Icon(Icons.edit_outlined, size: 20, color: Color(0xFF434655)), onPressed: () {}, tooltip: 'Edit User'),
+                  ] else ...[
+                    Icon(member.isBlocked ? Icons.block : Icons.check_circle, size: 16, color: member.isBlocked ? AppPalette.danger : AppPalette.success),
+                    const SizedBox(width: 4),
+                    Text(member.isBlocked ? 'Blocked' : 'Active'),
+                  ]
+                ]),
+              ),
+            ]);
+          }).toList(),
+        ),
+      ),
     );
   }
 }
@@ -198,12 +339,14 @@ class _CardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      itemCount: members.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 360, crossAxisSpacing: AppSpacing.md, mainAxisSpacing: AppSpacing.md, mainAxisExtent: 430),
-      itemBuilder: (_, index) => _StaffCard(member: members[index], canManage: canManage(members[index]), onToggleBlock: () => onToggleBlock(members[index])),
+    return Column(
+      children: List.generate(
+        members.length,
+        (index) => Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: _StaffCard(member: members[index], canManage: canManage(members[index]), onToggleBlock: () => onToggleBlock(members[index])),
+        ),
+      ),
     );
   }
 }
