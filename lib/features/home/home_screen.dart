@@ -7,6 +7,9 @@ import 'package:fui_kit/fui_kit.dart';
 import 'models/home_models.dart';
 import 'widgets/home_common_widgets.dart';
 import 'widgets/work_permit_card.dart';
+import '../../common/theme/app_palette.dart';
+import '../../common/theme/app_spacing.dart';
+import '../../common/theme/app_text_styles.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const Color _brandBlue = Color(0xFF2563EB);
+  static const Color _brandBlue = AppPalette.brandBlue;
 
   final _companyController = TextEditingController();
   final _minAgeController = TextEditingController();
@@ -162,13 +165,13 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         return Padding(
           padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
           ),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2, vertical: AppSpacing.md),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -191,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onChanged: (v) =>
                         setState(() => _serviceType = v ?? 'WORK_PERMIT'),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: AppSpacing.xs + 2),
                   Row(
                     children: [
                       Expanded(child: _textField(_minAgeController, 'Min Age')),
@@ -199,9 +202,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(child: _textField(_maxAgeController, 'Max Age')),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: AppSpacing.xs + 2),
                   _textField(_companyController, 'Company Name'),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: AppSpacing.xs + 2),
                   _dropdown(
                     value: _selectionType,
                     hint: 'Selection Type',
@@ -209,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onChanged: (v) =>
                         setState(() => _selectionType = v ?? 'All'),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: AppSpacing.xs + 2),
                   Row(
                     children: [
                       Expanded(
@@ -258,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppPalette.pageBackground,
       appBar: AppBrandHeader(
         brandBlue: _brandBlue,
         isLoggedIn: _isLoggedIn,

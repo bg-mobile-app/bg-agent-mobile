@@ -14,6 +14,7 @@ import '../../../features/home/create_user_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
 import '../../../features/home/home_screen.dart';
 import '../../../features/home/my_ads_screen.dart';
+import '../../../features/home/manage_user_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
@@ -85,6 +86,8 @@ class _DashboardHostScreen extends StatelessWidget {
         return const AppointmentBookingScreen();
       case '/dashboard/user/create-user':
         return const CreateUserScreen();
+      case '/dashboard/user/manage-user':
+        return const ManageUserScreen();
       case '/dashboard/customer/change-password':
         return const ChangePasswordScreen();
       case '/dashboard/customer/check-status':

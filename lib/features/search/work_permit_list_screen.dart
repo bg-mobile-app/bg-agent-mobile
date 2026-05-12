@@ -7,6 +7,10 @@ import '../home/widgets/home_common_widgets.dart';
 import '../home/widgets/work_permit_card.dart';
 import 'work_permit_details_screen.dart';
 import 'widgets/filter_sidebar.dart';
+import '../../common/theme/app_palette.dart';
+import '../../common/theme/app_spacing.dart';
+import '../../common/theme/app_text_styles.dart';
+import '../../common/widgets/app_search_bar.dart';
 
 class WorkPermitListScreen extends StatefulWidget {
   const WorkPermitListScreen({super.key});
@@ -16,7 +20,7 @@ class WorkPermitListScreen extends StatefulWidget {
 }
 
 class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
-  static const Color _brandBlue = Color(0xFF2563EB);
+  static const Color _brandBlue = AppPalette.brandBlue;
   final _searchController = TextEditingController();
   bool _isLoggedIn = false;
 
@@ -139,7 +143,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width >= 1024;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppPalette.pageBackground,
       appBar: AppBrandHeader(
         brandBlue: _brandBlue,
         isLoggedIn: _isLoggedIn,
@@ -155,14 +159,14 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
         child: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isDesktop ? 24 : 16,
-              vertical: 12,
+              horizontal: isDesktop ? AppSpacing.xl : AppSpacing.md,
+              vertical: AppSpacing.sm,
             ),
             child: Column(
               children: [
                 _searchBar(),
                 _buildServices(),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.lg),
                 _buildWorkPermitSection(),
               ],
             ),
@@ -173,59 +177,11 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   }
 
   Widget _searchBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFDBEAFE)),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D2563EB),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              style: const TextStyle(color: Colors.black),
-              decoration: const InputDecoration(
-                fillColor: Colors.white,
-                hintText: 'Search in bideshgami',
-                hintStyle: TextStyle(color: Color(0xFF64748B)),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-              ),
-              onChanged: (query) =>
-                  _applyFilters(FilterValue(query: query.trim())),
-            ),
-          ),
-          InkWell(
-            onTap: _showComingSoon,
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _brandBlue,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x402563EB),
-                    blurRadius: 18,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.search, size: 20, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
+    return AppSearchBar(
+      controller: _searchController,
+      hintText: 'Search in bideshgami',
+      onChanged: (query) => _applyFilters(FilterValue(query: query.trim())),
+      onSearchTap: _showComingSoon,
     );
   }
 
@@ -245,10 +201,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Work Permit',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
-            ),
+            const Text('Work Permit', style: AppTextStyles.headline2),
             if (width < 1024)
               InkWell(
                 onTap: _openFiltersBottomSheet,
@@ -272,7 +225,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppSpacing.sm + 2),
         LayoutBuilder(
           builder: (context, constraints) {
             return Row(
@@ -370,7 +323,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: AppSpacing.sm + 2),
                   Text(
                     item.name,
                     textAlign: TextAlign.center,
