@@ -10,6 +10,7 @@ import '../../../features/home/check_status_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
 import '../../../features/home/create_ad_form_screen.dart';
 import '../../../features/home/create_ad_screen.dart';
+import '../../../features/home/create_user_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
 import '../../../features/home/home_screen.dart';
 import '../../../features/home/my_ads_screen.dart';
@@ -82,6 +83,8 @@ class _DashboardHostScreen extends StatelessWidget {
         return const ReturnPassportScreen();
       case '/dashboard/booking/appointment':
         return const AppointmentBookingScreen();
+      case '/dashboard/user/create-user':
+        return const CreateUserScreen();
       case '/dashboard/customer/change-password':
         return const ChangePasswordScreen();
       case '/dashboard/customer/check-status':

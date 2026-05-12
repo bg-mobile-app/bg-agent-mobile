@@ -157,6 +157,14 @@ const List<SidebarLink> kDashboardSidebarLinks = [
   ),
   SidebarLink(name: 'Appointment Booking', icon: Icons.calendar_month, href: '/dashboard/booking/appointment'),
   SidebarLink(
+    name: 'User',
+    icon: Icons.group_outlined,
+    children: [
+      SidebarLink(name: 'Create User', href: '/dashboard/user/create-user'),
+      SidebarLink(name: 'Manage User', href: '/dashboard/user/manage-user'),
+    ],
+  ),
+  SidebarLink(
     name: 'Reminder List',
     icon: Icons.alarm_outlined,
     children: [
