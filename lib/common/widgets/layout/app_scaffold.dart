@@ -8,6 +8,8 @@ import '../../../features/booking/success_flight_screen.dart';
 import '../../../features/home/change_password_screen.dart';
 import '../../../features/home/check_status_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
+import '../../../features/home/create_ad_form_screen.dart';
+import '../../../features/home/create_ad_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
 import '../../../features/home/home_screen.dart';
 import '../../../features/home/notifications_screen.dart';
@@ -67,6 +69,12 @@ class _DashboardHostScreen extends StatelessWidget {
         return const DashboardScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
+      case '/dashboard/ads/create':
+        return const CreateAdScreen();
+      case '/dashboard/ads/create/form/bn':
+        return const CreateAdFormScreen(isBangla: true);
+      case '/dashboard/ads/create/form/en':
+        return const CreateAdFormScreen(isBangla: false);
       case '/dashboard/booking/my/success-file':
         return const SuccessFlightScreen();
       case '/dashboard/booking/my/return-passport':
