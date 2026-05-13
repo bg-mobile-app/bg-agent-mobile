@@ -204,6 +204,34 @@ class DashboardPageScaffold extends StatelessWidget {
   final Widget child;
   final String currentHref;
 
+  String get _screenName {
+    const titles = <String, String>{
+      '/dashboard/customer': 'Dashboard',
+      '/dashboard/booking/my': 'All Booking',
+      '/dashboard/booking/my/success-file': 'Success Flight',
+      '/dashboard/booking/my/return-passport': 'Return Passport',
+      '/dashboard/booking/appointment': 'Appointment Booking',
+      '/dashboard/notifications': 'Notifications',
+      '/dashboard/check-status': 'Check Status',
+      '/dashboard/payments': 'Payments',
+      '/dashboard/my-ads': 'My Ads',
+      '/dashboard/my-favourite': 'My Favourite',
+      '/dashboard/create-ad': 'Create Ad',
+      '/dashboard/create-user': 'Create User',
+      '/dashboard/manage-user': 'Manage User',
+      '/dashboard/change-password': 'Change Password',
+      '/dashboard/customer-profile': 'Customer Profile',
+    };
+    final matchedTitle = titles[currentHref];
+    if (matchedTitle != null) return matchedTitle;
+    final parts = currentHref.split('/').where((part) => part.isNotEmpty).toList();
+    final segment = parts.isEmpty ? 'screen' : parts.last;
+    return segment
+        .split('-')
+        .map((word) => word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -220,11 +248,33 @@ class DashboardPageScaffold extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false,
         titleSpacing: 16,
-        title: Image.asset(
-          'assets/img/logo/logo_black.png',
-          height: 34,
-          fit: BoxFit.contain,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _screenName,
+                style: const TextStyle(
+                  color: AppPalette.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Image.asset(
+                  'assets/img/logo/logo_black.png',
+                  height: 34,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            const SizedBox(width: 40),
+          ],
         ),
         actions: [
           Builder(

@@ -6,6 +6,7 @@ import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
 import '../../common/theme/app_text_styles.dart';
 import '../../common/widgets/app_search_bar.dart';
+import '../../common/widgets/styled_data_table_card.dart';
 import '../../common/widgets/view_toggle_button.dart';
 import 'dashboard_screen.dart';
 
@@ -236,43 +237,8 @@ class _UserTableCard extends StatelessWidget {
     const currentUserRole = 'Admin';
     final isAdmin = currentUserRole == 'Admin';
 
-    return Container(
-      margin: const EdgeInsets.only(top: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF12051B).withValues(alpha: 0.08),
-            blurRadius: 32,
-            offset: const Offset(0, 16),
-            spreadRadius: -4,
-          ),
-        ],
-        border: Border.all(
-          color: const Color(0xFFC3C6D7).withValues(alpha: 0.3),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Theme(
-          data: Theme.of(
-            context,
-          ).copyWith(dividerColor: const Color(0xFFE5E7EB)),
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F3FF)),
-            dataRowColor: WidgetStateProperty.all(Colors.white),
-            dividerThickness: 1,
-            dataRowMaxHeight: 72,
-            columnSpacing: 28,
-            headingTextStyle: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF434655),
-              letterSpacing: 0.5,
-            ),
-            columns: [
+    return StyledDataTableCard(
+      columns: [
               const DataColumn(label: Text('USER ID')),
               const DataColumn(label: Text('EMAIL')),
               const DataColumn(label: Text('PHONE')),
@@ -281,7 +247,7 @@ class _UserTableCard extends StatelessWidget {
               if (isAdmin) const DataColumn(label: Text('ACTIVITY')),
               const DataColumn(label: Text('STATUS / ACTIONS')),
             ],
-            rows: members.map((member) {
+      rows: members.map((member) {
               final hasPermission = canManage(member);
               return DataRow(
                 cells: [
@@ -401,9 +367,6 @@ class _UserTableCard extends StatelessWidget {
                 ],
               );
             }).toList(),
-          ),
-        ),
-      ),
     );
   }
 }
