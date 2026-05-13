@@ -208,6 +208,7 @@ class DashboardPageScaffold extends StatelessWidget {
     const titles = <String, String>{
       '/dashboard/customer': 'Dashboard',
       '/dashboard/booking/my': 'All Booking',
+      '/dashboard/receive-booking/all-booking': 'All Booking',
       '/dashboard/booking/my/success-file': 'Success Flight',
       '/dashboard/booking/my/return-passport': 'Return Passport',
       '/dashboard/booking/appointment': 'Appointment Booking',

@@ -8,7 +8,16 @@ import '../../common/theme/app_palette.dart';
 import '../home/dashboard_screen.dart';
 
 class MyBookingScreen extends StatefulWidget {
-  const MyBookingScreen({super.key});
+  const MyBookingScreen({
+    super.key,
+    this.currentHref = '/dashboard/booking/my',
+    this.breadcrumbParent = 'Recruitment Portal',
+    this.breadcrumbCurrent = 'All Booking',
+  });
+
+  final String currentHref;
+  final String breadcrumbParent;
+  final String breadcrumbCurrent;
 
   @override
   State<MyBookingScreen> createState() => _MyBookingScreenState();
@@ -98,7 +107,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/booking/my',
+      currentHref: widget.currentHref,
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -109,8 +118,8 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
               children: [
                 _breadcrumb(),
                 const SizedBox(height: 8),
-                const Text(
-                  'All Booking',
+                Text(
+                  widget.breadcrumbCurrent,
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
@@ -142,14 +151,14 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     return BreadCrumb(
       items: <BreadCrumbItem>[
         BreadCrumbItem(
-          content: const Text(
-            'Recruitment Portal',
+          content: Text(
+            widget.breadcrumbParent,
             style: TextStyle(color: AppPalette.textMuted, fontSize: 12),
           ),
         ),
         BreadCrumbItem(
-          content: const Text(
-            'All Booking',
+          content: Text(
+            widget.breadcrumbCurrent,
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
