@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../common/widgets/app_custom_input_field.dart';
 import 'dashboard_screen.dart';
 
 class CreateUserScreen extends StatelessWidget {
@@ -14,7 +15,6 @@ class CreateUserScreen extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              _topBar(),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
@@ -41,9 +41,9 @@ class CreateUserScreen extends StatelessWidget {
                         title: 'Basic Information',
                         child: Column(
                           children: [
-                            _input('Full Name', 'e.g. Tanvir Ahmed'),
-                            _input('Contact Number', '+880 1XXX XXXXXX'),
-                            Row(children: [Expanded(child: _input('Gender', 'Select Gender', isDrop: true)), const SizedBox(width: 10), Expanded(child: _input('Designation', 'e.g. Sales Executive'))]),
+                            _input('Full Name', 'John Doe'),
+                            _input('Contact Number', '+1 234 567 8900'),
+                            Row(children: [Expanded(child: _input('Gender', 'MALE', isDrop: true)), const SizedBox(width: 10), Expanded(child: _input('Designation', 'Sales Executive'))]),
                             const SizedBox(height: 4),
                             const Align(alignment: Alignment.centerLeft, child: Text('Permissions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F)))),
                             const SizedBox(height: 8),
@@ -51,11 +51,9 @@ class CreateUserScreen extends StatelessWidget {
                               spacing: 8,
                               runSpacing: 8,
                               children: const [
-                                _PermissionChip(label: 'Ads Create'),
-                                _PermissionChip(label: 'Booking List'),
-                                _PermissionChip(label: 'User Management', selected: true),
-                                _PermissionChip(label: 'Billing Access'),
-                                _PermissionChip(label: 'Support'),
+                                _PermissionChip(label: 'ADS_CREATE', selected: true),
+                                _PermissionChip(label: 'BOOKING_LIST', selected: true),
+                                _PermissionChip(label: 'PAYMENT_LIST', selected: true),
                               ],
                             ),
                           ],
@@ -67,10 +65,10 @@ class CreateUserScreen extends StatelessWidget {
                         title: 'Login Information',
                         child: Column(
                           children: [
-                            _input('Phone Number (Login ID)', '01XXX XXXXXX'),
-                            _input('Email Address', 'staff@agency.com'),
-                            _input('Password', '••••••••', eye: true),
-                            _input('Confirm Password', '••••••••', eye: true),
+                            _input('Phone Number (Login ID)', '017XXXXXXXX'),
+                            _input('Email Address', 'john@example.com'),
+                            _input('Password', 'Demo@123', eye: true),
+                            _input('Confirm Password', 'Demo@123', eye: true),
                           ],
                         ),
                       ),
@@ -98,7 +96,6 @@ class CreateUserScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              _bottomNav(),
             ],
           ),
         ),
@@ -106,12 +103,6 @@ class CreateUserScreen extends StatelessWidget {
     );
   }
 
-  Widget _topBar() => Container(
-    height: 72,
-    padding: const EdgeInsets.symmetric(horizontal: 18),
-    decoration: const BoxDecoration(color: Color(0xFFF8FAFF), border: Border(bottom: BorderSide(color: Color(0xFFC3CBD8)))),
-    child: Row(children: const [Icon(Icons.arrow_back, color: Color(0xFF0C4ACD)), SizedBox(width: 12), Expanded(child: Text('Create Staff Account', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0C4ACD)))), CircleAvatar(radius: 20, backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuB4C_yfcbuUkHE1nowmxJuGZdInPZQlkq_zjFa7ZzmzezaQGvThG9oX4RhQI2Gxv-uo1t_CnZDcd7192BS1MS98SPYKCj7C-jEB4127cPkjXDMi4Jd0B4q4RmtH1sOwUFjRl5GbFmpfZW77V_MgU70AVhHmA92O074NiPtALV3ANXrp2prlkALWBVA5KKn7Vh2LaLuYn8bgSwlefcMGz3X1kkZltTs0_60KBD2aHvkFdi8aPgmTtgZ4Sq1XKreHWNiJPaqllDIwv_o'))]),
-  );
 
   Widget _formCard({required IconData icon, required String title, required Widget child}) => Container(
     width: double.infinity,
@@ -125,26 +116,19 @@ class CreateUserScreen extends StatelessWidget {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F))),
       const SizedBox(height: 6),
-      Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: const Color(0xFFF9FAFD), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFB5BECF))),
-        child: Row(children: [Expanded(child: Text(placeholder, style: TextStyle(fontSize: 16, color: placeholder.contains('•') ? const Color(0xFF6B7280) : const Color(0xFFA3A8B3)))), if (isDrop) const Icon(Icons.expand_more, color: Color(0xFF6B7280)), if (eye) const Icon(Icons.visibility_outlined, color: Color(0xFF6B7280))]),
+      AppCustomInputField(
+        hintText: placeholder,
+        readOnly: true,
+        obscureText: eye,
+        suffixIcon: isDrop
+            ? const Icon(Icons.expand_more, color: Color(0xFF6B7280))
+            : eye
+                ? const Icon(Icons.visibility_outlined, color: Color(0xFF6B7280))
+                : null,
       ),
     ]),
   );
 
-  Widget _bottomNav() => Container(
-    height: 72,
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-    decoration: const BoxDecoration(color: Color(0xFFF8FAFF), border: Border(top: BorderSide(color: Color(0xFFC3CBD8)))),
-    child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: const [
-      _NavItem(icon: Icons.dashboard_outlined, label: 'Dashboard'),
-      _NavItem(icon: Icons.add_circle, label: 'Create', active: true),
-      _NavItem(icon: Icons.payments_outlined, label: 'Payments'),
-      _NavItem(icon: Icons.settings_outlined, label: 'Settings'),
-    ]),
-  );
 }
 
 class _PermissionChip extends StatelessWidget {
@@ -166,18 +150,3 @@ class _PermissionChip extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
-  const _NavItem({required this.icon, required this.label, this.active = false});
-  final IconData icon;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: active ? 14 : 8, vertical: 2),
-      decoration: active ? BoxDecoration(color: const Color(0xFFDBE7FF), borderRadius: BorderRadius.circular(999)) : null,
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: const Color(0xFF2E3547), size: 25), const SizedBox(height: 1), Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF232B3A)))]),
-    );
-  }
-}
