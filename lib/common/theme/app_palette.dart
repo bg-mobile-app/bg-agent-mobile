@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppPalette {
   static const Color brandBlue = Color(0xFF2563EB);
-  static const Color pageBackground = Color(0xFFF8FAFC);
+  static const Color pageBackground = Color(0xFFDCE7F7);
   static const Color surface = Colors.white;
   static const Color textPrimary = Color(0xFF111827);
   static const Color textMuted = Color(0xFF64748B);

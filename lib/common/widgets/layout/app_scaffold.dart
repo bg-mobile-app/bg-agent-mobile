@@ -4,8 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../../../features/booking/appointment_booking_screen.dart';
 import '../../../features/booking/my_booking_screen.dart';
 import '../../../features/booking/received_all_booking_screen.dart';
+import '../../../features/booking/received_applied_booking_screen.dart';
+import '../../../features/booking/received_bg_collect_passport_screen.dart';
+import '../../../features/booking/received_bg_sent_passport_screen.dart';
 import '../../../features/booking/return_passport_screen.dart';
 import '../../../features/booking/success_flight_screen.dart';
+import '../../../features/chat/chat_list_screen.dart';
 import '../../../features/home/change_password_screen.dart';
 import '../../../features/home/check_status_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
@@ -33,7 +37,7 @@ class AppScaffold extends StatelessWidget {
       const HomeScreen(),
       const WorkPermitListScreen(),
       const MyBookingScreen(),
-      const _DummyScreen(title: 'Chat'),
+      const ChatListScreen(),
       _DashboardHostScreen(route: dashboardPath ?? '/dashboard/customer'),
     ];
 
@@ -75,6 +79,12 @@ class _DashboardHostScreen extends StatelessWidget {
         return const MyBookingScreen();
       case '/dashboard/receive-booking/all-booking':
         return const ReceivedAllBookingScreen();
+      case '/dashboard/receive-booking/applied-booking':
+        return const ReceivedAppliedBookingScreen();
+      case '/dashboard/receive-booking/bg-collect-passport':
+        return const ReceivedBgCollectPassportScreen();
+      case '/dashboard/receive-booking/bg-sent-passport':
+        return const ReceivedBgSentPassportScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
       case '/dashboard/ads/create':
@@ -104,7 +114,9 @@ class _DashboardHostScreen extends StatelessWidget {
       case '/dashboard/ads/my':
         return const MyAdsScreen();
       default:
-        return DashboardDummyScreen(title: route.split('/').last.replaceAll('-', ' '));
+        return DashboardDummyScreen(
+          title: route.split('/').last.replaceAll('-', ' '),
+        );
     }
   }
 }
@@ -113,5 +125,8 @@ class _DummyScreen extends StatelessWidget {
   const _DummyScreen({required this.title});
   final String title;
   @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(title)), body: Center(child: Text('$title Screen (Coming Soon)')));
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: Center(child: Text('$title Screen (Coming Soon)')),
+  );
 }

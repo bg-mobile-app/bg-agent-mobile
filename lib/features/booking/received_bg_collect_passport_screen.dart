@@ -7,15 +7,16 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import '../home/dashboard_screen.dart';
 
-class ReceivedAllBookingScreen extends StatefulWidget {
-  const ReceivedAllBookingScreen({super.key});
+class ReceivedBgCollectPassportScreen extends StatefulWidget {
+  const ReceivedBgCollectPassportScreen({super.key});
 
   @override
-  State<ReceivedAllBookingScreen> createState() =>
-      _ReceivedAllBookingScreenState();
+  State<ReceivedBgCollectPassportScreen> createState() =>
+      _ReceivedBgCollectPassportScreenState();
 }
 
-class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
+class _ReceivedBgCollectPassportScreenState
+    extends State<ReceivedBgCollectPassportScreen> {
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
@@ -298,9 +299,12 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   }
 
   List<BookingItem> get _filteredBookings {
+    final bgCollectPassportOnly = _bookings
+        .where((item) => item.status == 'BG_COLLECT_PP')
+        .toList();
     final query = _searchQuery.trim().toLowerCase();
-    if (query.isEmpty) return _bookings;
-    return _bookings.where((item) {
+    if (query.isEmpty) return bgCollectPassportOnly;
+    return bgCollectPassportOnly.where((item) {
       return item.workPermitId.toLowerCase().contains(query) ||
           item.id.toString().contains(query) ||
           item.serviceType.toLowerCase().contains(query) ||
@@ -313,7 +317,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/receive-booking/all-booking',
+      currentHref: '/dashboard/receive-booking/bg-collect-passport',
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -325,7 +329,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                 _breadcrumb(),
                 const SizedBox(height: 8),
                 Text(
-                  'All Booking',
+                  'BG Collect Passport',
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
@@ -364,7 +368,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
         ),
         BreadCrumbItem(
           content: Text(
-            'All Booking',
+            'BG Collect Passport',
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
@@ -474,7 +478,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        'All Booking File • ${_filteredBookings.length} total entries',
+        'BG Collect Passport File • ${_filteredBookings.length} total entries',
         style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
       ),
       const SizedBox(height: 10),

@@ -7,15 +7,16 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import '../home/dashboard_screen.dart';
 
-class ReceivedAllBookingScreen extends StatefulWidget {
-  const ReceivedAllBookingScreen({super.key});
+class ReceivedAppliedBookingScreen extends StatefulWidget {
+  const ReceivedAppliedBookingScreen({super.key});
 
   @override
-  State<ReceivedAllBookingScreen> createState() =>
-      _ReceivedAllBookingScreenState();
+  State<ReceivedAppliedBookingScreen> createState() =>
+      _ReceivedAppliedBookingScreenState();
 }
 
-class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
+class _ReceivedAppliedBookingScreenState
+    extends State<ReceivedAppliedBookingScreen> {
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
@@ -203,86 +204,6 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
       policeClearanceExpiryDate: '2026-10-29',
       appointmentDate: '2026-06-03',
     ),
-    BookingItem(
-      workPermitId: 'WP-1233',
-      id: 4582,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-12',
-      name: 'Arman Hossain',
-      passportNo: 'U56565656',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Serbia',
-      agencyTotalCost: 96000,
-      paidAmount: 35000,
-      status: 'BG_COLLECT_PP',
-      statusLabel: 'BG Collect Passport',
-      medicalExpiryDate: '2026-11-26',
-      policeClearanceExpiryDate: '2026-10-21',
-    ),
-    BookingItem(
-      workPermitId: 'ST-2026',
-      id: 4583,
-      serviceType: 'Student Visa',
-      createdAt: '2026-05-13',
-      name: 'Maliha Noor',
-      passportNo: 'V98989898',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Ireland',
-      agencyTotalCost: 158000,
-      paidAmount: 60000,
-      status: 'BG_COLLECT_PP',
-      statusLabel: 'BG Collect Passport',
-      appointmentDate: '2026-06-18',
-      medicalExpiryDate: '2026-12-08',
-    ),
-    BookingItem(
-      workPermitId: 'WP-1240',
-      id: 4584,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-14',
-      name: 'Siam Ahmed',
-      passportNo: 'W11112222',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Malta',
-      agencyTotalCost: 99500,
-      paidAmount: 99500,
-      status: 'BG_SENT_PP',
-      statusLabel: 'BG Sent Passport',
-      visaExpiryDate: '2027-03-20',
-    ),
-    BookingItem(
-      workPermitId: 'HJ-3122',
-      id: 4585,
-      serviceType: 'Hajj Package',
-      createdAt: '2026-05-15',
-      name: 'Hasina Khatun',
-      passportNo: 'X33334444',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Saudi Arabia',
-      agencyTotalCost: 238000,
-      paidAmount: 110000,
-      status: 'A_RECEIVE_PP',
-      statusLabel: 'Passport Received',
-      appointmentDate: '2026-06-07',
-      medicalExpiryDate: '2026-12-30',
-      paymentStepCount: 3,
-      hasAdvancePayout: true,
-    ),
-    BookingItem(
-      workPermitId: 'WP-1248',
-      id: 4586,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-16',
-      name: 'Imran Kabir',
-      passportNo: 'Y77778888',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Lithuania',
-      agencyTotalCost: 93000,
-      paidAmount: 45000,
-      status: 'BG_COLLECT_PP',
-      statusLabel: 'BG Collect Passport',
-      policeClearanceExpiryDate: '2026-11-09',
-    ),
   ];
 
   @override
@@ -298,9 +219,12 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   }
 
   List<BookingItem> get _filteredBookings {
+    final appliedOnly = _bookings
+        .where((item) => item.status == 'APPLIED_FILE')
+        .toList();
     final query = _searchQuery.trim().toLowerCase();
-    if (query.isEmpty) return _bookings;
-    return _bookings.where((item) {
+    if (query.isEmpty) return appliedOnly;
+    return appliedOnly.where((item) {
       return item.workPermitId.toLowerCase().contains(query) ||
           item.id.toString().contains(query) ||
           item.serviceType.toLowerCase().contains(query) ||
@@ -313,7 +237,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/receive-booking/all-booking',
+      currentHref: '/dashboard/receive-booking/applied-booking',
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -325,7 +249,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                 _breadcrumb(),
                 const SizedBox(height: 8),
                 Text(
-                  'All Booking',
+                  'Applied Booking',
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
@@ -364,7 +288,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
         ),
         BreadCrumbItem(
           content: Text(
-            'All Booking',
+            'Applied Booking',
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
@@ -474,7 +398,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        'All Booking File • ${_filteredBookings.length} total entries',
+        'Applied Booking File • ${_filteredBookings.length} total entries',
         style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
       ),
       const SizedBox(height: 10),

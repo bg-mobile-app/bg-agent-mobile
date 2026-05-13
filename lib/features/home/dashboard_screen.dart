@@ -40,7 +40,10 @@ class DashboardScreen extends StatelessWidget {
                     const SizedBox(height: 18),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: AppPalette.surface,
                         borderRadius: BorderRadius.circular(14),
@@ -52,10 +55,15 @@ class DashboardScreen extends StatelessWidget {
                           Expanded(
                             child: Text(
                               'This Month',
-                              style: AppTextStyles.subtitle1.copyWith(fontSize: 17),
+                              style: AppTextStyles.subtitle1.copyWith(
+                                fontSize: 17,
+                              ),
                             ),
                           ),
-                          const Icon(Icons.keyboard_arrow_down_rounded, color: AppPalette.textPrimary),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppPalette.textPrimary,
+                          ),
                         ],
                       ),
                     ),
@@ -68,15 +76,53 @@ class DashboardScreen extends StatelessWidget {
                       mainAxisSpacing: 14,
                       childAspectRatio: width < 640 ? 2.45 : 2.0,
                       children: const [
-                        DashboardSmallCard(label: 'Total Applied Job', icon: Icons.menu_book_outlined, value: '0'),
-                        DashboardSmallCard(label: 'Under Processing', icon: Icons.hourglass_top_rounded, value: '0'),
-                        DashboardSmallCard(label: 'Success Flight', icon: Icons.flight_takeoff_rounded, value: '0'),
-                        DashboardSmallCard(label: 'Reject Flight', icon: Icons.flight_land_rounded, value: '0', red: true),
-                        DashboardSmallCard(label: 'Return Passport', icon: Icons.badge_outlined, value: '0'),
-                        DashboardSmallCard(label: 'Total Appointment', icon: Icons.event_note_rounded, value: '0'),
-                        DashboardSmallCard(label: 'Total Amount', icon: Icons.payments_outlined, value: '৳0'),
-                        DashboardSmallCard(label: 'Paid Amount', icon: Icons.account_balance_wallet_outlined, value: '৳0'),
-                        DashboardSmallCard(label: 'Due Amount', icon: Icons.money_off_csred_outlined, value: '৳0', red: true),
+                        DashboardSmallCard(
+                          label: 'Total Applied Job',
+                          icon: Icons.menu_book_outlined,
+                          value: '0',
+                        ),
+                        DashboardSmallCard(
+                          label: 'Under Processing',
+                          icon: Icons.hourglass_top_rounded,
+                          value: '0',
+                        ),
+                        DashboardSmallCard(
+                          label: 'Success Flight',
+                          icon: Icons.flight_takeoff_rounded,
+                          value: '0',
+                        ),
+                        DashboardSmallCard(
+                          label: 'Reject Flight',
+                          icon: Icons.flight_land_rounded,
+                          value: '0',
+                          red: true,
+                        ),
+                        DashboardSmallCard(
+                          label: 'Return Passport',
+                          icon: Icons.badge_outlined,
+                          value: '0',
+                        ),
+                        DashboardSmallCard(
+                          label: 'Total Appointment',
+                          icon: Icons.event_note_rounded,
+                          value: '0',
+                        ),
+                        DashboardSmallCard(
+                          label: 'Total Amount',
+                          icon: Icons.payments_outlined,
+                          value: '৳0',
+                        ),
+                        DashboardSmallCard(
+                          label: 'Paid Amount',
+                          icon: Icons.account_balance_wallet_outlined,
+                          value: '৳0',
+                        ),
+                        DashboardSmallCard(
+                          label: 'Due Amount',
+                          icon: Icons.money_off_csred_outlined,
+                          value: '৳0',
+                          red: true,
+                        ),
                       ],
                     ),
                   ],
@@ -99,11 +145,29 @@ class _DashboardBreadcrumbs extends StatelessWidget {
       children: const [
         Icon(Icons.home_outlined, size: 14, color: AppPalette.textMuted),
         SizedBox(width: 6),
-        Text('Home', style: TextStyle(fontSize: 12, color: AppPalette.textMuted, fontWeight: FontWeight.w500)),
+        Text(
+          'Home',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppPalette.textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         SizedBox(width: 6),
-        Icon(Icons.chevron_right_rounded, size: 16, color: AppPalette.textMuted),
+        Icon(
+          Icons.chevron_right_rounded,
+          size: 16,
+          color: AppPalette.textMuted,
+        ),
         SizedBox(width: 6),
-        Text('Dashboard', style: TextStyle(fontSize: 12, color: AppPalette.brandBlue, fontWeight: FontWeight.w700)),
+        Text(
+          'Dashboard',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppPalette.brandBlue,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }
@@ -111,39 +175,112 @@ class _DashboardBreadcrumbs extends StatelessWidget {
 
 const List<SidebarLink> kDashboardSidebarLinks = [
   SidebarLink(name: 'Home', icon: Icons.home_outlined, href: '/home'),
-  SidebarLink(name: 'Dashboard', icon: Icons.dashboard, href: '/dashboard/customer'),
-  SidebarLink(name: 'My Profile', icon: Icons.person, href: '/dashboard/customer/profile'),
-  SidebarLink(name: 'Create Ads', icon: Icons.add_box_outlined, href: '/dashboard/ads/create'),
-  SidebarLink(name: 'My Ads', icon: Icons.campaign_outlined, href: '/dashboard/ads/my'),
+  SidebarLink(
+    name: 'Dashboard',
+    icon: Icons.dashboard,
+    href: '/dashboard/customer',
+  ),
+  SidebarLink(
+    name: 'My Profile',
+    icon: Icons.person,
+    href: '/dashboard/customer/profile',
+  ),
+  SidebarLink(
+    name: 'Create Ads',
+    icon: Icons.add_box_outlined,
+    href: '/dashboard/ads/create',
+  ),
+  SidebarLink(
+    name: 'My Ads',
+    icon: Icons.campaign_outlined,
+    href: '/dashboard/ads/my',
+  ),
   SidebarLink(
     name: 'Receive Booking List',
     icon: Icons.fact_check_outlined,
     children: [
-      SidebarLink(name: 'All Booking', href: '/dashboard/receive-booking/all-booking'),
-      SidebarLink(name: 'Applied Booking', href: '/dashboard/receive-booking/applied-booking'),
-      SidebarLink(name: 'BG Collect Passport', href: '/dashboard/receive-booking/bg-collect-passport'),
-      SidebarLink(name: 'BG Sent Passport', href: '/dashboard/receive-booking/bg-sent-passport'),
-      SidebarLink(name: 'Receive Passport', href: '/dashboard/receive-booking/receive-passport'),
-      SidebarLink(name: 'Under Processing', href: '/dashboard/receive-booking/under-processing'),
-      SidebarLink(name: 'Visa Approved', href: '/dashboard/receive-booking/visa-approved'),
-      SidebarLink(name: 'BMET Done', href: '/dashboard/receive-booking/bmet-done'),
-      SidebarLink(name: 'Ticket Done', href: '/dashboard/receive-booking/ticket-done'),
-      SidebarLink(name: 'PP Sent to BG', href: '/dashboard/receive-booking/pp-sent-to-bg'),
-      SidebarLink(name: 'BG Receive Passport', href: '/dashboard/receive-booking/bg-receive-passport'),
-      SidebarLink(name: 'Ready For Flight', href: '/dashboard/receive-booking/ready-for-flight'),
-      SidebarLink(name: 'Success Flight', href: '/dashboard/receive-booking/success-flight'),
-      SidebarLink(name: 'Reject File', href: '/dashboard/receive-booking/reject-file'),
+      SidebarLink(
+        name: 'All Booking',
+        href: '/dashboard/receive-booking/all-booking',
+      ),
+      SidebarLink(
+        name: 'Applied Booking',
+        href: '/dashboard/receive-booking/applied-booking',
+      ),
+      SidebarLink(
+        name: 'BG Collect Passport',
+        href: '/dashboard/receive-booking/bg-collect-passport',
+      ),
+      SidebarLink(
+        name: 'BG Sent Passport',
+        href: '/dashboard/receive-booking/bg-sent-passport',
+      ),
+      SidebarLink(
+        name: 'Receive Passport',
+        href: '/dashboard/receive-booking/receive-passport',
+      ),
+      SidebarLink(
+        name: 'Under Processing',
+        href: '/dashboard/receive-booking/under-processing',
+      ),
+      SidebarLink(
+        name: 'Visa Approved',
+        href: '/dashboard/receive-booking/visa-approved',
+      ),
+      SidebarLink(
+        name: 'BMET Done',
+        href: '/dashboard/receive-booking/bmet-done',
+      ),
+      SidebarLink(
+        name: 'Ticket Done',
+        href: '/dashboard/receive-booking/ticket-done',
+      ),
+      SidebarLink(
+        name: 'PP Sent to BG',
+        href: '/dashboard/receive-booking/pp-sent-to-bg',
+      ),
+      SidebarLink(
+        name: 'BG Receive Passport',
+        href: '/dashboard/receive-booking/bg-receive-passport',
+      ),
+      SidebarLink(
+        name: 'Ready For Flight',
+        href: '/dashboard/receive-booking/ready-for-flight',
+      ),
+      SidebarLink(
+        name: 'Success Flight',
+        href: '/dashboard/receive-booking/success-flight',
+      ),
+      SidebarLink(
+        name: 'Reject File',
+        href: '/dashboard/receive-booking/reject-file',
+      ),
     ],
   ),
   SidebarLink(
     name: 'Passport Return List',
     icon: Icons.assignment_return_outlined,
     children: [
-      SidebarLink(name: 'Return Request/Review', href: '/dashboard/passport-return/request-review'),
-      SidebarLink(name: 'Return Accept', href: '/dashboard/passport-return/accept'),
-      SidebarLink(name: 'Return PP Sent to BG', href: '/dashboard/passport-return/pp-sent-to-bg'),
-      SidebarLink(name: 'BG Collect Return PP', href: '/dashboard/passport-return/bg-collect-return-pp'),
-      SidebarLink(name: 'BG Handover PP to Customer', href: '/dashboard/passport-return/bg-handover-pp-to-customer'),
+      SidebarLink(
+        name: 'Return Request/Review',
+        href: '/dashboard/passport-return/request-review',
+      ),
+      SidebarLink(
+        name: 'Return Accept',
+        href: '/dashboard/passport-return/accept',
+      ),
+      SidebarLink(
+        name: 'Return PP Sent to BG',
+        href: '/dashboard/passport-return/pp-sent-to-bg',
+      ),
+      SidebarLink(
+        name: 'BG Collect Return PP',
+        href: '/dashboard/passport-return/bg-collect-return-pp',
+      ),
+      SidebarLink(
+        name: 'BG Handover PP to Customer',
+        href: '/dashboard/passport-return/bg-handover-pp-to-customer',
+      ),
     ],
   ),
   SidebarLink(
@@ -151,11 +288,21 @@ const List<SidebarLink> kDashboardSidebarLinks = [
     icon: Icons.grid_view,
     children: [
       SidebarLink(name: 'All Booking', href: '/dashboard/booking/my'),
-      SidebarLink(name: 'Success Flight', href: '/dashboard/booking/my/success-file'),
-      SidebarLink(name: 'Return Passport', href: '/dashboard/booking/my/return-passport'),
+      SidebarLink(
+        name: 'Success Flight',
+        href: '/dashboard/booking/my/success-file',
+      ),
+      SidebarLink(
+        name: 'Return Passport',
+        href: '/dashboard/booking/my/return-passport',
+      ),
     ],
   ),
-  SidebarLink(name: 'Appointment Booking', icon: Icons.calendar_month, href: '/dashboard/booking/appointment'),
+  SidebarLink(
+    name: 'Appointment Booking',
+    icon: Icons.calendar_month,
+    href: '/dashboard/booking/appointment',
+  ),
   SidebarLink(
     name: 'User',
     icon: Icons.group_outlined,
@@ -168,38 +315,87 @@ const List<SidebarLink> kDashboardSidebarLinks = [
     name: 'Reminder List',
     icon: Icons.alarm_outlined,
     children: [
-      SidebarLink(name: 'Medical Expiry', href: '/dashboard/reminder/medical-expiry'),
-      SidebarLink(name: 'Police Clearance Expiry', href: '/dashboard/reminder/police-clearance-expiry'),
+      SidebarLink(
+        name: 'Medical Expiry',
+        href: '/dashboard/reminder/medical-expiry',
+      ),
+      SidebarLink(
+        name: 'Police Clearance Expiry',
+        href: '/dashboard/reminder/police-clearance-expiry',
+      ),
       SidebarLink(name: 'Visa Expiry', href: '/dashboard/reminder/visa-expiry'),
     ],
   ),
-  SidebarLink(name: 'Check Status', icon: Icons.radio_button_checked, href: '/dashboard/customer/check-status'),
-  SidebarLink(name: 'My Payments', icon: Icons.payment, href: '/dashboard/my-payments'),
+  SidebarLink(
+    name: 'Check Status',
+    icon: Icons.radio_button_checked,
+    href: '/dashboard/customer/check-status',
+  ),
+  SidebarLink(
+    name: 'My Payments',
+    icon: Icons.payment,
+    href: '/dashboard/my-payments',
+  ),
   SidebarLink(
     name: 'Receive Payment',
     icon: Icons.payments_outlined,
     children: [
-      SidebarLink(name: 'All Request Payment', href: '/dashboard/receive-payment/all-request-payment'),
-      SidebarLink(name: 'Approve Payment', href: '/dashboard/receive-payment/approve-payment'),
-      SidebarLink(name: 'Receive Payment', href: '/dashboard/receive-payment/receive-payment'),
+      SidebarLink(
+        name: 'All Request Payment',
+        href: '/dashboard/receive-payment/all-request-payment',
+      ),
+      SidebarLink(
+        name: 'Approve Payment',
+        href: '/dashboard/receive-payment/approve-payment',
+      ),
+      SidebarLink(
+        name: 'Receive Payment',
+        href: '/dashboard/receive-payment/receive-payment',
+      ),
     ],
   ),
   SidebarLink(
     name: 'Refund Payment',
     icon: Icons.request_page_outlined,
     children: [
-      SidebarLink(name: 'Request List', href: '/dashboard/refund-payment/request-list'),
-      SidebarLink(name: 'Manage Bill', href: '/dashboard/refund-payment/manage-bill'),
+      SidebarLink(
+        name: 'Request List',
+        href: '/dashboard/refund-payment/request-list',
+      ),
+      SidebarLink(
+        name: 'Manage Bill',
+        href: '/dashboard/refund-payment/manage-bill',
+      ),
     ],
   ),
-  SidebarLink(name: 'Commission', icon: Icons.account_balance_wallet_outlined, href: '/dashboard/commission'),
-  SidebarLink(name: 'Notifications', icon: Icons.notifications_none, href: '/dashboard/notifications'),
-  SidebarLink(name: 'Change Password', icon: Icons.swap_horiz, href: '/dashboard/customer/change-password'),
-  SidebarLink(name: 'Terms & Conditions', icon: Icons.gavel_outlined, href: '/dashboard/terms-and-conditions'),
+  SidebarLink(
+    name: 'Commission',
+    icon: Icons.account_balance_wallet_outlined,
+    href: '/dashboard/commission',
+  ),
+  SidebarLink(
+    name: 'Notifications',
+    icon: Icons.notifications_none,
+    href: '/dashboard/notifications',
+  ),
+  SidebarLink(
+    name: 'Change Password',
+    icon: Icons.swap_horiz,
+    href: '/dashboard/customer/change-password',
+  ),
+  SidebarLink(
+    name: 'Terms & Conditions',
+    icon: Icons.gavel_outlined,
+    href: '/dashboard/terms-and-conditions',
+  ),
 ];
 
 class DashboardPageScaffold extends StatelessWidget {
-  const DashboardPageScaffold({super.key, required this.child, required this.currentHref});
+  const DashboardPageScaffold({
+    super.key,
+    required this.child,
+    required this.currentHref,
+  });
 
   final Widget child;
   final String currentHref;
@@ -209,6 +405,9 @@ class DashboardPageScaffold extends StatelessWidget {
       '/dashboard/customer': 'Dashboard',
       '/dashboard/booking/my': 'All Booking',
       '/dashboard/receive-booking/all-booking': 'All Booking',
+      '/dashboard/receive-booking/applied-booking': 'Applied Booking',
+      '/dashboard/receive-booking/bg-collect-passport': 'BG Collect Passport',
+      '/dashboard/receive-booking/bg-sent-passport': 'BG Sent Passport',
       '/dashboard/booking/my/success-file': 'Success Flight',
       '/dashboard/booking/my/return-passport': 'Return Passport',
       '/dashboard/booking/appointment': 'Appointment Booking',
@@ -225,11 +424,18 @@ class DashboardPageScaffold extends StatelessWidget {
     };
     final matchedTitle = titles[currentHref];
     if (matchedTitle != null) return matchedTitle;
-    final parts = currentHref.split('/').where((part) => part.isNotEmpty).toList();
+    final parts = currentHref
+        .split('/')
+        .where((part) => part.isNotEmpty)
+        .toList();
     final segment = parts.isEmpty ? 'screen' : parts.last;
     return segment
         .split('-')
-        .map((word) => word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+        .map(
+          (word) => word.isEmpty
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
         .join(' ');
   }
 
@@ -368,10 +574,13 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
               const Divider(),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.logout, color: Color(0xFF475569),),
+                leading: const Icon(Icons.logout, color: Color(0xFF475569)),
                 title: const Text(
                   'Logout',
-                  style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF475569),
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -415,16 +624,30 @@ class _SidebarUserInfo extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
-        Text('User ID: $userId', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-        Text('User Email: $email', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-        Text('User Phone: $phone', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+        Text(
+          'User ID: $userId',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+        ),
+        Text(
+          'User Email: $email',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+        ),
+        Text(
+          'User Phone: $phone',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+        ),
       ],
     );
   }
 }
 
 class _SidebarNavTile extends StatelessWidget {
-  const _SidebarNavTile({required this.link, required this.isOpen, required this.onExpandToggle, required this.onTap});
+  const _SidebarNavTile({
+    required this.link,
+    required this.isOpen,
+    required this.onExpandToggle,
+    required this.onTap,
+  });
 
   final SidebarLink link;
   final bool isOpen;
@@ -439,7 +662,10 @@ class _SidebarNavTile extends StatelessWidget {
         initiallyExpanded: isOpen,
         onExpansionChanged: (_) => onExpandToggle(),
         leading: Icon(link.icon ?? Icons.circle, size: 20),
-        title: Text(link.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          link.name,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         children: link.children
             .map(
               (child) => ListTile(
@@ -455,7 +681,10 @@ class _SidebarNavTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(link.icon ?? Icons.circle, size: 20),
-      title: Text(link.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+      title: Text(
+        link.name,
+        style: const TextStyle(fontWeight: FontWeight.w500),
+      ),
       onTap: () => onTap(link),
     );
   }
