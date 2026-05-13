@@ -47,7 +47,7 @@ class AppCustomInputField extends StatelessWidget {
         keyboardType: keyboardType,
         obscureText: obscureText,
         readOnly: readOnly,
-        style: const TextStyle(color: Colors.black),
+        style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
         onChanged: onChanged,
         onTap: onTap,
         decoration: InputDecoration(

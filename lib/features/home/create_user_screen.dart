@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../common/theme/app_text_styles.dart';
 import '../../common/widgets/app_custom_input_field.dart';
 import 'dashboard_screen.dart';
 
@@ -52,27 +53,21 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Center(
+                      const Align(
+                        alignment: Alignment.centerLeft,
                         child: Text(
                           'Onboard New Talent',
-                          style: TextStyle(
-                            fontSize: 58 / 2,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827),
-                            height: 1.15,
-                          ),
+                          style: AppTextStyles.headline2,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Center(
-                        child: Text(
-                          'Fill in the details below to grant system access\nto a new team member.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Color(0xFF3F4A5F),
-                            height: 1.4,
-                          ),
+                      const Text(
+                        'Fill in the details below to grant system access\nto a new team member.',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Color(0xFF3F4A5F),
+                          height: 1.4,
                         ),
                       ),
                       const SizedBox(height: 18),
@@ -250,14 +245,33 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F)),
             ),
             const SizedBox(height: 6),
-            AppCustomInputField(
-              hintText: _selectedGender,
-              suffixIcon: DropdownButtonHideUnderline(
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFDBEAFE)),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0D2563EB),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+              child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
+                  isExpanded: true,
                   value: _selectedGender,
+                  style: AppTextStyles.body2.copyWith(color: const Color(0xFF667085)),
                   icon: const Icon(Icons.expand_more, color: Color(0xFF6B7280)),
                   items: _genders
-                      .map((gender) => DropdownMenuItem<String>(value: gender, child: Text(gender, style: const TextStyle(color: Colors.black))))
+                      .map(
+                        (gender) => DropdownMenuItem<String>(
+                          value: gender,
+                          child: Text(gender),
+                        ),
+                      )
                       .toList(),
                   onChanged: (value) {
                     if (value == null) return;
