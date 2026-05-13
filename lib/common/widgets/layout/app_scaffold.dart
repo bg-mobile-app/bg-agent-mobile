@@ -70,6 +70,14 @@ class _DashboardHostScreen extends StatelessWidget {
     switch (route) {
       case '/dashboard/customer':
         return const DashboardScreen();
+      case '/dashboard/booking/my':
+        return const MyBookingScreen();
+      case '/dashboard/receive-booking/all-booking':
+        return const MyBookingScreen(
+          currentHref: '/dashboard/receive-booking/all-booking',
+          breadcrumbParent: 'Receive Booking List',
+          breadcrumbCurrent: 'All Booking',
+        );
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
       case '/dashboard/ads/create':
