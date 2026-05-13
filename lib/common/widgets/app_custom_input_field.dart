@@ -14,6 +14,8 @@ class AppCustomInputField extends StatelessWidget {
     this.obscureText = false,
     this.readOnly = false,
     this.suffixIcon,
+    this.onChanged,
+    this.onTap,
   });
 
   final String hintText;
@@ -22,6 +24,8 @@ class AppCustomInputField extends StatelessWidget {
   final bool obscureText;
   final bool readOnly;
   final Widget? suffixIcon;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +48,8 @@ class AppCustomInputField extends StatelessWidget {
         obscureText: obscureText,
         readOnly: readOnly,
         style: const TextStyle(color: Colors.black),
+        onChanged: onChanged,
+        onTap: onTap,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppTextStyles.body2.copyWith(
