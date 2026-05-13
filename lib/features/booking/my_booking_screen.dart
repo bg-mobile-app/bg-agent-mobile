@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
+import '../../common/widgets/app_search_bar.dart';
+import '../../common/widgets/styled_data_table_card.dart';
+import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import '../home/dashboard_screen.dart';
 
@@ -13,42 +16,84 @@ class MyBookingScreen extends StatefulWidget {
 
 class _MyBookingScreenState extends State<MyBookingScreen> {
   bool _isCardView = false;
+  late final TextEditingController _searchController;
+  String _searchQuery = '';
 
   final List<BookingItem> _bookings = const [
     BookingItem(
-      postId: 'WP-1201',
-      bookingId: 4571,
+      workPermitId: 'WP-1201',
+      id: 4571,
       serviceType: 'Work Permit',
-      date: '2026-04-12',
-      customerName: 'Rakib Hasan',
+      createdAt: '2026-04-12',
+      name: 'Rakib Hasan',
       passportNo: 'B12345678',
-      packagePrice: 85000,
+      fromCountry: 'Bangladesh',
+      toCountry: 'Romania',
+      agencyTotalCost: 85000,
       paidAmount: 40000,
+      status: 'APPLIED_FILE',
       statusLabel: 'Applied File',
     ),
     BookingItem(
-      postId: 'ST-2003',
-      bookingId: 4572,
+      workPermitId: 'ST-2003',
+      id: 4572,
       serviceType: 'Student Visa',
-      date: '2026-04-18',
-      customerName: 'Nusrat Jahan',
+      createdAt: '2026-04-18',
+      name: 'Nusrat Jahan',
       passportNo: 'A98765432',
-      packagePrice: 120000,
+      fromCountry: 'Bangladesh',
+      toCountry: 'Canada',
+      agencyTotalCost: 120000,
       paidAmount: 120000,
-      statusLabel: 'Success Flight',
+      status: 'VISA_APPROVED',
+      statusLabel: 'Visa Approved',
+      visaExpiryDate: '2027-03-28',
+      paymentStepCount: 3,
+      hasAfterVisaPayout: false,
     ),
     BookingItem(
-      postId: 'HJ-3098',
-      bookingId: 4573,
+      workPermitId: 'HJ-3098',
+      id: 4573,
       serviceType: 'Hajj Package',
-      date: '2026-04-22',
-      customerName: 'Abdul Karim',
+      createdAt: '2026-04-22',
+      name: 'Abdul Karim',
       passportNo: 'E44112233',
-      packagePrice: 230000,
+      fromCountry: 'Bangladesh',
+      toCountry: 'Saudi Arabia',
+      agencyTotalCost: 230000,
       paidAmount: 80000,
+      status: 'UNDER_PROCESSING',
       statusLabel: 'Under Processing',
+      medicalExpiryDate: '2026-12-22',
+      policeClearanceExpiryDate: '2026-11-11',
+      isReturn: true,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<BookingItem> get _filteredBookings {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _bookings;
+    return _bookings.where((item) {
+      return item.workPermitId.toLowerCase().contains(query) ||
+          item.id.toString().contains(query) ||
+          item.serviceType.toLowerCase().contains(query) ||
+          item.name.toLowerCase().contains(query) ||
+          item.passportNo.toLowerCase().contains(query) ||
+          item.statusLabel.toLowerCase().contains(query);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +110,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                 _breadcrumb(),
                 const SizedBox(height: 8),
                 const Text(
-                  'My Booking',
+                  'All Booking',
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
@@ -73,11 +118,18 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search by booking ID, name, passport or status',
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  onSearchTap: () => setState(() => _searchQuery = _searchController.text),
+                ),
+                const SizedBox(height: 14),
                 _viewToggle(),
                 const SizedBox(height: 16),
                 _statsGrid(),
                 const SizedBox(height: 16),
-                if (_isCardView) _buildCardList() else _buildTableList(),
+                if (_isCardView) _buildCardList() else _tableHeader(),
               ],
             ),
           ),
@@ -97,7 +149,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
         ),
         BreadCrumbItem(
           content: const Text(
-            'My Booking',
+            'All Booking',
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
@@ -115,55 +167,9 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
   }
 
   Widget _viewToggle() {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppPalette.borderSoftBlue),
-        boxShadow: AppPalette.softShadow,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _toggleButton(
-            'List View',
-            Icons.format_list_bulleted,
-            !_isCardView,
-            () => setState(() => _isCardView = false),
-          ),
-          _toggleButton(
-            'Card View',
-            Icons.grid_view_rounded,
-            _isCardView,
-            () => setState(() => _isCardView = true),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _toggleButton(
-    String label,
-    IconData icon,
-    bool active,
-    VoidCallback onTap,
-  ) {
-    return TextButton.icon(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        backgroundColor: active ? AppPalette.brandBlue : Colors.transparent,
-        foregroundColor: active ? Colors.white : AppPalette.textMuted,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        minimumSize: const Size(0, 36),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      icon: Icon(icon, size: 15),
-      label: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-      ),
+    return ViewToggleButton(
+      isCardView: _isCardView,
+      onChanged: (isCardView) => setState(() => _isCardView = isCardView),
     );
   }
 
@@ -201,7 +207,65 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     );
   }
 
-  Widget _buildTableList() => Container(
+  Widget _buildTableList() => StyledDataTableCard(
+    dataRowMaxHeight: 86,
+    columnSpacing: 20,
+    columns: const [
+      DataColumn(label: Text('Post ID')),
+      DataColumn(label: Text('Booking ID')),
+      DataColumn(label: Text('Apply Date')),
+      DataColumn(label: Text('Customer Info')),
+      DataColumn(label: Text('From & To')),
+      DataColumn(label: Text('Total Cost')),
+      DataColumn(label: Text('Medical Expiry')),
+      DataColumn(label: Text('Police Expiry')),
+      DataColumn(label: Text('Visa Expiry')),
+      DataColumn(label: Text('Appointment')),
+      DataColumn(label: Text('Status')),
+    ],
+    rows: _filteredBookings.map((item) {
+      final style = _styleFor(item.statusLabel);
+      return DataRow(
+        onLongPress: () => _openActionsSheet(item),
+        cells: [
+          DataCell(Text(item.workPermitId)),
+          DataCell(Text(item.id.toString())),
+          DataCell(Text(_displayDate(item.createdAt))),
+          DataCell(
+            Text(
+              '${item.name}\n${item.passportNo}',
+              style: const TextStyle(height: 1.35),
+            ),
+          ),
+          DataCell(Text('${item.fromCountry} → ${item.toCountry}')),
+          DataCell(Text('৳ ${_money(item.agencyTotalCost)}')),
+          DataCell(Text(item.medicalExpiryDate == null ? '-' : _displayDate(item.medicalExpiryDate!))),
+          DataCell(Text(item.policeClearanceExpiryDate == null ? '-' : _displayDate(item.policeClearanceExpiryDate!))),
+          DataCell(Text(item.visaExpiryDate == null ? '-' : _displayDate(item.visaExpiryDate!))),
+          DataCell(Text(item.appointmentDate == null ? '-' : _displayDate(item.appointmentDate!))),
+          DataCell(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: style.badgeBg,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                item.statusLabel,
+                style: TextStyle(
+                  color: style.badgeText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }).toList(),
+  );
+
+  Widget _tableHeader() => Container(
     decoration: BoxDecoration(
       color: AppPalette.surface,
       borderRadius: BorderRadius.circular(18),
@@ -237,7 +301,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
               ),
               const Spacer(),
               Text(
-                '${_bookings.length} entries',
+                '${_filteredBookings.length} entries',
                 style: const TextStyle(
                   color: AppPalette.textMuted,
                   fontWeight: FontWeight.w600,
@@ -247,74 +311,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
           ),
         ),
         const Divider(height: 1, color: AppPalette.borderNeutral),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.all(12),
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFEFF6FF)),
-            headingTextStyle: const TextStyle(
-              fontWeight: FontWeight.w700,
-              color: AppPalette.textStrongBlue,
-              fontSize: 12.5,
-            ),
-            dataTextStyle: const TextStyle(
-              color: AppPalette.textPrimary,
-              fontSize: 13,
-            ),
-            horizontalMargin: 14,
-            columnSpacing: 20,
-            dividerThickness: 0.6,
-            columns: const [
-              DataColumn(label: Text('Post ID')),
-              DataColumn(label: Text('Booking ID')),
-              DataColumn(label: Text('Service Type')),
-              DataColumn(label: Text('Date')),
-              DataColumn(label: Text('Customer Info')),
-              DataColumn(label: Text('Package Price')),
-              DataColumn(label: Text('Paid Amount')),
-              DataColumn(label: Text('Status')),
-            ],
-            rows: _bookings.map((item) {
-              final style = _styleFor(item.statusLabel);
-              return DataRow(
-                cells: [
-                  DataCell(Text(item.postId)),
-                  DataCell(Text(item.bookingId.toString())),
-                  DataCell(Text(item.serviceType)),
-                  DataCell(Text(_displayDate(item.date))),
-                  DataCell(
-                    Text(
-                      '${item.customerName}\n${item.passportNo}',
-                      style: const TextStyle(height: 1.35),
-                    ),
-                  ),
-                  DataCell(Text('৳ ${_money(item.packagePrice)}')),
-                  DataCell(Text('৳ ${_money(item.paidAmount)}')),
-                  DataCell(
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: style.badgeBg,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        item.statusLabel,
-                        style: TextStyle(
-                          color: style.badgeText,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
+        _buildTableList(),
       ],
     ),
   );
@@ -323,13 +320,13 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'All Booking File • ${_bookings.length} total entries',
+            'All Booking File • ${_filteredBookings.length} total entries',
             style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
           ),
           const SizedBox(height: 10),
-          ..._bookings.map((item) {
+          ..._filteredBookings.map((item) {
             final style = _styleFor(item.statusLabel);
-            final dueAmount = item.packagePrice - item.paidAmount;
+            final dueAmount = item.agencyTotalCost - item.paidAmount;
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
@@ -373,7 +370,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item.customerName,
+                                item.name,
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w600,
@@ -393,7 +390,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      item.postId,
+                                      item.workPermitId,
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
@@ -437,7 +434,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                             Expanded(
                               child: _detailTile(
                                 'BOOKING ID',
-                                item.bookingId.toString(),
+                                item.id.toString(),
                                 Icons.confirmation_num_outlined,
                               ),
                             ),
@@ -457,7 +454,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                             Expanded(
                               child: _detailTile(
                                 'DATE',
-                                _displayDate(item.date),
+                                _displayDate(item.createdAt),
                                 Icons.calendar_today_outlined,
                               ),
                             ),
@@ -539,7 +536,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                         const SizedBox(height: 12),
                         _amountRow(
                           'Package Price',
-                          '${_money(item.packagePrice)} BDT',
+                                        '${_money(item.agencyTotalCost)} BDT',
                           const Color(0xFF191B24),
                           false,
                         ),
@@ -878,24 +875,110 @@ class _CardStyle {
 
 class BookingItem {
   const BookingItem({
-    required this.postId,
-    required this.bookingId,
+    required this.workPermitId,
+    required this.id,
     required this.serviceType,
-    required this.date,
-    required this.customerName,
+    required this.createdAt,
+    required this.name,
     required this.passportNo,
-    required this.packagePrice,
+    required this.fromCountry,
+    required this.toCountry,
+    required this.agencyTotalCost,
     required this.paidAmount,
+    required this.status,
     required this.statusLabel,
+    this.medicalExpiryDate,
+    this.policeClearanceExpiryDate,
+    this.visaExpiryDate,
+    this.appointmentDate,
+    this.isReturn = false,
+    this.paymentStepCount = 0,
+    this.hasAdvancePayout = false,
+    this.hasAfterVisaPayout = false,
+    this.hasBeforeFlightPayout = false,
   });
 
-  final String postId;
-  final int bookingId;
+  final String workPermitId;
+  final int id;
   final String serviceType;
-  final String date;
-  final String customerName;
+  final String createdAt;
+  final String name;
   final String passportNo;
-  final int packagePrice;
+  final String fromCountry;
+  final String toCountry;
+  final int agencyTotalCost;
   final int paidAmount;
+  final String status;
   final String statusLabel;
+  final String? medicalExpiryDate;
+  final String? policeClearanceExpiryDate;
+  final String? visaExpiryDate;
+  final String? appointmentDate;
+  final bool isReturn;
+  final int paymentStepCount;
+  final bool hasAdvancePayout;
+  final bool hasAfterVisaPayout;
+  final bool hasBeforeFlightPayout;
 }
+  List<String> _actionsFor(BookingItem row) {
+    if (row.isReturn) return const ['File in Return'];
+    final actions = <String, List<String>>{
+      'APPLIED_FILE': ['View Post', 'Reject'],
+      'BG_COLLECT_PP': [],
+      'BG_SENT_PP': ['Receive Passport'],
+      'A_RECEIVE_PP': ['Sent to Processing', 'Payment Request', 'Add Reminder', 'View Documents', 'Reject'],
+      'UNDER_PROCESSING': ['Visa Approved', 'Upload Documents', 'Add Reminder', 'Visa Reminder', 'View Documents', 'Reject'],
+      'VISA_APPROVED': ['BMET Done', 'Upload Documents', 'Payment Request', 'View Documents', 'Reject'],
+      'BMET_DONE': ['Ticket Done', 'Upload Documents', 'View Documents', 'Reject'],
+      'TICKET_DONE': ['Payment Request', 'PP Send to BG', 'Upload Documents', 'View Documents', 'Reject'],
+      'PP_SENT_TO_BG': ['View Documents'],
+      'BG_RECEIVED_PP': ['View Documents'],
+      'READY_FOR_FLIGHT': ['View Documents'],
+      'SUCCESS_FLIGHT': ['View Documents'],
+      'RETURN_PP_SENT_TO_BG': ['View Documents'],
+      'BG_COLLECT_RETURN_PP': ['View Documents'],
+      'BG_HANDOVER_PP_TO_CUSTOMER': ['View Documents'],
+      'REJECT_FILE': [],
+    }[row.status] ?? <String>[];
+    return actions.where((action) {
+      if (action == 'Sent to Processing' && row.status == 'A_RECEIVE_PP') {
+        if (row.paymentStepCount == 3 && !row.hasAdvancePayout) return false;
+      }
+      if (action == 'BMET Done' && row.status == 'VISA_APPROVED' && !row.hasAfterVisaPayout) return false;
+      if (action == 'Payment Request') {
+        if (row.status == 'A_RECEIVE_PP' && (row.paymentStepCount != 3 || row.hasAdvancePayout)) return false;
+        if (row.status == 'VISA_APPROVED' && row.hasAfterVisaPayout) return false;
+        if (row.status == 'TICKET_DONE' && row.hasBeforeFlightPayout) return false;
+      }
+      if (action == 'PP Send to BG' && row.status == 'TICKET_DONE' && !row.hasBeforeFlightPayout) return false;
+      return true;
+    }).toList();
+  }
+
+  void _openActionsSheet(BookingItem row) {
+    final actions = _actionsFor(row);
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Actions • ${row.statusLabel}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              const SizedBox(height: 12),
+              if (actions.isEmpty) const Text('No actions available') else Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: actions.map((action) => OutlinedButton(
+                  onPressed: row.isReturn ? null : () => Navigator.pop(context),
+                  child: Text(action),
+                )).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
