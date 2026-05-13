@@ -226,7 +226,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     rows: _filteredBookings.map((item) {
       final style = _styleFor(item.statusLabel);
       return DataRow(
-        onLongPress: () => _openActionsSheet(item),
+        onLongPress: () => _openActionsSheet(context, item),
         cells: [
           DataCell(Text(item.workPermitId)),
           DataCell(Text(item.id.toString())),
@@ -955,7 +955,7 @@ class BookingItem {
     }).toList();
   }
 
-  void _openActionsSheet(BookingItem row) {
+  void _openActionsSheet(BuildContext context, BookingItem row) {
     final actions = _actionsFor(row);
     showModalBottomSheet<void>(
       context: context,

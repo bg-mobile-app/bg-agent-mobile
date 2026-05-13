@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
+import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
 import '../../common/widgets/app_custom_input_field.dart';
 import 'dashboard_screen.dart';
@@ -53,6 +55,8 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _breadcrumb(),
+                      const SizedBox(height: 8),
                       const Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -64,11 +68,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                       const Text(
                         'Fill in the details below to grant system access\nto a new team member.',
                         textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF3F4A5F),
-                          height: 1.4,
-                        ),
+                        style: AppTextStyles.caption,
                       ),
                       const SizedBox(height: 18),
                       _formCard(
@@ -234,6 +234,39 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           ],
         ),
       );
+
+  Widget _breadcrumb() {
+    return BreadCrumb(
+      items: <BreadCrumbItem>[
+        BreadCrumbItem(
+          content: Text(
+            'Dashboard',
+            style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted),
+          ),
+        ),
+        BreadCrumbItem(
+          content: Text(
+            'Manage User',
+            style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted),
+          ),
+        ),
+        BreadCrumbItem(
+          content: Text(
+            'Create User',
+            style: AppTextStyles.caption.copyWith(
+              color: AppPalette.textStrongBlue,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+      divider: const Icon(
+        Icons.chevron_right_rounded,
+        size: 16,
+        color: Color(0xFF94A3B8),
+      ),
+    );
+  }
 
   Widget _genderInput() => Padding(
         padding: const EdgeInsets.only(bottom: 14),
