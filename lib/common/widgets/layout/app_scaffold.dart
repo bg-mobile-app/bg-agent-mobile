@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../features/booking/appointment_booking_screen.dart';
 import '../../../features/booking/my_booking_screen.dart';
+import '../../../features/booking/received_all_booking_screen.dart';
 import '../../../features/booking/return_passport_screen.dart';
 import '../../../features/booking/success_flight_screen.dart';
 import '../../../features/home/change_password_screen.dart';
@@ -73,11 +74,7 @@ class _DashboardHostScreen extends StatelessWidget {
       case '/dashboard/booking/my':
         return const MyBookingScreen();
       case '/dashboard/receive-booking/all-booking':
-        return const MyBookingScreen(
-          currentHref: '/dashboard/receive-booking/all-booking',
-          breadcrumbParent: 'Receive Booking List',
-          breadcrumbCurrent: 'All Booking',
-        );
+        return const ReceivedAllBookingScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
       case '/dashboard/ads/create':

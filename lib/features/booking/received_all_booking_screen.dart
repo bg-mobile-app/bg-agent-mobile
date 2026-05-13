@@ -7,23 +7,14 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import '../home/dashboard_screen.dart';
 
-class MyBookingScreen extends StatefulWidget {
-  const MyBookingScreen({
-    super.key,
-    this.currentHref = '/dashboard/booking/my',
-    this.breadcrumbParent = 'Recruitment Portal',
-    this.breadcrumbCurrent = 'All Booking',
-  });
-
-  final String currentHref;
-  final String breadcrumbParent;
-  final String breadcrumbCurrent;
+class ReceivedAllBookingScreen extends StatefulWidget {
+  const ReceivedAllBookingScreen({super.key});
 
   @override
-  State<MyBookingScreen> createState() => _MyBookingScreenState();
+  State<ReceivedAllBookingScreen> createState() => _ReceivedAllBookingScreenState();
 }
 
-class _MyBookingScreenState extends State<MyBookingScreen> {
+class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
@@ -107,7 +98,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: widget.currentHref,
+      currentHref: '/dashboard/receive-booking/all-booking',
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -135,10 +126,9 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                 ),
                 const SizedBox(height: 14),
                 _viewToggle(),
+
                 const SizedBox(height: 16),
-                _statsGrid(),
-                const SizedBox(height: 16),
-                if (_isCardView) _buildCardList() else _tableHeader(),
+                if (_isCardView) _buildCardList() else _buildTableList(),
               ],
             ),
           ),
@@ -152,7 +142,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
       items: <BreadCrumbItem>[
         BreadCrumbItem(
           content: Text(
-            'Recruitment Portal',
+            'Receive Booking List',
             style: TextStyle(color: AppPalette.textMuted, fontSize: 12),
           ),
         ),
@@ -182,40 +172,6 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     );
   }
 
-  Widget _statsGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.45,
-      children: const [
-        _StatCard(
-          title: 'TOTAL BOOKINGS',
-          value: '12',
-          icon: Icons.inventory_2_outlined,
-        ),
-        _StatCard(
-          title: 'ACTIVE FILES',
-          value: '08',
-          icon: Icons.work_history_outlined,
-        ),
-        _StatCard(
-          title: 'SUCCESS RATE',
-          value: '94%',
-          icon: Icons.trending_up_rounded,
-        ),
-        _StatCard(
-          title: 'PENDING DUES',
-          value: '৳ 235k',
-          icon: Icons.account_balance_wallet_outlined,
-          error: true,
-        ),
-      ],
-    );
-  }
-
   Widget _buildTableList() => StyledDataTableCard(
     dataRowMaxHeight: 86,
     columnSpacing: 20,
@@ -235,7 +191,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     rows: _filteredBookings.map((item) {
       final style = _styleFor(item.statusLabel);
       return DataRow(
-        onLongPress: () => _openActionsSheet(context, item),
+        onLongPress: () => _openActionsSheet(item),
         cells: [
           DataCell(Text(item.workPermitId)),
           DataCell(Text(item.id.toString())),
@@ -272,57 +228,6 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
         ],
       );
     }).toList(),
-  );
-
-  Widget _tableHeader() => Container(
-    decoration: BoxDecoration(
-      color: AppPalette.surface,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppPalette.borderSoftBlue),
-      boxShadow: AppPalette.cardShadow,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.table_chart_outlined,
-                  color: AppPalette.brandBlue,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'All Booking Files',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppPalette.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${_filteredBookings.length} entries',
-                style: const TextStyle(
-                  color: AppPalette.textMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1, color: AppPalette.borderNeutral),
-        _buildTableList(),
-      ],
-    ),
   );
 
   Widget _buildCardList() => Column(
@@ -964,7 +869,7 @@ class BookingItem {
     }).toList();
   }
 
-  void _openActionsSheet(BuildContext context, BookingItem row) {
+  void _openActionsSheet(BookingItem row) {
     final actions = _actionsFor(row);
     showModalBottomSheet<void>(
       context: context,
