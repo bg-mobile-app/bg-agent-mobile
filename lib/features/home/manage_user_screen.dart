@@ -578,6 +578,21 @@ class _StaffCard extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: canManage ? () {} : null,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit'),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE9EDFF),
+                    foregroundColor: AppColors.textPrimary,
+                    elevation: 2,
+                    side: BorderSide.none,
+                    shadowColor: Colors.black.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
             ],
           ),
         ],
