@@ -8,7 +8,16 @@ import '../../common/theme/app_palette.dart';
 import '../home/dashboard_screen.dart';
 
 class MyBookingScreen extends StatefulWidget {
-  const MyBookingScreen({super.key});
+  const MyBookingScreen({
+    super.key,
+    this.currentHref = '/dashboard/booking/my',
+    this.breadcrumbParent = 'Recruitment Portal',
+    this.breadcrumbCurrent = 'All Booking',
+  });
+
+  final String currentHref;
+  final String breadcrumbParent;
+  final String breadcrumbCurrent;
 
   @override
   State<MyBookingScreen> createState() => _MyBookingScreenState();
@@ -98,7 +107,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/booking/my',
+      currentHref: widget.currentHref,
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -226,7 +235,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     rows: _filteredBookings.map((item) {
       final style = _styleFor(item.statusLabel);
       return DataRow(
-        onLongPress: () => _openActionsSheet(item),
+        onLongPress: () => _openActionsSheet(context, item),
         cells: [
           DataCell(Text(item.workPermitId)),
           DataCell(Text(item.id.toString())),
@@ -955,7 +964,7 @@ class BookingItem {
     }).toList();
   }
 
-  void _openActionsSheet(BookingItem row) {
+  void _openActionsSheet(BuildContext context, BookingItem row) {
     final actions = _actionsFor(row);
     showModalBottomSheet<void>(
       context: context,
