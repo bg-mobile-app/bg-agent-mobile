@@ -476,10 +476,11 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
       ..._filteredBookings.map((item) {
         return Container(
           margin: const EdgeInsets.only(bottom: 18),
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: const Color(0xFFFFFFFF),
             borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0x334B5D7A)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x0D000000),
@@ -496,8 +497,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
               _profileSection(item),
               const SizedBox(height: 14),
               _detailsGrid(item),
-              const SizedBox(height: 14),
-              _payoutIndicators(item),
+              _financialBar(item),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -515,9 +515,16 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  IconButton.filledTonal(
+                  IconButton(
                     onPressed: () => _openActionsSheet(context, item),
-                    icon: const Icon(Icons.more_horiz),
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFE8EDF7),
+                      minimumSize: const Size(56, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.more_vert),
                   ),
                 ],
               ),
@@ -573,14 +580,19 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   Widget _profileSection(BookingItem item) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: const Color(0xFFDCE9FF),
-          child: Text(
-            item.name.isEmpty ? '?' : item.name[0].toUpperCase(),
-            style: const TextStyle(
-              color: AppPalette.textStrongBlue,
-              fontWeight: FontWeight.w800,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: 56,
+            height: 56,
+            color: const Color(0xFFDCE9FF),
+            alignment: Alignment.center,
+            child: Text(
+              item.name.isEmpty ? '?' : item.name[0].toUpperCase(),
+              style: const TextStyle(
+                color: AppPalette.textStrongBlue,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ),
@@ -591,7 +603,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
             children: [
               Text(
                 item.name,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 2),
               Text(
@@ -607,51 +619,166 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
 
   Widget _detailsGrid(BookingItem item) {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F8FF),
-        borderRadius: BorderRadius.circular(14),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0x334B5D7A)),
+          bottom: BorderSide(color: Color(0x334B5D7A)),
+        ),
       ),
       child: Column(
         children: [
-          _detailRow('Route', '${item.fromCountry} → ${item.toCountry}'),
-          _detailRow('Created At', _displayDate(item.createdAt)),
-          _detailRow(
-            'Medical Expiry',
-            item.medicalExpiryDate == null ? '22/08/2026' : _displayDate(item.medicalExpiryDate!),
+          Row(
+            children: [
+              Expanded(
+                child: _detailBlock('Route', '${item.fromCountry} → ${item.toCountry}'),
+              ),
+              Expanded(child: _detailBlock('Created At', _displayDate(item.createdAt))),
+            ],
           ),
-          _detailRow(
-            'Police Clearance Expiry',
-            item.policeClearanceExpiryDate == null
-                ? '22/08/2026'
-                : _displayDate(item.policeClearanceExpiryDate!),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _detailBlock(
+                  'Medical Expiry',
+                  item.medicalExpiryDate == null ? '22/08/2026' : _displayDate(item.medicalExpiryDate!),
+                ),
+              ),
+              Expanded(
+                child: _detailBlock(
+                  'Police Expiry',
+                  item.policeClearanceExpiryDate == null
+                      ? '22/08/2026'
+                      : _displayDate(item.policeClearanceExpiryDate!),
+                ),
+              ),
+            ],
           ),
-          _detailRow(
-            'Visa Expiry',
-            item.visaExpiryDate == null ? '22/08/2026' : _displayDate(item.visaExpiryDate!),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _detailBlock(
+                  'Visa Expiry',
+                  item.visaExpiryDate == null ? '22/08/2026' : _displayDate(item.visaExpiryDate!),
+                ),
+              ),
+              Expanded(child: _payoutIndicators(item)),
+            ],
           ),
-          _detailRow('Agency Total Cost', '৳ ${_money(item.agencyTotalCost)}'),
-          _detailRow('Paid Amount', '৳ ${_money(item.paidAmount)}'),
         ],
       ),
     );
   }
 
-  Widget _detailRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppPalette.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
+  Widget _detailBlock(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppPalette.textMuted,
+              fontWeight: FontWeight.w700,
+              letterSpacing: .2,
             ),
+          ),
+          const SizedBox(height: 3),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
+  Widget _payoutIndicators(BookingItem item) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'PAYOUT',
+          style: TextStyle(
+            fontSize: 11,
+            color: AppPalette.textMuted,
+            fontWeight: FontWeight.w700,
+            letterSpacing: .2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _payoutChip('Adv', item.hasAdvancePayout),
+            _payoutChip('Visa', item.hasAfterVisaPayout),
+            _payoutChip('Flight', item.hasBeforeFlightPayout),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _payoutChip(String label, bool done) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: done ? const Color(0xFFE8F8EE) : const Color(0xFFFFF4E8),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            done ? Icons.check_circle : Icons.pending,
+            size: 14,
+            color: done ? AppPalette.success : AppPalette.warning,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _financialBar(BookingItem item) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF3FA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _moneyBlock('Total Cost', '৳ ${_money(item.agencyTotalCost)}', true),
+          ),
+          Expanded(
+            child: _moneyBlock('Paid Amount', '৳ ${_money(item.paidAmount)}', false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _moneyBlock(String label, String value, bool primary) {
+    return Column(
+      crossAxisAlignment: primary ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: AppPalette.textMuted)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            color: primary ? AppPalette.textStrongBlue : AppPalette.textPrimary,
           ),
         ),
         const SizedBox(width: 10),
