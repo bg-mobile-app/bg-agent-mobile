@@ -518,17 +518,17 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  IconButton(
-                    onPressed: () => _openActionsSheet(context, item),
-                    style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFFE8EDF7),
-                      minimumSize: const Size(56, 56),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text('Visa Approved'),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8EDF7),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    icon: const Icon(Icons.more_vert),
+                    child: IconButton(
+                      onPressed: () => _openActionsSheet(context, item),
+                      icon: const Icon(Icons.more_vert),
+                    ),
                   ),
                 ],
               ),
