@@ -267,6 +267,7 @@ class ReceivedBookingCard extends StatelessWidget {
 
   Widget _financialBar() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
