@@ -547,26 +547,13 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    color: AppPalette.textMuted,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                  children: [
-                    const TextSpan(text: 'Booking ID: '),
-                    TextSpan(
-                      text: '#${item.id}',
-                      style: const TextStyle(
-                        color: AppPalette.textStrongBlue,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                    icon: const Icon(Icons.more_vert),
-                  ),
-                ],
+              Text(
+                'Booking ID: #${item.id}',
+                style: const TextStyle(
+                  color: AppPalette.textStrongBlue,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
