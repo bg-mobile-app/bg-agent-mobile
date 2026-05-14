@@ -315,7 +315,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     return DashboardPageScaffold(
       currentHref: '/dashboard/receive-booking/all-booking',
       child: Container(
-        color: AppPalette.pageBackground,
+        color: const Color(0xFFF4F8FF),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -473,326 +473,60 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   Widget _buildCardList() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        'All Booking File • ${_filteredBookings.length} total entries',
-        style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
-      ),
-      const SizedBox(height: 10),
       ..._filteredBookings.map((item) {
-        final style = _styleFor(item.statusLabel);
-        final dueAmount = item.agencyTotalCost - item.paidAmount;
         return Container(
-          margin: const EdgeInsets.only(bottom: 16),
+          margin: const EdgeInsets.only(bottom: 18),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: const Color(0xFFFFFFFF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFBBC1D6)),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0x334B5D7A)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x0D000000),
-                blurRadius: 15,
-                offset: Offset(0, 8),
+                blurRadius: 26,
+                offset: Offset(0, 12),
               ),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
+              _cardHeader(item),
+              const SizedBox(height: 14),
+              _profileSection(item),
+              const SizedBox(height: 14),
+              _detailsGrid(item),
+              _financialBar(item),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {},
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        backgroundColor: AppPalette.textStrongBlue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text('Visa Approved'),
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: style.iconBg,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Icon(style.icon, color: style.iconColor, size: 34),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.name,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF191B24),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFD8E6FF),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  item.workPermitId,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF38485D),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                '•',
-                                style: TextStyle(
-                                  color: Color(0xFF737687),
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  item.serviceType,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    color: Color(0xFF434655),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                  const SizedBox(width: 10),
+                  IconButton(
+                    onPressed: () => _openActionsSheet(context, item),
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFE8EDF7),
+                      minimumSize: const Size(56, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _detailTile(
-                            'BOOKING ID',
-                            item.id.toString(),
-                            Icons.confirmation_num_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _detailTile(
-                            'STATUS',
-                            item.statusLabel,
-                            Icons.groups_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _detailTile(
-                            'DATE',
-                            _displayDate(item.createdAt),
-                            Icons.calendar_today_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _detailTile(
-                            'SERVICE TYPE',
-                            item.serviceType,
-                            Icons.article_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F3FF),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFBBC1D6)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.flight,
-                            color: Color(0xFF434655),
-                            size: 30,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'PASSPORT NUMBER',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    letterSpacing: 1,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF737687),
-                                  ),
-                                ),
-                                Text(
-                                  item.passportNo,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: style.badgeBg,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item.statusLabel,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: style.badgeText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const Divider(color: Color(0xFFBBC1D6)),
-                    const SizedBox(height: 12),
-                    _amountRow(
-                      'Package Price',
-                      '${_money(item.agencyTotalCost)} BDT',
-                      const Color(0xFF191B24),
-                      false,
-                    ),
-                    const SizedBox(height: 12),
-                    _amountRow(
-                      'Paid Amount',
-                      '${_money(item.paidAmount)} BDT',
-                      AppPalette.brandBlue,
-                      true,
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAD6D6),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'DUE AMOUNT',
-                            style: TextStyle(
-                              color: Color(0xFF9F0E0E),
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '${_money(dueAmount)} BDT',
-                            style: const TextStyle(
-                              color: Color(0xFF9F0E0E),
-                              fontWeight: FontWeight.w800,
-                              fontSize: 20,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () {},
-                        icon: Icon(style.ctaIcon, size: 18),
-                        label: Text(
-                          style.ctaLabel,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(56),
-                          backgroundColor: AppPalette.borderSoftBlue,
-                          foregroundColor: AppPalette.textMuted,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
+                    icon: const Icon(Icons.more_vert),
                   ),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Color(0xFF737687),
-                      size: 18,
-                    ),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'PLEASE ARRIVE 15 MINUTES BEFORE YOUR SCHEDULED TIME.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF434655),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ],
           ),
@@ -801,53 +535,250 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     ],
   );
 
-  Widget _detailTile(String label, String value, IconData icon) {
+  Widget _cardHeader(BookingItem item) {
+    final style = _styleFor(item.statusLabel);
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Booking #${item.id}',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Post ID: ${item.workPermitId}',
+                style: const TextStyle(
+                  color: AppPalette.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: style.badgeBg,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            item.statusLabel.toUpperCase(),
+            style: TextStyle(
+              color: style.badgeText,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _profileSection(BookingItem item) {
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: 56,
+            height: 56,
+            color: const Color(0xFFDCE9FF),
+            alignment: Alignment.center,
+            child: Text(
+              item.name.isEmpty ? '?' : item.name[0].toUpperCase(),
+              style: const TextStyle(
+                color: AppPalette.textStrongBlue,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.name,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Passport: ${item.passportNo}',
+                style: const TextStyle(color: AppPalette.textMuted),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _detailsGrid(BookingItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0x334B5D7A)),
+          bottom: BorderSide(color: Color(0x334B5D7A)),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _detailBlock('Route', '${item.fromCountry} → ${item.toCountry}'),
+              ),
+              Expanded(child: _detailBlock('Created At', _displayDate(item.createdAt))),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _detailBlock(
+                  'Medical Expiry',
+                  item.medicalExpiryDate == null ? '22/08/2026' : _displayDate(item.medicalExpiryDate!),
+                ),
+              ),
+              Expanded(
+                child: _detailBlock(
+                  'Police Expiry',
+                  item.policeClearanceExpiryDate == null
+                      ? '22/08/2026'
+                      : _displayDate(item.policeClearanceExpiryDate!),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _detailBlock(
+                  'Visa Expiry',
+                  item.visaExpiryDate == null ? '22/08/2026' : _displayDate(item.visaExpiryDate!),
+                ),
+              ),
+              Expanded(child: _buildPayoutIndicators(item)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailBlock(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppPalette.textMuted,
+              fontWeight: FontWeight.w700,
+              letterSpacing: .2,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPayoutIndicators(BookingItem item) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            letterSpacing: 1,
+        const Text(
+          'PAYOUT',
+          style: TextStyle(
+            fontSize: 11,
+            color: AppPalette.textMuted,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF737687),
+            letterSpacing: .2,
           ),
         ),
-        const SizedBox(height: 6),
-        Row(
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
           children: [
-            Icon(icon, size: 22, color: AppPalette.brandBlue),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
+            _buildPayoutChip('Adv', item.hasAdvancePayout),
+            _buildPayoutChip('Visa', item.hasAfterVisaPayout),
+            _buildPayoutChip('Flight', item.hasBeforeFlightPayout),
           ],
         ),
       ],
     );
   }
 
-  Widget _amountRow(String label, String value, Color color, bool bold) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildPayoutChip(String label, bool done) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: done ? const Color(0xFFE8F8EE) : const Color(0xFFFFF4E8),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            done ? Icons.check_circle : Icons.pending,
+            size: 14,
+            color: done ? AppPalette.success : AppPalette.warning,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _financialBar(BookingItem item) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF3FA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _moneyBlock('Total Cost', '৳ ${_money(item.agencyTotalCost)}', true),
+          ),
+          Expanded(
+            child: _moneyBlock('Paid Amount', '৳ ${_money(item.paidAmount)}', false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _moneyBlock(String label, String value, bool primary) {
+    return Column(
+      crossAxisAlignment: primary ? CrossAxisAlignment.start : CrossAxisAlignment.end,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 15, color: Color(0xFF434655)),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: AppPalette.textMuted)),
+        const SizedBox(height: 2),
         Text(
           value,
           style: TextStyle(
-            fontSize: 19,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
-            color: color,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            color: primary ? AppPalette.textStrongBlue : AppPalette.textPrimary,
           ),
         ),
       ],
