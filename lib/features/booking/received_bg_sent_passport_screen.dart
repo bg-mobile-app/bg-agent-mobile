@@ -5,6 +5,7 @@ import '../../common/widgets/app_search_bar.dart';
 import '../../common/widgets/styled_data_table_card.dart';
 import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
+import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
 
 class ReceivedBgSentPassportScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _ReceivedBgSentPassportScreenState
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
+  DateTimeRange? _selectedDateRange;
 
   final List<BookingItem> _bookings = const [
     BookingItem(
@@ -299,12 +301,19 @@ class _ReceivedBgSentPassportScreenState
   }
 
   List<BookingItem> get _filteredBookings {
-    final bgSentPassportOnly = _bookings
-        .where((item) => item.status == 'BG_SENT_PP')
+    final underProcessingOnly = _bookings
+        .where((item) => item.status == 'UNDER_PROCESSING')
         .toList();
     final query = _searchQuery.trim().toLowerCase();
-    if (query.isEmpty) return bgSentPassportOnly;
-    return bgSentPassportOnly.where((item) {
+    return underProcessingOnly.where((item) {
+      final createdAt = DateTime.parse(item.createdAt);
+      final matchesDate =
+          _selectedDateRange == null ||
+          (!createdAt.isBefore(_selectedDateRange!.start) &&
+              !createdAt.isAfter(_selectedDateRange!.end));
+      if (!matchesDate) return false;
+
+      if (query.isEmpty) return true;
       return item.workPermitId.toLowerCase().contains(query) ||
           item.id.toString().contains(query) ||
           item.serviceType.toLowerCase().contains(query) ||
@@ -321,38 +330,88 @@ class _ReceivedBgSentPassportScreenState
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _breadcrumb(),
-                const SizedBox(height: 8),
-                Text(
-                  'BG Sent Passport',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w800,
-                    color: AppPalette.textPrimary,
-                  ),
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _breadcrumb(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Under Processing',
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    AppSearchBar(
+                      controller: _searchController,
+                      hintText: 'Search by booking ID, name, passport or status',
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      onSearchTap: () =>
+                          setState(() => _searchQuery = _searchController.text),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        _viewToggle(),
+                        const SizedBox(width: 10),
+                        Expanded(child: _dateRangeButton()),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_isCardView) _buildCardList() else _buildTableList(),
+                  ],
                 ),
-                const SizedBox(height: 14),
-                AppSearchBar(
-                  controller: _searchController,
-                  hintText: 'Search by booking ID, name, passport or status',
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  onSearchTap: () =>
-                      setState(() => _searchQuery = _searchController.text),
-                ),
-                const SizedBox(height: 14),
-                _viewToggle(),
-
-                const SizedBox(height: 16),
-                if (_isCardView) _buildCardList() else _buildTableList(),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _dateRangeButton() {
+    final label = _selectedDateRange == null
+        ? 'Select Date Range'
+        : '${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)}';
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD8E3FA)),
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () async {
+              final now = DateTime.now();
+              final picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(now.year + 3, 12, 31),
+                initialDateRange: _selectedDateRange,
+              );
+              if (picked == null) return;
+              setState(() => _selectedDateRange = picked);
+            },
+            child: Row(children: [
+              const Icon(Icons.date_range_rounded, size: 18, color: AppPalette.textStrongBlue),
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(color: AppPalette.textStrongBlue, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+          const Spacer(),
+          if (_selectedDateRange != null)
+            InkWell(onTap: () => setState(() => _selectedDateRange = null), child: const Icon(Icons.close_rounded, size: 18, color: AppPalette.textMuted)),
+        ],
       ),
     );
   }
@@ -368,7 +427,7 @@ class _ReceivedBgSentPassportScreenState
         ),
         BreadCrumbItem(
           content: Text(
-            'BG Sent Passport',
+            'Under Processing',
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
@@ -478,385 +537,38 @@ class _ReceivedBgSentPassportScreenState
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        'BG Sent Passport File • ${_filteredBookings.length} total entries',
+        'Under Processing File • ${_filteredBookings.length} total entries',
         style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
       ),
       const SizedBox(height: 10),
       ..._filteredBookings.map((item) {
         final style = _styleFor(item.statusLabel);
-        final dueAmount = item.agencyTotalCost - item.paidAmount;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFFFF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFBBC1D6)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0D000000),
-                blurRadius: 15,
-                offset: Offset(0, 8),
-              ),
-            ],
+        return ReceivedBookingCard(
+          style: ReceivedBookingCardStyle(
+            badgeBg: style.badgeBg,
+            badgeText: style.badgeText,
+            ctaLabel: style.ctaLabel,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: style.iconBg,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Icon(style.icon, color: style.iconColor, size: 34),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.name,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF191B24),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFD8E6FF),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  item.workPermitId,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF38485D),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                '•',
-                                style: TextStyle(
-                                  color: Color(0xFF737687),
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  item.serviceType,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    color: Color(0xFF434655),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _detailTile(
-                            'BOOKING ID',
-                            item.id.toString(),
-                            Icons.confirmation_num_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _detailTile(
-                            'STATUS',
-                            item.statusLabel,
-                            Icons.groups_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _detailTile(
-                            'DATE',
-                            _displayDate(item.createdAt),
-                            Icons.calendar_today_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _detailTile(
-                            'SERVICE TYPE',
-                            item.serviceType,
-                            Icons.article_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F3FF),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFBBC1D6)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.flight,
-                            color: Color(0xFF434655),
-                            size: 30,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'PASSPORT NUMBER',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    letterSpacing: 1,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF737687),
-                                  ),
-                                ),
-                                Text(
-                                  item.passportNo,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: style.badgeBg,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item.statusLabel,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: style.badgeText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const Divider(color: Color(0xFFBBC1D6)),
-                    const SizedBox(height: 12),
-                    _amountRow(
-                      'Package Price',
-                      '${_money(item.agencyTotalCost)} BDT',
-                      const Color(0xFF191B24),
-                      false,
-                    ),
-                    const SizedBox(height: 12),
-                    _amountRow(
-                      'Paid Amount',
-                      '${_money(item.paidAmount)} BDT',
-                      AppPalette.brandBlue,
-                      true,
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAD6D6),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'DUE AMOUNT',
-                            style: TextStyle(
-                              color: Color(0xFF9F0E0E),
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '${_money(dueAmount)} BDT',
-                            style: const TextStyle(
-                              color: Color(0xFF9F0E0E),
-                              fontWeight: FontWeight.w800,
-                              fontSize: 20,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () {},
-                        icon: Icon(style.ctaIcon, size: 18),
-                        label: Text(
-                          style.ctaLabel,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(56),
-                          backgroundColor: AppPalette.borderSoftBlue,
-                          foregroundColor: AppPalette.textMuted,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Color(0xFF737687),
-                      size: 18,
-                    ),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'PLEASE ARRIVE 15 MINUTES BEFORE YOUR SCHEDULED TIME.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF434655),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          bookingId: item.id,
+          postId: item.workPermitId,
+          statusText: item.statusLabel,
+          name: item.name,
+          passportNo: item.passportNo,
+          createdAtText: _displayDate(item.createdAt),
+          fromCountry: item.fromCountry,
+          toCountry: item.toCountry,
+          medicalText: item.medicalExpiryDate == null ? '22/08/2026' : _displayDate(item.medicalExpiryDate!),
+          visaText: item.visaExpiryDate == null ? '22/08/2026' : _displayDate(item.visaExpiryDate!),
+          policeClearText: item.policeClearanceExpiryDate == null ? '22/08/2026' : _displayDate(item.policeClearanceExpiryDate!),
+          totalCostText: '৳ ${_money(item.agencyTotalCost)}',
+          hasAdvancePayout: item.hasAdvancePayout,
+          hasAfterVisaPayout: item.hasAfterVisaPayout,
+          hasBeforeFlightPayout: item.hasBeforeFlightPayout,
+          onMoreTap: () => _openActionsSheet(context, item),
         );
       }),
     ],
   );
-
-  Widget _detailTile(String label, String value, IconData icon) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            letterSpacing: 1,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF737687),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Icon(icon, size: 22, color: AppPalette.brandBlue),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _amountRow(String label, String value, Color color, bool bold) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 15, color: Color(0xFF434655)),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 19,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
 
   String _displayDate(String iso) {
     final parts = iso.split('-');
@@ -875,6 +587,24 @@ class _ReceivedBgSentPassportScreenState
       'Dec',
     ];
     return '${months[int.parse(parts[1]) - 1]} ${parts[2]}, ${parts[0]}';
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
   }
 
   String _money(int amount) {
