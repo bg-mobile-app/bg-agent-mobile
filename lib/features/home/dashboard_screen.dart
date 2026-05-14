@@ -408,6 +408,7 @@ class DashboardPageScaffold extends StatelessWidget {
       '/dashboard/receive-booking/applied-booking': 'Applied Booking',
       '/dashboard/receive-booking/bg-collect-passport': 'BG Collect Passport',
       '/dashboard/receive-booking/bg-sent-passport': 'BG Sent Passport',
+      '/dashboard/receive-booking/receive-passport': 'Receive Passport',
       '/dashboard/booking/my/success-file': 'Success Flight',
       '/dashboard/booking/my/return-passport': 'Return Passport',
       '/dashboard/booking/appointment': 'Appointment Booking',

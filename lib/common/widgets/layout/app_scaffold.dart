@@ -7,6 +7,7 @@ import '../../../features/booking/received_all_booking_screen.dart';
 import '../../../features/booking/received_applied_booking_screen.dart';
 import '../../../features/booking/received_bg_collect_passport_screen.dart';
 import '../../../features/booking/received_bg_sent_passport_screen.dart';
+import '../../../features/booking/received_passport_screen.dart';
 import '../../../features/booking/return_passport_screen.dart';
 import '../../../features/booking/success_flight_screen.dart';
 import '../../../features/chat/chat_list_screen.dart';
@@ -85,6 +86,8 @@ class _DashboardHostScreen extends StatelessWidget {
         return const ReceivedBgCollectPassportScreen();
       case '/dashboard/receive-booking/bg-sent-passport':
         return const ReceivedBgSentPassportScreen();
+      case '/dashboard/receive-booking/receive-passport':
+        return const ReceivedPassportScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
       case '/dashboard/ads/create':

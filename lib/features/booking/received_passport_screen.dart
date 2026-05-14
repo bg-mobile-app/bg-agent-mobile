@@ -8,16 +8,16 @@ import '../../common/theme/app_palette.dart';
 import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
 
-class ReceivedBgSentPassportScreen extends StatefulWidget {
-  const ReceivedBgSentPassportScreen({super.key});
+class ReceivedPassportScreen extends StatefulWidget {
+  const ReceivedPassportScreen({super.key});
 
   @override
-  State<ReceivedBgSentPassportScreen> createState() =>
-      _ReceivedBgSentPassportScreenState();
+  State<ReceivedPassportScreen> createState() =>
+      _ReceivedPassportScreenState();
 }
 
-class _ReceivedBgSentPassportScreenState
-    extends State<ReceivedBgSentPassportScreen> {
+class _ReceivedPassportScreenState
+    extends State<ReceivedPassportScreen> {
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
@@ -250,7 +250,7 @@ class _ReceivedBgSentPassportScreenState
       agencyTotalCost: 99500,
       paidAmount: 99500,
       status: 'BG_SENT_PP',
-      statusLabel: 'BG Sent Passport',
+      statusLabel: 'Receive Passport',
       visaExpiryDate: '2027-03-20',
     ),
     BookingItem(
@@ -302,10 +302,28 @@ class _ReceivedBgSentPassportScreenState
 
   List<BookingItem> get _filteredBookings {
     final bgSentPassportOnly = _bookings
-        .where((item) => item.status == 'BG_SENT_PP')
+        .where((item) => item.status == 'A_RECEIVE_PP')
         .toList();
     final query = _searchQuery.trim().toLowerCase();
-    return bgSentPassportOnly.where((item) {
+    final seeded = bgSentPassportOnly.isEmpty
+        ? const [
+            BookingItem(
+              workPermitId: 'WP-RCV-1001',
+              id: 7901,
+              serviceType: 'Work Permit',
+              createdAt: '2026-05-01',
+              name: 'Demo Applicant',
+              passportNo: 'D00000001',
+              fromCountry: 'Bangladesh',
+              toCountry: 'Malaysia',
+              agencyTotalCost: 95000,
+              paidAmount: 50000,
+              status: 'A_RECEIVE_PP',
+              statusLabel: 'Receive Passport',
+            ),
+          ]
+        : bgSentPassportOnly;
+    return seeded.where((item) {
       final createdAt = DateTime.parse(item.createdAt);
       final matchesDate =
           _selectedDateRange == null ||
@@ -326,7 +344,7 @@ class _ReceivedBgSentPassportScreenState
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/receive-booking/bg-sent-passport',
+      currentHref: '/dashboard/receive-booking/receive-passport',
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -338,7 +356,7 @@ class _ReceivedBgSentPassportScreenState
                 _breadcrumb(),
                 const SizedBox(height: 8),
                 Text(
-                  'BG Sent Passport',
+                  'Receive Passport',
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
@@ -383,7 +401,7 @@ class _ReceivedBgSentPassportScreenState
         ),
         BreadCrumbItem(
           content: Text(
-            'BG Sent Passport',
+            'Receive Passport',
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
