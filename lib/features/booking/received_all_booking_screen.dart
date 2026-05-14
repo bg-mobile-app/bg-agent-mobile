@@ -781,7 +781,51 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
             color: primary ? AppPalette.textStrongBlue : AppPalette.textPrimary,
           ),
         ),
+        const SizedBox(width: 10),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
+    );
+  }
+
+  Widget _payoutIndicators(BookingItem item) {
+    return Row(
+      children: [
+        _payoutChip('Advance', item.hasAdvancePayout),
+        const SizedBox(width: 8),
+        _payoutChip('After Visa', item.hasAfterVisaPayout),
+        const SizedBox(width: 8),
+        _payoutChip('Before Flight', item.hasBeforeFlightPayout),
+      ],
+    );
+  }
+
+  Widget _payoutChip(String label, bool done) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: done ? const Color(0xFFE8F8EE) : const Color(0xFFFFF4E8),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              done ? Icons.check_circle : Icons.pending,
+              size: 15,
+              color: done ? AppPalette.success : AppPalette.warning,
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
