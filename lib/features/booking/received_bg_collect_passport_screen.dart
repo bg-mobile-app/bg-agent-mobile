@@ -543,31 +543,27 @@ class _ReceivedBgCollectPassportScreenState
       ..._filteredBookings.map((item) {
         final style = _styleFor(item.statusLabel);
         return ReceivedBookingCard(
-          style: ReceivedBookingCardStyle(
-            badgeBg: style.badgeBg,
-            badgeText: style.badgeText,
-            iconBg: style.iconBg,
-            iconColor: style.iconColor,
-            icon: style.icon,
-            ctaLabel: style.ctaLabel,
-            ctaIcon: style.ctaIcon,
-          ),
-          customerName: item.name,
-          permitCode: item.workPermitId,
-          serviceType: item.serviceType,
-          bookingId: item.id.toString(),
+          bookingId: item.id,
+          postId: item.workPermitId,
           statusText: item.statusLabel,
+          name: item.name,
+          fromCountry: item.fromCountry,
+          toCountry: item.toCountry,
+          totalCostText: '৳ ${_money(item.agencyTotalCost)}',
+          hasAdvancePayout: item.hasAdvancePayout,
+          hasAfterVisaPayout: item.hasAfterVisaPayout,
+          hasBeforeFlightPayout: item.hasBeforeFlightPayout,
           createdAtText: _displayDate(item.createdAt),
           passportNo: item.passportNo,
-          packagePriceText: '${_money(item.agencyTotalCost)} BDT',
-          paidAmountText: '${_money(item.paidAmount)} BDT',
           medicalText: item.medicalExpiryDate == null ? '22/08/2026' : _displayDate(item.medicalExpiryDate!),
           visaText: item.visaExpiryDate == null ? '22/08/2026' : _displayDate(item.visaExpiryDate!),
           policeClearText: item.policeClearanceExpiryDate == null ? '22/08/2026' : _displayDate(item.policeClearanceExpiryDate!),
-          appointmentText: item.appointmentDate == null ? '22/08/2026' : _displayDate(item.appointmentDate!),
-          primaryLabel: style.ctaLabel,
-          onPrimary: () {},
-          onLongPress: () => _openActionsSheet(context, item),
+          style: ReceivedBookingCardStyle(
+            badgeBg: style.badgeBg,
+            badgeText: style.badgeText,
+            ctaLabel: style.ctaLabel,
+          ),
+          onMoreTap: () => _openActionsSheet(context, item),
         );
       }),
     ],
@@ -942,4 +938,3 @@ void _openActionsSheet(BuildContext context, BookingItem row) {
     final d = date.day.toString().padLeft(2, '0');
     return '${date.year}-$m-$d';
   }
-
