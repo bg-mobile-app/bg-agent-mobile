@@ -25,8 +25,22 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   final List<String> _genders = ['MALE', 'FEMALE', 'OTHER'];
   String _selectedGender = 'MALE';
 
-  final List<String> _allPermissions = ['ADS_CREATE', 'BOOKING_LIST', 'PAYMENT_LIST'];
-  final Set<String> _selectedPermissions = {'ADS_CREATE', 'BOOKING_LIST', 'PAYMENT_LIST'};
+  final List<String> _allPermissions = [
+    'ADS_CREATE',
+    'ADS_LIST',
+    'BOOKING_LIST',
+    'RETURN_LIST',
+    'OUR_BOOKING',
+    'APPOINTMENT_LIST',
+    'USER',
+    'REMINDER_LIST',
+    'CHECK_STATUS',
+    'COMMISSION',
+    'PAYMENT_LIST',
+    'RECEIVE_PAYMENT_LIST',
+    'REFUND_PAYMENT',
+  ];
+  final Set<String> _selectedPermissions = {};
 
   @override
   void dispose() {
@@ -92,39 +106,8 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            const Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                'Permissions',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF3E4A5F),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _allPermissions
-                                  .map(
-                                    (permission) => _PermissionChip(
-                                      label: permission,
-                                      selected: _selectedPermissions.contains(permission),
-                                      onTap: () {
-                                        setState(() {
-                                          if (_selectedPermissions.contains(permission)) {
-                                            _selectedPermissions.remove(permission);
-                                          } else {
-                                            _selectedPermissions.add(permission);
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
+                            const SizedBox(height: 4),
+                            _permissionsInput(),
                           ],
                         ),
                       ),
@@ -310,6 +293,75 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                     if (value == null) return;
                     setState(() => _selectedGender = value);
                   },
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _permissionsInput() => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Permissions',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F)),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFDBEAFE)),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0D2563EB),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  title: Text(
+                    _selectedPermissions.isEmpty
+                        ? 'Select permissions...'
+                        : '${_selectedPermissions.length} permission(s) selected',
+                    style: AppTextStyles.body2.copyWith(color: const Color(0xFF667085)),
+                  ),
+                  iconColor: const Color(0xFF6B7280),
+                  collapsedIconColor: const Color(0xFF6B7280),
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _allPermissions
+                            .map(
+                              (permission) => _PermissionChip(
+                                label: permission,
+                                selected: _selectedPermissions.contains(permission),
+                                onTap: () {
+                                  setState(() {
+                                    if (_selectedPermissions.contains(permission)) {
+                                      _selectedPermissions.remove(permission);
+                                    } else {
+                                      _selectedPermissions.add(permission);
+                                    }
+                                  });
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

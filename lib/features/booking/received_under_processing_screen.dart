@@ -8,16 +8,15 @@ import '../../common/theme/app_palette.dart';
 import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
 
-class ReceivedBgSentPassportScreen extends StatefulWidget {
-  const ReceivedBgSentPassportScreen({super.key});
+class ReceivedUnderProcessingScreen extends StatefulWidget {
+  const ReceivedUnderProcessingScreen({super.key});
 
   @override
-  State<ReceivedBgSentPassportScreen> createState() =>
-      _ReceivedBgSentPassportScreenState();
+  State<ReceivedUnderProcessingScreen> createState() =>
+      _ReceivedUnderProcessingScreenState();
 }
 
-class _ReceivedBgSentPassportScreenState
-    extends State<ReceivedBgSentPassportScreen> {
+class _ReceivedUnderProcessingScreenState extends State<ReceivedUnderProcessingScreen> {
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
@@ -39,7 +38,7 @@ class _ReceivedBgSentPassportScreenState
       statusLabel: 'Applied File',
     ),
     BookingItem(
-      workPermitId: 'ST-2009',
+      workPermitId: 'ST-2003',
       id: 4572,
       serviceType: 'Student Visa',
       createdAt: '2026-04-18',
@@ -301,16 +300,32 @@ class _ReceivedBgSentPassportScreenState
   }
 
   List<BookingItem> get _filteredBookings {
-    final bgSentPassportOnly = _bookings
-        .where((item) => item.status == 'BG_SENT_PP')
+    final underProcessingOnly = _bookings
+        .where((item) => item.status == 'UNDER_PROCESSING')
         .toList();
+        
     final query = _searchQuery.trim().toLowerCase();
-    return bgSentPassportOnly.where((item) {
-      final createdAt = DateTime.parse(item.createdAt);
-      final matchesDate =
-          _selectedDateRange == null ||
-          (!createdAt.isBefore(_selectedDateRange!.start) &&
-              !createdAt.isAfter(_selectedDateRange!.end));
+    
+    final seeded = underProcessingOnly.isEmpty
+        ? const [
+            BookingItem(
+              workPermitId: 'WP-UP-1001',
+              id: 7902,
+              serviceType: 'Work Permit',
+              createdAt: '2026-05-01',
+              name: 'Demo Applicant',
+              passportNo: 'D00000002',
+              fromCountry: 'Bangladesh',
+              toCountry: 'Qatar',
+              agencyTotalCost: 95000,
+              paidAmount: 50000,
+              status: 'UNDER_PROCESSING',
+              statusLabel: 'Under Processing',
+            ),
+          ]
+        : underProcessingOnly;
+        
+    return seeded.where((item) {
       final matchesQuery =
           query.isEmpty ||
           item.workPermitId.toLowerCase().contains(query) ||
@@ -319,6 +334,11 @@ class _ReceivedBgSentPassportScreenState
           item.name.toLowerCase().contains(query) ||
           item.passportNo.toLowerCase().contains(query) ||
           item.statusLabel.toLowerCase().contains(query);
+      final createdAt = DateTime.parse(item.createdAt);
+      final matchesDate =
+          _selectedDateRange == null ||
+          (!createdAt.isBefore(_selectedDateRange!.start) &&
+              !createdAt.isAfter(_selectedDateRange!.end));
       return matchesQuery && matchesDate;
     }).toList();
   }
@@ -326,45 +346,41 @@ class _ReceivedBgSentPassportScreenState
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/receive-booking/bg-sent-passport',
+      currentHref: '/dashboard/receive-booking/under-processing',
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _breadcrumb(),
-                const SizedBox(height: 8),
-                Text(
-                  'BG Sent Passport',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w800,
-                    color: AppPalette.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                AppSearchBar(
-                  controller: _searchController,
-                  hintText: 'Search by booking ID, name, passport or status',
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  onSearchTap: () =>
-                      setState(() => _searchQuery = _searchController.text),
-                ),
-                const SizedBox(height: 14),
-                Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _viewToggle(),
-                    const SizedBox(width: 10),
-                    Expanded(child: _dateRangeButton()),
+                    _breadcrumb(),
+                    const SizedBox(height: 14),
+                    AppSearchBar(
+                      controller: _searchController,
+                      hintText: 'Search by booking ID, name, passport or status',
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      onSearchTap: () =>
+                          setState(() => _searchQuery = _searchController.text),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        _viewToggle(),
+                        const SizedBox(width: 10),
+                        Expanded(child: _dateRangeButton()),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+                    if (_isCardView) _buildCardList() else _buildTableList(),
                   ],
                 ),
-
-                const SizedBox(height: 16),
-                if (_isCardView) _buildCardList() else _buildTableList(),
-              ],
+              ),
             ),
           ),
         ),
@@ -376,14 +392,25 @@ class _ReceivedBgSentPassportScreenState
     return BreadCrumb(
       items: <BreadCrumbItem>[
         BreadCrumbItem(
-          content: Text(
-            'Receive Booking List',
-            style: TextStyle(color: AppPalette.textMuted, fontSize: 12),
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.view_list_rounded,
+                size: 14,
+                color: AppPalette.textMuted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Receive Booking List',
+                style: TextStyle(color: AppPalette.textMuted, fontSize: 12),
+              ),
+            ],
           ),
         ),
         BreadCrumbItem(
           content: Text(
-            'BG Sent Passport',
+            'Under Processing',
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
@@ -443,6 +470,7 @@ class _ReceivedBgSentPassportScreenState
                 const SizedBox(width: 8),
                 Text(
                   label,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppPalette.textStrongBlue,
                     fontWeight: FontWeight.w600,
@@ -455,10 +483,14 @@ class _ReceivedBgSentPassportScreenState
           if (_selectedDateRange != null)
             InkWell(
               onTap: () => setState(() => _selectedDateRange = null),
-              child: const Icon(
-                Icons.close_rounded,
-                size: 18,
-                color: AppPalette.textMuted,
+              borderRadius: BorderRadius.circular(999),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: AppPalette.textMuted,
+                ),
               ),
             ),
         ],
@@ -561,15 +593,9 @@ class _ReceivedBgSentPassportScreenState
           createdAtText: _displayDate(item.createdAt),
           fromCountry: item.fromCountry,
           toCountry: item.toCountry,
-          medicalText: item.medicalExpiryDate == null
-              ? '22/08/2026'
-              : _displayDate(item.medicalExpiryDate!),
-          visaText: item.visaExpiryDate == null
-              ? '22/08/2026'
-              : _displayDate(item.visaExpiryDate!),
-          policeClearText: item.policeClearanceExpiryDate == null
-              ? '22/08/2026'
-              : _displayDate(item.policeClearanceExpiryDate!),
+          medicalText: item.medicalExpiryDate == null ? '22/08/2026' : _displayDate(item.medicalExpiryDate!),
+          visaText: item.visaExpiryDate == null ? '22/08/2026' : _displayDate(item.visaExpiryDate!),
+          policeClearText: item.policeClearanceExpiryDate == null ? '22/08/2026' : _displayDate(item.policeClearanceExpiryDate!),
           totalCostText: '৳ ${_money(item.agencyTotalCost)}',
           hasAdvancePayout: item.hasAdvancePayout,
           hasAfterVisaPayout: item.hasAfterVisaPayout,
@@ -614,154 +640,34 @@ class _ReceivedBgSentPassportScreenState
         .join(',');
   }
 
-  _CardStyle _styleFor(String status) {
+  String _formatDate(DateTime date) {
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$m-$d';
+  }
+
+  ReceivedBookingCardStyle _styleFor(String status) {
     switch (status) {
       case 'Success Flight':
-        return const _CardStyle(
-          icon: Icons.school_outlined,
-          iconBg: Color(0xFFCCF3D9),
-          iconColor: AppPalette.success,
+        return const ReceivedBookingCardStyle(
           badgeBg: AppPalette.successBg,
           badgeText: AppPalette.success,
-          progressBg: Color(0xFFEAF8EE),
-          progressTrack: Color(0xFFBBF7D0),
-          progressColor: Color(0xFF16A34A),
-          progressText: AppPalette.success,
-          progressLabel: 'Payment Completed',
           ctaLabel: 'View Receipt',
-          ctaIcon: Icons.receipt_long,
         );
       case 'Under Processing':
-        return const _CardStyle(
-          icon: Icons.mosque_outlined,
-          iconBg: AppPalette.warningBg,
-          iconColor: AppPalette.warning,
+        return const ReceivedBookingCardStyle(
           badgeBg: AppPalette.warningBg,
           badgeText: AppPalette.warning,
-          progressBg: Color(0xFFF3F4F6),
-          progressTrack: Color(0xFFE5E7EB),
-          progressColor: Color(0xFFF59E0B),
-          progressText: AppPalette.textPrimary,
-          progressLabel: 'Payment Progress',
           ctaLabel: 'View Details',
-          ctaIcon: Icons.arrow_forward,
         );
       default:
-        return const _CardStyle(
-          icon: Icons.work_outline,
-          iconBg: Color(0xFFDBEAFE),
-          iconColor: Color(0xFF1D4ED8),
+        return const ReceivedBookingCardStyle(
           badgeBg: Color(0xFFDBEAFE),
           badgeText: Color(0xFF1D4ED8),
-          progressBg: Color(0xFFF3F4F6),
-          progressTrack: Color(0xFFE5E7EB),
-          progressColor: AppPalette.textStrongBlue,
-          progressText: AppPalette.textPrimary,
-          progressLabel: 'Payment Progress',
           ctaLabel: 'View Details',
-          ctaIcon: Icons.arrow_forward,
         );
     }
   }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    this.error = false,
-  });
-
-  final String title;
-  final String value;
-  final IconData icon;
-  final bool error;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppPalette.borderSoftBlue),
-        boxShadow: AppPalette.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 15, color: AppPalette.brandBlue),
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: AppPalette.textMuted,
-                    letterSpacing: 0.4,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 30,
-              color: error ? AppPalette.danger : AppPalette.textPrimary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CardStyle extends ReceivedBookingCardStyle {
-  const _CardStyle({
-    required this.icon,
-    required this.iconBg,
-    required this.iconColor,
-    required Color badgeBg,
-    required Color badgeText,
-    required this.progressBg,
-    required this.progressTrack,
-    required this.progressColor,
-    required this.progressText,
-    required this.progressLabel,
-    required String ctaLabel,
-    required this.ctaIcon,
-  }) : super(
-          badgeBg: badgeBg,
-          badgeText: badgeText,
-          ctaLabel: ctaLabel,
-        );
-
-  final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
-  final Color progressBg;
-  final Color progressTrack;
-  final Color progressColor;
-  final Color progressText;
-  final String progressLabel;
-  final IconData ctaIcon;
 }
 
 class BookingItem {
@@ -926,10 +832,4 @@ void _openActionsSheet(BuildContext context, BookingItem row) {
       ),
     ),
   );
-}
-
-String _formatDate(DateTime date) {
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
-  return '${date.year}-$m-$d';
 }

@@ -13,6 +13,19 @@ import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
+CustomTransitionPage _slideTransition(BuildContext context, GoRouterState state, Widget child) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: animation.drive(Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).chain(CurveTween(curve: Curves.easeOutQuart))),
+        child: child,
+      );
+    },
+  );
+}
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.getStarted,
@@ -24,14 +37,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: AppRoutes.agentSignUp, builder: (_, __) => const AgentSignUpScreen()),
     GoRoute(path: AppRoutes.agencySignUp, builder: (_, __) => const AgencySignUpScreen()),
     GoRoute(path: AppRoutes.recruitingSignUp, builder: (_, __) => const RecruitingSignUpScreen()),
-    GoRoute(path: AppRoutes.tabHome, builder: (_, __) => const AppScaffold(tabIndex: 0)),
-    GoRoute(path: AppRoutes.tabSearch, builder: (_, __) => const AppScaffold(tabIndex: 1)),
-    GoRoute(path: AppRoutes.tabBooking, builder: (_, __) => const AppScaffold(tabIndex: 2)),
-    GoRoute(path: AppRoutes.tabChat, builder: (_, __) => const AppScaffold(tabIndex: 3)),
-    GoRoute(path: AppRoutes.tabProfile, builder: (_, __) => const AppScaffold(tabIndex: 4)),
-    GoRoute(path: '/dashboard/:a', builder: (_, state) => AppScaffold(dashboardPath: state.uri.path, tabIndex: 4)),
-    GoRoute(path: '/dashboard/:a/:b', builder: (_, state) => AppScaffold(dashboardPath: state.uri.path, tabIndex: 4)),
-    GoRoute(path: '/dashboard/:a/:b/:c', builder: (_, state) => AppScaffold(dashboardPath: state.uri.path, tabIndex: 4)),
-    GoRoute(path: '/dashboard/:a/:b/:c/:d', builder: (_, state) => AppScaffold(dashboardPath: state.uri.path, tabIndex: 4)),
+    GoRoute(path: AppRoutes.tabHome, pageBuilder: (c, s) => _slideTransition(c, s, const AppScaffold(tabIndex: 0))),
+    GoRoute(path: AppRoutes.tabSearch, pageBuilder: (c, s) => _slideTransition(c, s, const AppScaffold(tabIndex: 1))),
+    GoRoute(path: AppRoutes.tabBooking, pageBuilder: (c, s) => _slideTransition(c, s, const AppScaffold(tabIndex: 2))),
+    GoRoute(path: AppRoutes.tabChat, pageBuilder: (c, s) => _slideTransition(c, s, const AppScaffold(tabIndex: 3))),
+    GoRoute(path: AppRoutes.tabProfile, pageBuilder: (c, s) => _slideTransition(c, s, const AppScaffold(tabIndex: 4))),
+    GoRoute(path: '/dashboard/:a', pageBuilder: (c, s) => _slideTransition(c, s, AppScaffold(dashboardPath: s.uri.path, tabIndex: 4))),
+    GoRoute(path: '/dashboard/:a/:b', pageBuilder: (c, s) => _slideTransition(c, s, AppScaffold(dashboardPath: s.uri.path, tabIndex: 4))),
+    GoRoute(path: '/dashboard/:a/:b/:c', pageBuilder: (c, s) => _slideTransition(c, s, AppScaffold(dashboardPath: s.uri.path, tabIndex: 4))),
+    GoRoute(path: '/dashboard/:a/:b/:c/:d', pageBuilder: (c, s) => _slideTransition(c, s, AppScaffold(dashboardPath: s.uri.path, tabIndex: 4))),
   ],
 );

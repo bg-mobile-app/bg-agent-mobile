@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
 import '../../common/theme/app_palette.dart';
+import '../../common/theme/app_text_styles.dart';
 import '../../common/widgets/app_search_bar.dart';
+import '../home/dashboard_screen.dart';
 import 'chat_conversation_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -14,6 +17,7 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   late final TextEditingController _searchController;
   String _searchQuery = '';
+  String _activeFilter = 'All';
 
   final List<ChatItem> _chats = const [
     ChatItem(
@@ -74,62 +78,186 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   List<ChatItem> get _filteredChats {
     final query = _searchQuery.trim().toLowerCase();
-    if (query.isEmpty) return _chats;
-    return _chats.where((chat) {
-      return chat.name.toLowerCase().contains(query) ||
-          chat.lastMessage.toLowerCase().contains(query);
-    }).toList();
+    var filtered = _chats;
+    
+    if (_activeFilter == 'Unread') {
+      filtered = filtered.where((c) => c.unreadCount > 0).toList();
+    } else if (_activeFilter == 'Online') {
+      filtered = filtered.where((c) => c.isOnline).toList();
+    }
+
+    if (query.isNotEmpty) {
+      filtered = filtered.where((chat) {
+        return chat.name.toLowerCase().contains(query) ||
+            chat.lastMessage.toLowerCase().contains(query);
+      }).toList();
+    }
+    
+    return filtered;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFDCE7F7),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Chat',
-                style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w800,
-                  color: AppPalette.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 14),
-              AppSearchBar(
-                controller: _searchController,
-                hintText: 'Find a chat',
-                onChanged: (value) => setState(() => _searchQuery = value),
-                onSearchTap: () =>
-                    setState(() => _searchQuery = _searchController.text),
-              ),
-              const SizedBox(height: 14),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _filteredChats.length,
-                  separatorBuilder: (_, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = _filteredChats[index];
-                    return _ChatCard(
-                      item: item,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ChatConversationScreen(chat: item),
+    return DashboardPageScaffold(
+      currentHref: '/chat',
+      child: Container(
+        color: const Color(0xFFF8FAFC),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _breadcrumb(),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Messages',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.textPrimary,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0F2FE),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8, height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981), shape: BoxShape.circle
+                            ),
                           ),
-                        );
-                      },
-                    );
-                  },
+                          const SizedBox(width: 6),
+                          const Text('3 Online', style: TextStyle(color: Color(0xFF0369A1), fontSize: 12, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search conversations...',
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  onSearchTap: () =>
+                      setState(() => _searchQuery = _searchController.text),
+                ),
+                const SizedBox(height: 16),
+                _buildFilters(),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      _filteredChats.isEmpty 
+                        ? const Center(child: Text('No conversations found.', style: TextStyle(color: AppPalette.textMuted)))
+                        : ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 80),
+                          itemCount: _filteredChats.length,
+                          separatorBuilder: (_, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _filteredChats[index];
+                            return _ChatCard(
+                              item: item,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatConversationScreen(chat: item),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      Positioned(
+                        bottom: 16,
+                        right: 0,
+                        child: FloatingActionButton(
+                          backgroundColor: AppPalette.brandBlue,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          child: const Icon(Icons.edit_square, color: Colors.white),
+                          onPressed: () {},
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _breadcrumb() {
+    return BreadCrumb(
+      items: <BreadCrumbItem>[
+        BreadCrumbItem(
+          content: Text(
+            'Dashboard',
+            style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted),
+          ),
+        ),
+        BreadCrumbItem(
+          content: Text(
+            'Chat',
+            style: AppTextStyles.caption.copyWith(
+              color: AppPalette.textStrongBlue,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+      divider: const Icon(
+        Icons.chevron_right_rounded,
+        size: 16,
+        color: Color(0xFF94A3B8),
+      ),
+    );
+  }
+
+  Widget _buildFilters() {
+    final filters = ['All', 'Unread', 'Online'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: filters.map((filter) {
+          final isSelected = _activeFilter == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              onTap: () => setState(() => _activeFilter = filter),
+              borderRadius: BorderRadius.circular(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppPalette.brandBlue : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? AppPalette.brandBlue : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Text(
+                  filter,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

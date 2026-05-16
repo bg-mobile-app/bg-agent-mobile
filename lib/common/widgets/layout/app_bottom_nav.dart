@@ -17,24 +17,62 @@ class AppBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(28),
-          // border: Border.all(color: const Color(0xFFE5EAF3)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x18000000),
-              blurRadius: 24,
-              offset: Offset(0, 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x18000000),
+                  blurRadius: 24,
+                  offset: Offset(0, -10),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
+            child: Row(
           children: List.generate(_items.length, (index) {
             final item = _items[index];
             final isSelected = index == currentIndex;
+
+            if (item.isProminent) {
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF2563EB).withOpacity(0.4),
+                              blurRadius: 14,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+                        ),
+                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
             return Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -121,6 +159,8 @@ class AppBottomNav extends StatelessWidget {
           }),
         ),
       ),
+        ],
+      ),
     );
   }
 }
@@ -130,11 +170,13 @@ class _BottomNavItem {
     required this.label,
     required this.icon,
     required this.selectedIcon,
+    this.isProminent = false,
   });
 
   final String label;
   final String icon;
   final String selectedIcon;
+  final bool isProminent;
 }
 
 const List<_BottomNavItem> _items = [
@@ -149,9 +191,10 @@ const List<_BottomNavItem> _items = [
     selectedIcon: RegularStraight.SEARCH,
   ),
   _BottomNavItem(
-    label: 'Booking',
-    icon: RegularStraight.CALENDAR,
-    selectedIcon: RegularStraight.CALENDAR,
+    label: 'Post Ad',
+    icon: '',
+    selectedIcon: '',
+    isProminent: true,
   ),
   _BottomNavItem(
     label: 'Chat',

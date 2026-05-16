@@ -610,52 +610,25 @@ class _ReceivedPassportScreenState
         .join(',');
   }
 
-  _CardStyle _styleFor(String status) {
+  ReceivedBookingCardStyle _styleFor(String status) {
     switch (status) {
       case 'Success Flight':
-        return const _CardStyle(
-          icon: Icons.school_outlined,
-          iconBg: Color(0xFFCCF3D9),
-          iconColor: AppPalette.success,
+        return const ReceivedBookingCardStyle(
           badgeBg: AppPalette.successBg,
           badgeText: AppPalette.success,
-          progressBg: Color(0xFFEAF8EE),
-          progressTrack: Color(0xFFBBF7D0),
-          progressColor: Color(0xFF16A34A),
-          progressText: AppPalette.success,
-          progressLabel: 'Payment Completed',
           ctaLabel: 'View Receipt',
-          ctaIcon: Icons.receipt_long,
         );
       case 'Under Processing':
-        return const _CardStyle(
-          icon: Icons.mosque_outlined,
-          iconBg: AppPalette.warningBg,
-          iconColor: AppPalette.warning,
+        return const ReceivedBookingCardStyle(
           badgeBg: AppPalette.warningBg,
           badgeText: AppPalette.warning,
-          progressBg: Color(0xFFF3F4F6),
-          progressTrack: Color(0xFFE5E7EB),
-          progressColor: Color(0xFFF59E0B),
-          progressText: AppPalette.textPrimary,
-          progressLabel: 'Payment Progress',
           ctaLabel: 'View Details',
-          ctaIcon: Icons.arrow_forward,
         );
       default:
-        return const _CardStyle(
-          icon: Icons.work_outline,
-          iconBg: Color(0xFFDBEAFE),
-          iconColor: Color(0xFF1D4ED8),
+        return const ReceivedBookingCardStyle(
           badgeBg: Color(0xFFDBEAFE),
           badgeText: Color(0xFF1D4ED8),
-          progressBg: Color(0xFFF3F4F6),
-          progressTrack: Color(0xFFE5E7EB),
-          progressColor: AppPalette.textStrongBlue,
-          progressText: AppPalette.textPrimary,
-          progressLabel: 'Payment Progress',
           ctaLabel: 'View Details',
-          ctaIcon: Icons.arrow_forward,
         );
     }
   }
@@ -727,36 +700,6 @@ class _StatCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CardStyle {
-  const _CardStyle({
-    required this.icon,
-    required this.iconBg,
-    required this.iconColor,
-    required this.badgeBg,
-    required this.badgeText,
-    required this.progressBg,
-    required this.progressTrack,
-    required this.progressColor,
-    required this.progressText,
-    required this.progressLabel,
-    required this.ctaLabel,
-    required this.ctaIcon,
-  });
-
-  final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
-  final Color badgeBg;
-  final Color badgeText;
-  final Color progressBg;
-  final Color progressTrack;
-  final Color progressColor;
-  final Color progressText;
-  final String progressLabel;
-  final String ctaLabel;
-  final IconData ctaIcon;
 }
 
 class BookingItem {

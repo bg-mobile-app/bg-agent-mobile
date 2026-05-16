@@ -7,7 +7,19 @@ import '../../../features/booking/received_all_booking_screen.dart';
 import '../../../features/booking/received_applied_booking_screen.dart';
 import '../../../features/booking/received_bg_collect_passport_screen.dart';
 import '../../../features/booking/received_bg_sent_passport_screen.dart';
+import '../../../features/booking/received_bmet_done_screen.dart';
+import '../../../features/booking/passport_return_request_screen.dart';
+import '../../../features/booking/passport_return_accept_screen.dart';
+import '../../../features/booking/passport_return_pp_sent_to_bg_screen.dart';
+import '../../../features/booking/passport_return_bg_handover_screen.dart';
 import '../../../features/booking/received_passport_screen.dart';
+import '../../../features/booking/received_pp_sent_to_bg_screen.dart';
+import '../../../features/booking/received_ready_for_flight_screen.dart';
+import '../../../features/booking/received_reject_flight_screen.dart';
+import '../../../features/booking/received_success_flight_screen.dart';
+import '../../../features/booking/received_ticket_done_screen.dart';
+import '../../../features/booking/received_under_processing_screen.dart';
+import '../../../features/booking/received_visa_approved_screen.dart';
 import '../../../features/booking/return_passport_screen.dart';
 import '../../../features/booking/success_flight_screen.dart';
 import '../../../features/chat/chat_list_screen.dart';
@@ -37,7 +49,7 @@ class AppScaffold extends StatelessWidget {
     final screens = [
       const HomeScreen(),
       const WorkPermitListScreen(),
-      const MyBookingScreen(),
+      const CreateAdScreen(),
       const ChatListScreen(),
       _DashboardHostScreen(route: dashboardPath ?? '/dashboard/customer'),
     ];
@@ -56,7 +68,7 @@ class AppScaffold extends StatelessWidget {
       case 1:
         return '/search';
       case 2:
-        return '/booking';
+        return '/dashboard/ads/create';
       case 3:
         return '/chat';
       case 4:
@@ -88,6 +100,30 @@ class _DashboardHostScreen extends StatelessWidget {
         return const ReceivedBgSentPassportScreen();
       case '/dashboard/receive-booking/receive-passport':
         return const ReceivedPassportScreen();
+      case '/dashboard/receive-booking/under-processing':
+        return const ReceivedUnderProcessingScreen();
+      case '/dashboard/receive-booking/visa-approved':
+        return const ReceivedVisaApprovedScreen();
+      case '/dashboard/receive-booking/bmet-done':
+        return const ReceivedBmetDoneScreen();
+      case '/dashboard/receive-booking/ticket-done':
+        return const ReceivedTicketDoneScreen();
+      case '/dashboard/receive-booking/pp-sent-to-bg':
+        return const ReceivedPpSentToBgScreen();
+      case '/dashboard/receive-booking/ready-for-flight':
+        return const ReceivedReadyForFlightScreen();
+      case '/dashboard/receive-booking/success-flight':
+        return const ReceivedSuccessFlightScreen();
+      case '/dashboard/receive-booking/reject-flight':
+        return const ReceivedRejectFlightScreen();
+      case '/dashboard/passport-return/request-review':
+        return const PassportReturnRequestScreen();
+      case '/dashboard/passport-return/accept':
+        return const PassportReturnAcceptScreen();
+      case '/dashboard/passport-return/pp-sent-to-bg':
+        return const PassportReturnPpSentToBgScreen();
+      case '/dashboard/passport-return/bg-handover-pp-to-customer':
+        return const PassportReturnBgHandoverScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
       case '/dashboard/ads/create':
