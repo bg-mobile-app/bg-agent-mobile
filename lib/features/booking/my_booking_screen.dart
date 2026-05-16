@@ -27,6 +27,8 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
+  DateTimeRange? _selectedDateRange;
+  String? _selectedStatus;
 
   final List<BookingItem> _bookings = const [
     BookingItem(
@@ -93,14 +95,29 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
 
   List<BookingItem> get _filteredBookings {
     final query = _searchQuery.trim().toLowerCase();
-    if (query.isEmpty) return _bookings;
     return _bookings.where((item) {
-      return item.workPermitId.toLowerCase().contains(query) ||
+      final matchesQuery =
+          query.isEmpty ||
+          item.workPermitId.toLowerCase().contains(query) ||
           item.id.toString().contains(query) ||
           item.serviceType.toLowerCase().contains(query) ||
           item.name.toLowerCase().contains(query) ||
           item.passportNo.toLowerCase().contains(query) ||
           item.statusLabel.toLowerCase().contains(query);
+
+      final matchesStatus =
+          _selectedStatus == null || item.statusLabel == _selectedStatus;
+
+      final createdAt = DateTime.tryParse(item.createdAt);
+      final matchesDate =
+          _selectedDateRange == null ||
+          createdAt == null ||
+          (!createdAt.isBefore(_selectedDateRange!.start) &&
+              !createdAt.isAfter(
+                _selectedDateRange!.end.add(const Duration(days: 1)),
+              ));
+
+      return matchesQuery && matchesStatus && matchesDate;
     }).toList();
   }
 
@@ -131,14 +148,27 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                   controller: _searchController,
                   hintText: 'Search by booking ID, name, passport or status',
                   onChanged: (value) => setState(() => _searchQuery = value),
-                  onSearchTap: () => setState(() => _searchQuery = _searchController.text),
+                  onSearchTap: () =>
+                      setState(() => _searchQuery = _searchController.text),
                 ),
                 const SizedBox(height: 14),
-                _viewToggle(),
+                Row(
+                  children: [
+                    _viewToggle(),
+                    const SizedBox(width: 10),
+                    Expanded(child: _dateRangeButton()),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(child: _statusFilter()),
+                    const SizedBox(width: 10),
+                    _statButton(),
+                  ],
+                ),
                 const SizedBox(height: 16),
-                _statsGrid(),
-                const SizedBox(height: 16),
-                if (_isCardView) _buildCardList() else _tableHeader(),
+                if (_isCardView) _buildCardList() else _buildTableList(),
               ],
             ),
           ),
@@ -182,6 +212,270 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     );
   }
 
+  Widget _dateRangeButton() {
+    final label = _selectedDateRange == null
+        ? 'Select Date Range'
+        : '${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)}';
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD8E3FA)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () async {
+                final now = DateTime.now();
+                final picked = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(now.year + 3, 12, 31),
+                  initialDateRange: _selectedDateRange,
+                );
+                if (picked != null) setState(() => _selectedDateRange = picked);
+              },
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.date_range_rounded,
+                    size: 18,
+                    color: AppPalette.textStrongBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppPalette.textStrongBlue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_selectedDateRange != null)
+            InkWell(
+              onTap: () => setState(() => _selectedDateRange = null),
+              borderRadius: BorderRadius.circular(999),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: AppPalette.textMuted,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$m-$d';
+  }
+
+  Widget _statusFilter() {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD8E3FA)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedStatus,
+          hint: const Text('Filter by Status'),
+          isExpanded: true,
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AppPalette.textStrongBlue,
+          ),
+          items: const [
+            DropdownMenuItem(value: null, child: Text('All Statuses')),
+            DropdownMenuItem(
+              value: 'Applied File',
+              child: Text('Applied File'),
+            ),
+            DropdownMenuItem(
+              value: 'Visa Approved',
+              child: Text('Visa Approved'),
+            ),
+            DropdownMenuItem(
+              value: 'Under Processing',
+              child: Text('Under Processing'),
+            ),
+            DropdownMenuItem(
+              value: 'Return Passport',
+              child: Text('Return Passport'),
+            ),
+          ],
+          onChanged: (value) => setState(() => _selectedStatus = value),
+        ),
+      ),
+    );
+  }
+
+  Widget _statButton() {
+    return InkWell(
+      onTap: () => _showStatDialog(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppPalette.brandBlue,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'View Stats',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  void _showStatDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Booking Statistics',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.textPrimary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        _buildStatCard(
+                          icon: Icons.pending_actions,
+                          iconBg: const Color(0xFFE8F0FF),
+                          iconColor: AppPalette.brandBlue,
+                          title: 'Total Pending',
+                          value: '128 Bookings',
+                        ),
+                        _buildStatCard(
+                          icon: Icons.flight_takeoff,
+                          iconBg: const Color(0xFFDCFCE7),
+                          iconColor: const Color(0xFF15803D),
+                          title: 'Flights This Month',
+                          value: '42 Travelers',
+                        ),
+                        _buildStatCard(
+                          icon: Icons.payments,
+                          iconBg: const Color(0xFFF3E8FF),
+                          iconColor: const Color(0xFF7E22CE),
+                          title: 'Collected Revenue',
+                          value: '৳ 12,45,000',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(
+          0xFFF8FAFC,
+        ), // slightly off-white for surface-container-low
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppPalette.borderNeutral.withOpacity(0.5)),
+        boxShadow: AppPalette.softShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppPalette.textMuted,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppPalette.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _statsGrid() {
     return GridView.count(
       shrinkWrap: true,
@@ -222,15 +516,13 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     columns: const [
       DataColumn(label: Text('Post ID')),
       DataColumn(label: Text('Booking ID')),
-      DataColumn(label: Text('Apply Date')),
+      DataColumn(label: Text('Service Type')),
+      DataColumn(label: Text('Date')),
       DataColumn(label: Text('Customer Info')),
-      DataColumn(label: Text('From & To')),
-      DataColumn(label: Text('Total Cost')),
-      DataColumn(label: Text('Medical Expiry')),
-      DataColumn(label: Text('Police Expiry')),
-      DataColumn(label: Text('Visa Expiry')),
-      DataColumn(label: Text('Appointment')),
+      DataColumn(label: Text('Package Price')),
+      DataColumn(label: Text('Paid Amount')),
       DataColumn(label: Text('Status')),
+      DataColumn(label: Text('Actions')),
     ],
     rows: _filteredBookings.map((item) {
       final style = _styleFor(item.statusLabel);
@@ -239,6 +531,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
         cells: [
           DataCell(Text(item.workPermitId)),
           DataCell(Text(item.id.toString())),
+          DataCell(Text(item.serviceType)),
           DataCell(Text(_displayDate(item.createdAt))),
           DataCell(
             Text(
@@ -246,12 +539,8 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
               style: const TextStyle(height: 1.35),
             ),
           ),
-          DataCell(Text('${item.fromCountry} → ${item.toCountry}')),
           DataCell(Text('৳ ${_money(item.agencyTotalCost)}')),
-          DataCell(Text(item.medicalExpiryDate == null ? '-' : _displayDate(item.medicalExpiryDate!))),
-          DataCell(Text(item.policeClearanceExpiryDate == null ? '-' : _displayDate(item.policeClearanceExpiryDate!))),
-          DataCell(Text(item.visaExpiryDate == null ? '-' : _displayDate(item.visaExpiryDate!))),
-          DataCell(Text(item.appointmentDate == null ? '-' : _displayDate(item.appointmentDate!))),
+          DataCell(Text('৳ ${_money(item.paidAmount)}')),
           DataCell(
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -269,378 +558,217 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
               ),
             ),
           ),
+          DataCell(
+            IconButton(
+              icon: const Icon(
+                Icons.more_vert_rounded,
+                color: AppPalette.textMuted,
+              ),
+              onPressed: () => _openActionsSheet(context, item),
+            ),
+          ),
         ],
       );
     }).toList(),
   );
 
-  Widget _tableHeader() => Container(
-    decoration: BoxDecoration(
-      color: AppPalette.surface,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppPalette.borderSoftBlue),
-      boxShadow: AppPalette.cardShadow,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.table_chart_outlined,
-                  color: AppPalette.brandBlue,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'All Booking Files',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppPalette.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${_filteredBookings.length} entries',
-                style: const TextStyle(
-                  color: AppPalette.textMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1, color: AppPalette.borderNeutral),
-        _buildTableList(),
-      ],
-    ),
-  );
-
   Widget _buildCardList() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'All Booking File • ${_filteredBookings.length} total entries',
-            style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ..._filteredBookings.map((item) {
+        final style = _styleFor(item.statusLabel);
+        final dueAmount = item.agencyTotalCost - item.paidAmount;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppPalette.borderSoftBlue),
+            boxShadow: AppPalette.cardShadow,
           ),
-          const SizedBox(height: 10),
-          ..._filteredBookings.map((item) {
-            final style = _styleFor(item.statusLabel);
-            final dueAmount = item.agencyTotalCost - item.paidAmount;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFBBC1D6)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0D000000),
-                    blurRadius: 15,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF1F3FF),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: style.iconBg,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Icon(style.icon, color: style.iconColor, size: 34),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF191B24),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFD8E6FF),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      item.workPermitId,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF38485D),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    '•',
-                                    style: TextStyle(
-                                      color: Color(0xFF737687),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      item.serviceType,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        color: Color(0xFF434655),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: _detailTile(
-                                'BOOKING ID',
-                                item.id.toString(),
-                                Icons.confirmation_num_outlined,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: _detailTile(
-                                'STATUS',
-                                item.statusLabel,
-                                Icons.groups_outlined,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _detailTile(
-                                'DATE',
-                                _displayDate(item.createdAt),
-                                Icons.calendar_today_outlined,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: _detailTile(
-                                'SERVICE TYPE',
-                                item.serviceType,
-                                Icons.article_outlined,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F3FF),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFBBC1D6)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.flight,
-                                color: Color(0xFF434655),
-                                size: 30,
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'PASSPORT NUMBER',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        letterSpacing: 1,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF737687),
-                                      ),
-                                    ),
-                                    Text(
-                                      item.passportNo,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: style.badgeBg,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  item.statusLabel,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: style.badgeText,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        const Divider(color: Color(0xFFBBC1D6)),
-                        const SizedBox(height: 12),
-                        _amountRow(
-                          'Package Price',
-                                        '${_money(item.agencyTotalCost)} BDT',
-                          const Color(0xFF191B24),
-                          false,
-                        ),
-                        const SizedBox(height: 12),
-                        _amountRow(
-                          'Paid Amount',
-                          '${_money(item.paidAmount)} BDT',
-                          AppPalette.brandBlue,
-                          true,
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFAD6D6),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'DUE AMOUNT',
-                                style: TextStyle(
-                                  color: Color(0xFF9F0E0E),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                '${_money(dueAmount)} BDT',
-                                style: const TextStyle(
-                                  color: Color(0xFF9F0E0E),
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 20,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: () {},
-                            icon: Icon(style.ctaIcon, size: 18),
-                            label: Text(
-                              style.ctaLabel,
+                            Text(
+                              item.workPermitId,
                               style: const TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w700,
+                                color: AppPalette.brandBlue,
                               ),
                             ),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(56),
-                              backgroundColor: AppPalette.borderSoftBlue,
-                              foregroundColor: AppPalette.textMuted,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                '|',
+                                style: TextStyle(
+                                  color: AppPalette.borderNeutral,
+                                ),
                               ),
+                            ),
+                            Text(
+                              'B-${item.id}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppPalette.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: style.badgeBg,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            item.statusLabel.toUpperCase(),
+                            style: TextStyle(
+                              color: style.badgeText,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: AppPalette.textMuted,
+                    ),
+                    onPressed: () => _openActionsSheet(context, item),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
                   Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF1F3FF),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F0FF),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      item.name.substring(0, 1).toUpperCase(),
+                      style: const TextStyle(
+                        color: AppPalette.brandBlue,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 26,
                       ),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Color(0xFF737687),
-                          size: 18,
+                        Text(
+                          item.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppPalette.textPrimary,
+                          ),
                         ),
-                        SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'PLEASE ARRIVE 15 MINUTES BEFORE YOUR SCHEDULED TIME.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF434655),
-                              fontWeight: FontWeight.w600,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.badge_outlined,
+                              size: 16,
+                              color: AppPalette.textMuted,
                             ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Passport: ${item.passportNo}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppPalette.textMuted,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: AppPalette.borderSoftBlue),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'SERVICE TYPE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppPalette.textMuted,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.serviceType,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppPalette.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'CREATION DATE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppPalette.textMuted,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _displayDate(item.createdAt),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppPalette.textPrimary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -648,10 +776,114 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                   ),
                 ],
               ),
-            );
-          }),
-        ],
-      );
+              const SizedBox(height: 20),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Package Price',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppPalette.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '৳ ${_money(item.agencyTotalCost)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppPalette.brandBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'Paid Amount',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppPalette.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '৳ ${_money(item.paidAmount)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppPalette.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.description_outlined, size: 18),
+                      label: const Text(
+                        'View Documents',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppPalette.brandBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text(
+                      'Reject',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppPalette.danger,
+                      side: const BorderSide(color: AppPalette.danger),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }),
+    ],
+  );
 
   Widget _detailTile(String label, String value, IconData icon) {
     return Column(
@@ -674,7 +906,10 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
             Expanded(
               child: Text(
                 value,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -687,7 +922,10 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 15, color: Color(0xFF434655))),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 15, color: Color(0xFF434655)),
+        ),
         Text(
           value,
           style: TextStyle(
@@ -929,65 +1167,119 @@ class BookingItem {
   final bool hasAfterVisaPayout;
   final bool hasBeforeFlightPayout;
 }
-  List<String> _actionsFor(BookingItem row) {
-    if (row.isReturn) return const ['File in Return'];
-    final actions = <String, List<String>>{
-      'APPLIED_FILE': ['View Post', 'Reject'],
-      'BG_COLLECT_PP': [],
-      'BG_SENT_PP': ['Receive Passport'],
-      'A_RECEIVE_PP': ['Sent to Processing', 'Payment Request', 'Add Reminder', 'View Documents', 'Reject'],
-      'UNDER_PROCESSING': ['Visa Approved', 'Upload Documents', 'Add Reminder', 'Visa Reminder', 'View Documents', 'Reject'],
-      'VISA_APPROVED': ['BMET Done', 'Upload Documents', 'Payment Request', 'View Documents', 'Reject'],
-      'BMET_DONE': ['Ticket Done', 'Upload Documents', 'View Documents', 'Reject'],
-      'TICKET_DONE': ['Payment Request', 'PP Send to BG', 'Upload Documents', 'View Documents', 'Reject'],
-      'PP_SENT_TO_BG': ['View Documents'],
-      'BG_RECEIVED_PP': ['View Documents'],
-      'READY_FOR_FLIGHT': ['View Documents'],
-      'SUCCESS_FLIGHT': ['View Documents'],
-      'RETURN_PP_SENT_TO_BG': ['View Documents'],
-      'BG_COLLECT_RETURN_PP': ['View Documents'],
-      'BG_HANDOVER_PP_TO_CUSTOMER': ['View Documents'],
-      'REJECT_FILE': [],
-    }[row.status] ?? <String>[];
-    return actions.where((action) {
-      if (action == 'Sent to Processing' && row.status == 'A_RECEIVE_PP') {
-        if (row.paymentStepCount == 3 && !row.hasAdvancePayout) return false;
-      }
-      if (action == 'BMET Done' && row.status == 'VISA_APPROVED' && !row.hasAfterVisaPayout) return false;
-      if (action == 'Payment Request') {
-        if (row.status == 'A_RECEIVE_PP' && (row.paymentStepCount != 3 || row.hasAdvancePayout)) return false;
-        if (row.status == 'VISA_APPROVED' && row.hasAfterVisaPayout) return false;
-        if (row.status == 'TICKET_DONE' && row.hasBeforeFlightPayout) return false;
-      }
-      if (action == 'PP Send to BG' && row.status == 'TICKET_DONE' && !row.hasBeforeFlightPayout) return false;
-      return true;
-    }).toList();
-  }
 
-  void _openActionsSheet(BuildContext context, BookingItem row) {
-    final actions = _actionsFor(row);
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Actions • ${row.statusLabel}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              const SizedBox(height: 12),
-              if (actions.isEmpty) const Text('No actions available') else Wrap(
+List<String> _actionsFor(BookingItem row) {
+  if (row.isReturn) return const ['File in Return'];
+  final actions =
+      <String, List<String>>{
+        'APPLIED_FILE': ['View Post', 'Reject'],
+        'BG_COLLECT_PP': [],
+        'BG_SENT_PP': ['Receive Passport'],
+        'A_RECEIVE_PP': [
+          'Sent to Processing',
+          'Payment Request',
+          'Add Reminder',
+          'View Documents',
+          'Reject',
+        ],
+        'UNDER_PROCESSING': [
+          'Visa Approved',
+          'Upload Documents',
+          'Add Reminder',
+          'Visa Reminder',
+          'View Documents',
+          'Reject',
+        ],
+        'VISA_APPROVED': [
+          'BMET Done',
+          'Upload Documents',
+          'Payment Request',
+          'View Documents',
+          'Reject',
+        ],
+        'BMET_DONE': [
+          'Ticket Done',
+          'Upload Documents',
+          'View Documents',
+          'Reject',
+        ],
+        'TICKET_DONE': [
+          'Payment Request',
+          'PP Send to BG',
+          'Upload Documents',
+          'View Documents',
+          'Reject',
+        ],
+        'PP_SENT_TO_BG': ['View Documents'],
+        'BG_RECEIVED_PP': ['View Documents'],
+        'READY_FOR_FLIGHT': ['View Documents'],
+        'SUCCESS_FLIGHT': ['View Documents'],
+        'RETURN_PP_SENT_TO_BG': ['View Documents'],
+        'BG_COLLECT_RETURN_PP': ['View Documents'],
+        'BG_HANDOVER_PP_TO_CUSTOMER': ['View Documents'],
+        'REJECT_FILE': [],
+      }[row.status] ??
+      <String>[];
+  return actions.where((action) {
+    if (action == 'Sent to Processing' && row.status == 'A_RECEIVE_PP') {
+      if (row.paymentStepCount == 3 && !row.hasAdvancePayout) return false;
+    }
+    if (action == 'BMET Done' &&
+        row.status == 'VISA_APPROVED' &&
+        !row.hasAfterVisaPayout)
+      return false;
+    if (action == 'Payment Request') {
+      if (row.status == 'A_RECEIVE_PP' &&
+          (row.paymentStepCount != 3 || row.hasAdvancePayout))
+        return false;
+      if (row.status == 'VISA_APPROVED' && row.hasAfterVisaPayout) return false;
+      if (row.status == 'TICKET_DONE' && row.hasBeforeFlightPayout)
+        return false;
+    }
+    if (action == 'PP Send to BG' &&
+        row.status == 'TICKET_DONE' &&
+        !row.hasBeforeFlightPayout)
+      return false;
+    return true;
+  }).toList();
+}
+
+void _openActionsSheet(BuildContext context, BookingItem row) {
+  final actions = _actionsFor(row);
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Actions • ${row.statusLabel}',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            if (actions.isEmpty)
+              const Text('No actions available')
+            else
+              Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: actions.map((action) => OutlinedButton(
-                  onPressed: row.isReturn ? null : () => Navigator.pop(context),
-                  child: Text(action),
-                )).toList(),
+                children: actions
+                    .map(
+                      (action) => OutlinedButton(
+                        onPressed: row.isReturn
+                            ? null
+                            : () => Navigator.pop(context),
+                        child: Text(action),
+                      ),
+                    )
+                    .toList(),
               ),
-            ],
-          ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}

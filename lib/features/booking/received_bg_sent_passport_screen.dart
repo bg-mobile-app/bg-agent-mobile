@@ -40,7 +40,7 @@ class _ReceivedBgSentPassportScreenState
       statusLabel: 'Applied File',
     ),
     BookingItem(
-      workPermitId: 'ST-2003',
+      workPermitId: 'ST-2009',
       id: 4572,
       serviceType: 'Student Visa',
       createdAt: '2026-04-18',
@@ -442,7 +442,6 @@ class _ReceivedBgSentPassportScreenState
     );
   }
 
-
   Widget _dateRangeButton() {
     final label = _selectedDateRange == null
         ? 'Select Date Range'
@@ -471,15 +470,32 @@ class _ReceivedBgSentPassportScreenState
             },
             child: Row(
               children: [
-                const Icon(Icons.date_range_rounded, size: 18, color: AppPalette.textStrongBlue),
+                const Icon(
+                  Icons.date_range_rounded,
+                  size: 18,
+                  color: AppPalette.textStrongBlue,
+                ),
                 const SizedBox(width: 8),
-                Text(label, style: const TextStyle(color: AppPalette.textStrongBlue, fontWeight: FontWeight.w600)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppPalette.textStrongBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
           const Spacer(),
           if (_selectedDateRange != null)
-            InkWell(onTap: () => setState(() => _selectedDateRange = null), child: const Icon(Icons.close_rounded, size: 18, color: AppPalette.textMuted)),
+            InkWell(
+              onTap: () => setState(() => _selectedDateRange = null),
+              child: const Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: AppPalette.textMuted,
+              ),
+            ),
         ],
       ),
     );
@@ -585,9 +601,15 @@ class _ReceivedBgSentPassportScreenState
           createdAtText: _displayDate(item.createdAt),
           fromCountry: item.fromCountry,
           toCountry: item.toCountry,
-          medicalText: item.medicalExpiryDate == null ? '22/08/2026' : _displayDate(item.medicalExpiryDate!),
-          visaText: item.visaExpiryDate == null ? '22/08/2026' : _displayDate(item.visaExpiryDate!),
-          policeClearText: item.policeClearanceExpiryDate == null ? '22/08/2026' : _displayDate(item.policeClearanceExpiryDate!),
+          medicalText: item.medicalExpiryDate == null
+              ? '22/08/2026'
+              : _displayDate(item.medicalExpiryDate!),
+          visaText: item.visaExpiryDate == null
+              ? '22/08/2026'
+              : _displayDate(item.visaExpiryDate!),
+          policeClearText: item.policeClearanceExpiryDate == null
+              ? '22/08/2026'
+              : _displayDate(item.policeClearanceExpiryDate!),
           totalCostText: '৳ ${_money(item.agencyTotalCost)}',
           hasAdvancePayout: item.hasAdvancePayout,
           hasAfterVisaPayout: item.hasAfterVisaPayout,
@@ -769,33 +791,34 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _CardStyle {
+class _CardStyle extends ReceivedBookingCardStyle {
   const _CardStyle({
     required this.icon,
     required this.iconBg,
     required this.iconColor,
-    required this.badgeBg,
-    required this.badgeText,
+    required Color badgeBg,
+    required Color badgeText,
     required this.progressBg,
     required this.progressTrack,
     required this.progressColor,
     required this.progressText,
     required this.progressLabel,
-    required this.ctaLabel,
+    required String ctaLabel,
     required this.ctaIcon,
-  });
+  }) : super(
+          badgeBg: badgeBg,
+          badgeText: badgeText,
+          ctaLabel: ctaLabel,
+        );
 
   final IconData icon;
   final Color iconBg;
   final Color iconColor;
-  final Color badgeBg;
-  final Color badgeText;
   final Color progressBg;
   final Color progressTrack;
   final Color progressColor;
   final Color progressText;
   final String progressLabel;
-  final String ctaLabel;
   final IconData ctaIcon;
 }
 
@@ -962,10 +985,9 @@ void _openActionsSheet(BuildContext context, BookingItem row) {
     ),
   );
 }
-  String _formatDate(DateTime date) {
-    final m = date.month.toString().padLeft(2, '0');
-    final d = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$m-$d';
-  }
 
-
+String _formatDate(DateTime date) {
+  final m = date.month.toString().padLeft(2, '0');
+  final d = date.day.toString().padLeft(2, '0');
+  return '${date.year}-$m-$d';
+}
