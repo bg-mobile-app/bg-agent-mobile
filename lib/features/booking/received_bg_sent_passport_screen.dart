@@ -6,7 +6,6 @@ import '../../common/widgets/styled_data_table_card.dart';
 import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import 'widgets/received_booking_card.dart';
-import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
 
 class ReceivedBgSentPassportScreen extends StatefulWidget {
@@ -302,8 +301,8 @@ class _ReceivedBgSentPassportScreenState
   }
 
   List<BookingItem> get _filteredBookings {
-    final underProcessingOnly = _bookings
-        .where((item) => item.status == 'UNDER_PROCESSING')
+    final bgSentPassportOnly = _bookings
+        .where((item) => item.status == 'BG_SENT_PP')
         .toList();
     final query = _searchQuery.trim().toLowerCase();
     return bgSentPassportOnly.where((item) {
@@ -363,46 +362,6 @@ class _ReceivedBgSentPassportScreenState
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _dateRangeButton() {
-    final label = _selectedDateRange == null
-        ? 'Select Date Range'
-        : '${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)}';
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD8E3FA)),
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () async {
-              final now = DateTime.now();
-              final picked = await showDateRangePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(now.year + 3, 12, 31),
-                initialDateRange: _selectedDateRange,
-              );
-              if (picked == null) return;
-              setState(() => _selectedDateRange = picked);
-            },
-            child: Row(children: [
-              const Icon(Icons.date_range_rounded, size: 18, color: AppPalette.textStrongBlue),
-              const SizedBox(width: 8),
-              Text(label, style: const TextStyle(color: AppPalette.textStrongBlue, fontWeight: FontWeight.w600)),
-            ]),
-          ),
-          const Spacer(),
-          if (_selectedDateRange != null)
-            InkWell(onTap: () => setState(() => _selectedDateRange = null), child: const Icon(Icons.close_rounded, size: 18, color: AppPalette.textMuted)),
-        ],
       ),
     );
   }
