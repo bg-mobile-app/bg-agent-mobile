@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../routes/app_routes.dart';
+import '../../common/services/api_client.dart';
+import 'package:dio/dio.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -15,6 +17,65 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _showPassword = false;
+  bool _isLoading = false;
+
+  Future<void> _login() async {
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter username and password')));
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await ApiClient().post('/auth/login/', data: {
+        'username': _usernameController.text,
+        'password': _passwordController.text,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await ApiClient().saveCookiesFromResponse(response);
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        String errMsg = 'Login failed. Please try again.';
+        if (e.response?.data != null) {
+          try {
+            final data = e.response!.data;
+            if (data is Map && data['errors'] != null) {
+              if (data['errors']['detail'] is List) {
+                errMsg = (data['errors']['detail'] as List).join(', ');
+              } else if (data['errors']['detail'] != null) {
+                errMsg = data['errors']['detail'].toString();
+              } else {
+                errMsg = data['errors'].toString();
+              }
+            } else if (data is Map && data['detail'] != null) {
+              errMsg = data['detail'].toString();
+            } else {
+              errMsg = data.toString();
+            }
+          } catch (_) {}
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errMsg)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   static const Color _brandBlue = Color(0xFF2563EB);
   static const Color _brandNavy = Color(0xFF0F172A);
@@ -167,14 +228,16 @@ class _SignInScreenState extends State<SignInScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: _isLoading ? null : _login,
             style: ElevatedButton.styleFrom(
               backgroundColor: _brandBlue,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 15),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Login', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: _isLoading 
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Login', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ),
         const SizedBox(height: 10),

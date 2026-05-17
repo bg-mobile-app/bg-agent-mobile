@@ -1,24 +1,108 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../home/models/home_models.dart';
+import '../home/widgets/work_permit_card.dart';
+import 'models/work_permit_details.dart';
+import 'services/work_permit_service.dart';
 
-class WorkPermitDetailsScreen extends StatelessWidget {
+const Color _brandBlue = Color(0xFF2563EB);
+const Color _primary = Color(0xFF004AC6);
+const Color _background = Color(0xFFF8F9FF);
+const Color _surface = Color(0xFFFFFFFF);
+const Color _surfaceLow = Color(0xFFEFF4FF);
+const Color _surfaceHigh = Color(0xFFDCE9FF);
+const Color _outline = Color(0xFFC3C6D7);
+const Color _text = Color(0xFF0B1C30);
+const Color _mutedText = Color(0xFF434655);
+const Color _error = Color(0xFFBA1A1A);
+const Color _errorContainer = Color(0xFFFFDAD6);
+
+class WorkPermitDetailsScreen extends StatefulWidget {
   const WorkPermitDetailsScreen({super.key, required this.item});
 
   final WorkPermitItem item;
 
-  static const Color _brandBlue = Color(0xFF2563EB);
-  static const Color _primary = Color(0xFF004AC6);
-  static const Color _background = Color(0xFFF8F9FF);
-  static const Color _surface = Color(0xFFFFFFFF);
-  static const Color _surfaceLow = Color(0xFFEFF4FF);
-  static const Color _surfaceHigh = Color(0xFFDCE9FF);
-  static const Color _outline = Color(0xFFC3C6D7);
-  static const Color _text = Color(0xFF0B1C30);
-  static const Color _mutedText = Color(0xFF434655);
-  static const Color _error = Color(0xFFBA1A1A);
-  static const Color _errorContainer = Color(0xFFFFDAD6);
+  @override
+  State<WorkPermitDetailsScreen> createState() => _WorkPermitDetailsScreenState();
+}
+
+class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
+  bool _isLoading = true;
+  WorkPermitDetails? _details;
+  List<WorkPermitItem> _similarPermits = [];
+  final WorkPermitService _service = WorkPermitService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDetails();
+  }
+
+  Future<void> _loadDetails() async {
+    final details = await _service.getWorkPermitDetails(widget.item.slug);
+    final similar = await _service.getSimilarWorkPermits(widget.item.slug);
+    if (mounted) {
+      setState(() {
+        _details = details;
+        _similarPermits = similar;
+        _isLoading = false;
+      });
+    }
+  }
+
+  WorkPermitDetails get displayDetails => _details ?? _getDummyDetails();
+  List<WorkPermitItem> get displaySimilar => _isLoading ? [widget.item, widget.item] : _similarPermits;
+
+  WorkPermitDetails _getDummyDetails() {
+    return WorkPermitDetails(
+      id: 0,
+      slug: widget.item.slug,
+      status: 'Active',
+      customerPrice: 150000,
+      agentPrice: 120000,
+      countryName: widget.item.countryName,
+      countryFlag: '',
+      image: widget.item.image,
+      agency: AgencyProps(id: 1, name: 'Dummy Agency Name', rlNumber: '1234', logo: ''),
+      workType: WorkTypeProps(id: 1, name: 'Cleaner Worker'),
+      favoriteCount: 0,
+      bookedQuota: 0,
+      availableQuota: 100,
+      title: widget.item.title,
+      companyName: 'Dummy Company Name Ltd.',
+      companyAddress: 'Dummy Address',
+      selectionType: 'Direct',
+      visaOccupation: 'Worker',
+      salary: 1000,
+      currency: 'USD',
+      minAge: 18,
+      maxAge: 45,
+      iqama: 'Provided',
+      food: 'Provided',
+      accommodation: 'Provided',
+      workingHours: '8',
+      quota: 50,
+      contractDuration: '2 Years',
+      isRenewable: true,
+      gender: 'Any',
+      documentsRequired: ['Passport', 'Photo'],
+      packageIncludes: ['Visa', 'Ticket', 'Accommodation'],
+      experienceRequired: '2 Years Experience',
+      processingTime: '45 Days',
+      applicationDeadline: DateTime.now(),
+      description: 'Dummy description...',
+      paymentSteps: [
+        PaymentStepProps(name: 'Step 1: Initial Booking', amount: 50000, percentage: '30%'),
+        PaymentStepProps(name: 'Step 2: After Visa', amount: 50000, percentage: '30%'),
+      ],
+      advancePrice: 50000,
+      afterVisa: 50000,
+      beforeFlight: 50000,
+      createdAt: DateTime.now(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,33 +143,29 @@ class WorkPermitDetailsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _heroImage(isDesktop)),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  horizontalPadding,
-                  16,
-                  horizontalPadding,
-                  0,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1344),
-                    child: _headlineSection(),
-                  ),
-                ),
-              ),
-            ),
+      body: _details == null && !_isLoading
+          ? const Center(child: Text('Failed to load details.'))
+          : Skeletonizer(
+              enabled: _isLoading,
+              child: SafeArea(
+                bottom: false,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(child: _heroImage(isDesktop)),
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1344),
+                          child: _headlineSection(),
+                        ),
+                      ),
+                    ),
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 horizontalPadding,
                 24,
                 horizontalPadding,
-                128,
+                displaySimilar.isNotEmpty ? 24 : 128,
               ),
               sliver: SliverToBoxAdapter(
                 child: Center(
@@ -96,9 +176,27 @@ class WorkPermitDetailsScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (displaySimilar.isNotEmpty)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  16,
+                  horizontalPadding,
+                  128,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1344),
+                      child: _buildSimilarPermitsSection(),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
+      ), // Close Skeletonizer
       bottomNavigationBar: _bottomActions(context),
     );
   }
@@ -125,7 +223,9 @@ class WorkPermitDetailsScreen extends StatelessWidget {
     return SizedBox(
       height: isDesktop ? 420 : 210,
       width: double.infinity,
-      child: Image.asset(item.image, fit: BoxFit.cover),
+      child: displayDetails.image.startsWith('http')
+          ? Image.network(displayDetails.image, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported))
+          : Image.asset(widget.item.image, fit: BoxFit.cover),
     );
   }
 
@@ -153,7 +253,7 @@ class WorkPermitDetailsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          _jobTitle,
+          displayDetails.title,
           style: const TextStyle(
             color: _text,
             fontSize: 30,
@@ -162,17 +262,17 @@ class WorkPermitDetailsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Wrap(
+        Wrap(
           spacing: 18,
           runSpacing: 8,
           children: [
             _IconText(
-              icon: FaIcon(FontAwesomeIcons.calendarDays, size: 14),
-              label: 'Posted: May 04, 2026',
+              icon: const FaIcon(FontAwesomeIcons.calendarDays, size: 14),
+              label: 'Posted: ${displayDetails.createdAt.toString().split(' ')[0]}',
             ),
             _IconText(
-              icon: FaIcon(FontAwesomeIcons.fingerprint, size: 14),
-              label: 'Post ID: 6',
+              icon: const FaIcon(FontAwesomeIcons.fingerprint, size: 14),
+              label: 'Post ID: ${displayDetails.id}',
             ),
           ],
         ),
@@ -194,42 +294,42 @@ class WorkPermitDetailsScreen extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: columns == 4 ? 1.05 : 1.0,
-              children: const [
+              children: [
                 _StatCard(
-                  icon: FaIcon(
+                  icon: const FaIcon(
                     FontAwesomeIcons.users,
-                    color: WorkPermitDetailsScreen._brandBlue,
+                    color: _brandBlue,
                     size: 20,
                   ),
                   label: 'Quota',
-                  value: '150\nPositions',
+                  value: '${displayDetails.quota}\nPositions',
                 ),
                 _StatCard(
-                  icon: FaIcon(
+                  icon: const FaIcon(
                     FontAwesomeIcons.clock,
-                    color: WorkPermitDetailsScreen._brandBlue,
+                    color: _brandBlue,
                     size: 20,
                   ),
                   label: 'Work Hours',
-                  value: '8h / Day',
+                  value: '${displayDetails.workingHours}h / Day',
                 ),
                 _StatCard(
-                  icon: FaIcon(
+                  icon: const FaIcon(
                     FontAwesomeIcons.briefcase,
-                    color: WorkPermitDetailsScreen._brandBlue,
+                    color: _brandBlue,
                     size: 20,
                   ),
                   label: 'Experience',
-                  value: '2 Years',
+                  value: displayDetails.experienceRequired,
                 ),
                 _StatCard(
-                  icon: FaIcon(
+                  icon: const FaIcon(
                     FontAwesomeIcons.locationDot,
-                    color: WorkPermitDetailsScreen._brandBlue,
+                    color: _brandBlue,
                     size: 20,
                   ),
                   label: 'Age Range',
-                  value: '18-45 Years',
+                  value: '${displayDetails.minAge}-${displayDetails.maxAge} Years',
                 ),
               ],
             );
@@ -241,35 +341,35 @@ class WorkPermitDetailsScreen extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth > 650;
-            final cards = const [
+            final cards = [
               _InfoCard(
-                icon: FaIcon(
+                icon: const FaIcon(
                   FontAwesomeIcons.hourglassHalf,
                   size: 15,
                   color: _primary,
                 ),
                 label: 'Processing Time',
-                value: '45 Days',
+                value: displayDetails.processingTime,
                 color: _primary,
               ),
               _InfoCard(
-                icon: FaIcon(
+                icon: const FaIcon(
                   FontAwesomeIcons.calendarXmark,
                   size: 15,
                   color: _error,
                 ),
                 label: 'Deadline',
-                value: 'June 10, 2026',
+                value: displayDetails.applicationDeadline != null ? displayDetails.applicationDeadline.toString().split(' ')[0] : 'N/A',
                 color: _error,
               ),
               _InfoCard(
-                icon: FaIcon(
+                icon: const FaIcon(
                   FontAwesomeIcons.idBadge,
                   size: 15,
                   color: _mutedText,
                 ),
                 label: 'Selection',
-                value: 'Pushing Process',
+                value: displayDetails.selectionType,
                 color: _mutedText,
               ),
             ];
@@ -323,12 +423,12 @@ class WorkPermitDetailsScreen extends StatelessWidget {
 
   Widget _specificationsCard() {
     final rows = [
-      _SpecItem('Country', item.countryName, FontAwesomeIcons.flag),
-      _SpecItem('Work Type', _jobWorkType),
-      _SpecItem('Company Name', 'Port Cleaner Co.'),
-      _SpecItem('Accommodation', 'Company Provided'),
-      _SpecItem('Food Allowance', 'Company Provided'),
-      _SpecItem('Contract Period', '2 Years (Renewable)'),
+      _SpecItem('Country', displayDetails.countryName, FontAwesomeIcons.flag),
+      _SpecItem('Work Type', displayDetails.workType?.name ?? 'General'),
+      _SpecItem('Company Name', displayDetails.companyName),
+      _SpecItem('Accommodation', displayDetails.accommodation),
+      _SpecItem('Food Allowance', displayDetails.food),
+      _SpecItem('Contract Period', '${displayDetails.contractDuration} (${displayDetails.isRenewable ? "Renewable" : "Non-Renewable"})'),
     ];
 
     return _CardShell(
@@ -374,13 +474,7 @@ class WorkPermitDetailsScreen extends StatelessWidget {
   }
 
   Widget _packageInclusions() {
-    const inclusions = [
-      _SpecItem('Visa', '', FontAwesomeIcons.fileLines),
-      _SpecItem('Ticket', '', FontAwesomeIcons.ticket),
-      _SpecItem('Manpower', '', FontAwesomeIcons.idCard),
-      _SpecItem('Passport', '', FontAwesomeIcons.passport),
-      _SpecItem('Photos', '', FontAwesomeIcons.camera),
-    ];
+    if (displayDetails.packageIncludes.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,7 +491,7 @@ class WorkPermitDetailsScreen extends StatelessWidget {
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: inclusions
+          children: displayDetails.packageIncludes
               .map(
                 (item) => Container(
                   padding: const EdgeInsets.symmetric(
@@ -411,10 +505,10 @@ class WorkPermitDetailsScreen extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FaIcon(item.icon!, size: 14, color: _mutedText),
+                      const FaIcon(FontAwesomeIcons.circleCheck, size: 14, color: _brandBlue),
                       const SizedBox(width: 8),
                       Text(
-                        item.label,
+                        item,
                         style: const TextStyle(
                           color: Color(0xFF5C647A),
                           fontWeight: FontWeight.w600,
@@ -571,7 +665,7 @@ class WorkPermitDetailsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'BDT ${_formatMoney(item.customerPrice)}',
+            'BDT ${_formatMoney(displayDetails.customerPrice)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 40,
@@ -582,10 +676,10 @@ class WorkPermitDetailsScreen extends StatelessWidget {
           const SizedBox(height: 22),
           Container(height: 1, color: Colors.white24),
           const SizedBox(height: 18),
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
+              const Expanded(
                 child: Text(
                   'Monthly Salary',
                   style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 14),
@@ -595,17 +689,12 @@ class WorkPermitDetailsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '280 JOD',
-                    style: TextStyle(
+                    '${displayDetails.salary} ${displayDetails.currency}',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    '~ BDT 46,200',
-                    style: TextStyle(color: Color(0x99FFFFFF), fontSize: 13),
                   ),
                 ],
               ),
@@ -645,26 +734,7 @@ class WorkPermitDetailsScreen extends StatelessWidget {
   }
 
   Widget _paymentBreakdown() {
-    const steps = [
-      _PaymentStep(
-        'Step 1: Booking Advance',
-        'BDT 78,000',
-        'Due at initial registration and file opening.',
-        true,
-      ),
-      _PaymentStep(
-        'Step 2: After Visa',
-        'BDT 150,000',
-        'Payable once visa confirmation is verified.',
-        false,
-      ),
-      _PaymentStep(
-        'Step 3: Before Flight',
-        'BDT 80,000',
-        'Final payment before receiving air ticket.',
-        false,
-      ),
-    ];
+    if (displayDetails.paymentSteps.isEmpty) return const SizedBox.shrink();
 
     return _CardShell(
       child: Column(
@@ -681,10 +751,15 @@ class WorkPermitDetailsScreen extends StatelessWidget {
           const SizedBox(height: 22),
           Column(
             children: [
-              for (var index = 0; index < steps.length; index++)
+              for (var index = 0; index < displayDetails.paymentSteps.length; index++)
                 _TimelineStep(
-                  step: steps[index],
-                  isLast: index == steps.length - 1,
+                  step: _PaymentStep(
+                    displayDetails.paymentSteps[index].name,
+                    'BDT ${_formatMoney(displayDetails.paymentSteps[index].amount.toInt())}',
+                    '${displayDetails.paymentSteps[index].percentage} of total',
+                    index == 0,
+                  ),
+                  isLast: index == displayDetails.paymentSteps.length - 1,
                 ),
             ],
           ),
@@ -694,6 +769,8 @@ class WorkPermitDetailsScreen extends StatelessWidget {
   }
 
   Widget _agencyInfo() {
+    if (displayDetails.agency == null) return const SizedBox.shrink();
+
     return _CardShell(
       color: _surfaceLow,
       child: Row(
@@ -706,31 +783,38 @@ class WorkPermitDetailsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: _outline),
             ),
-            child: const Center(
-              child: FaIcon(
-                FontAwesomeIcons.buildingCircleCheck,
-                color: _brandBlue,
-                size: 24,
-              ),
-            ),
+            child: displayDetails.agency!.logo.isNotEmpty 
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.network(displayDetails.agency!.logo, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(
+                    child: FaIcon(FontAwesomeIcons.buildingCircleCheck, color: _brandBlue, size: 24),
+                  )),
+                )
+              : const Center(
+                  child: FaIcon(
+                    FontAwesomeIcons.buildingCircleCheck,
+                    color: _brandBlue,
+                    size: 24,
+                  ),
+                ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Global Talent Hub',
-                  style: TextStyle(
+                  displayDetails.agency!.name,
+                  style: const TextStyle(
                     color: _text,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'RL-1452 • Licensed Agency',
-                  style: TextStyle(color: _mutedText, fontSize: 13),
+                  'RL-${displayDetails.agency!.rlNumber} • Licensed Agency',
+                  style: const TextStyle(color: _mutedText, fontSize: 13),
                 ),
               ],
             ),
@@ -824,9 +908,46 @@ class WorkPermitDetailsScreen extends StatelessWidget {
     }
     return buffer.toString();
   }
-
-  static const String _jobTitle = 'Port/Border Cleaner';
-  static const String _jobWorkType = 'Cleaner';
+  Widget _buildSimilarPermitsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Similar Work Permits',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: _text,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 540,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: displaySimilar.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 16),
+            itemBuilder: (context, index) => SizedBox(
+              width: MediaQuery.of(context).size.width > 320 ? 300 : MediaQuery.of(context).size.width * 0.85,
+              child: WorkPermitCard(
+                item: displaySimilar[index],
+                brandBlue: _brandBlue,
+                onViewDetails: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => WorkPermitDetailsScreen(item: displaySimilar[index]),
+                    ),
+                  );
+                },
+                formatBdt: _formatMoney,
+                timeAgo: (date) => '', // Fallback or format actual date
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _ActionIconButton extends StatelessWidget {
@@ -848,8 +969,8 @@ class _ActionIconButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: WorkPermitDetailsScreen._mutedText,
-          side: const BorderSide(color: WorkPermitDetailsScreen._outline),
+          foregroundColor: _mutedText,
+          side: const BorderSide(color: _outline),
           minimumSize: const Size(48, 48),
           fixedSize: const Size(48, 48),
           padding: EdgeInsets.zero,
@@ -868,7 +989,7 @@ class _CardShell extends StatelessWidget {
   const _CardShell({
     required this.child,
     this.padding = const EdgeInsets.all(18),
-    this.color = WorkPermitDetailsScreen._surface,
+    this.color = _surface,
   });
 
   final Widget child;
@@ -882,7 +1003,7 @@ class _CardShell extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: WorkPermitDetailsScreen._outline),
+        border: Border.all(color: _outline),
       ),
       child: child,
     );
@@ -919,7 +1040,7 @@ class _IconText extends StatelessWidget {
   const _IconText({
     required this.icon,
     required this.label,
-    this.color = WorkPermitDetailsScreen._mutedText,
+    this.color = _mutedText,
     this.bold = false,
   });
 
@@ -971,7 +1092,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: WorkPermitDetailsScreen._mutedText,
+              color: _mutedText,
               fontSize: 12,
             ),
           ),
@@ -980,7 +1101,7 @@ class _StatCard extends StatelessWidget {
             value,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: WorkPermitDetailsScreen._text,
+              color: _text,
               fontSize: 17,
               fontWeight: FontWeight.w800,
               height: 1.2,
@@ -1010,7 +1131,7 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: WorkPermitDetailsScreen._surfaceHigh,
+        color: _surfaceHigh,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -1037,7 +1158,7 @@ class _InfoCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: WorkPermitDetailsScreen._text,
+              color: _text,
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
@@ -1067,7 +1188,7 @@ class _SpecRow extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: WorkPermitDetailsScreen._outline),
+          bottom: BorderSide(color: _outline),
         ),
       ),
       child: Row(
@@ -1076,7 +1197,7 @@ class _SpecRow extends StatelessWidget {
             child: Text(
               item.label,
               style: const TextStyle(
-                color: WorkPermitDetailsScreen._mutedText,
+                color: _mutedText,
                 fontSize: 14,
               ),
             ),
@@ -1090,7 +1211,7 @@ class _SpecRow extends StatelessWidget {
                   FaIcon(
                     item.icon,
                     size: 14,
-                    color: WorkPermitDetailsScreen._mutedText,
+                    color: _mutedText,
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -1099,7 +1220,7 @@ class _SpecRow extends StatelessWidget {
                     item.value,
                     textAlign: TextAlign.right,
                     style: const TextStyle(
-                      color: WorkPermitDetailsScreen._text,
+                      color: _text,
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                     ),
@@ -1132,7 +1253,7 @@ class _TimelineStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dotColor = step.active
-        ? WorkPermitDetailsScreen._brandBlue
+        ? _brandBlue
         : const Color(0xFFDBE1FF);
     return IntrinsicHeight(
       child: Row(
@@ -1153,7 +1274,7 @@ class _TimelineStep extends StatelessWidget {
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: WorkPermitDetailsScreen._outline,
+                    color: _outline,
                   ),
                 ),
             ],
@@ -1169,8 +1290,8 @@ class _TimelineStep extends StatelessWidget {
                     step.title.toUpperCase(),
                     style: TextStyle(
                       color: step.active
-                          ? WorkPermitDetailsScreen._brandBlue
-                          : WorkPermitDetailsScreen._mutedText,
+                          ? _brandBlue
+                          : _mutedText,
                       fontSize: 11,
                       letterSpacing: 0.6,
                       fontWeight: FontWeight.w900,
@@ -1180,7 +1301,7 @@ class _TimelineStep extends StatelessWidget {
                   Text(
                     step.amount,
                     style: const TextStyle(
-                      color: WorkPermitDetailsScreen._text,
+                      color: _text,
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
@@ -1189,7 +1310,7 @@ class _TimelineStep extends StatelessWidget {
                   Text(
                     step.description,
                     style: const TextStyle(
-                      color: WorkPermitDetailsScreen._mutedText,
+                      color: _mutedText,
                       fontSize: 13,
                       height: 1.35,
                     ),

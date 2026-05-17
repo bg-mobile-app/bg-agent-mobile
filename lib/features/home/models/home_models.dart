@@ -38,6 +38,24 @@ class WorkPermitItem {
   final DateTime createdAt;
 }
 
+class WorkTypeItem {
+  const WorkTypeItem({
+    required this.id,
+    required this.name,
+    required this.nameBn,
+    required this.icon,
+    required this.serial,
+    required this.totalAds,
+  });
+
+  final int id;
+  final String name;
+  final String nameBn;
+  final String icon;
+  final int serial;
+  final int totalAds;
+}
+
 const List<NavLinkItem> navLinkData = [
   NavLinkItem(name: 'Home', href: '/', icon: RegularRounded.HOME),
   NavLinkItem(name: 'Flight Booking', href: '', icon: RegularRounded.PLANE),

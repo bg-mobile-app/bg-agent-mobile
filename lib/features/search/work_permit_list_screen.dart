@@ -3,6 +3,7 @@ import 'package:fui_kit/fui_kit.dart';
 import 'package:go_router/go_router.dart';
 
 import '../home/models/home_models.dart';
+import '../home/services/home_service.dart';
 import '../home/widgets/home_common_widgets.dart';
 import '../home/widgets/work_permit_card.dart';
 import 'work_permit_details_screen.dart';
@@ -23,64 +24,27 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   static const Color _brandBlue = AppPalette.brandBlue;
   final _searchController = TextEditingController();
   bool _isLoggedIn = false;
+  bool _isLoading = true;
 
-  final List<WorkPermitItem> _allItems = [
-    WorkPermitItem(
-      title: 'Factory Worker Visa - Malaysia',
-      slug: 'factory-worker-malaysia',
-      image: 'assets/img/work-permit/3.png',
-      customerPrice: 420000,
-      agentPrice: 390000,
-      countryName: 'Malaysia',
-      countryFlag: 'assets/img/customer/appointment/Malaysia.webp',
-      workType: 'Factory',
-      selectionType: 'DIRECT',
-      createdAt: DateTime.now().subtract(const Duration(hours: 10)),
-    ),
-    WorkPermitItem(
-      title: 'Construction Helper - Romania',
-      slug: 'construction-helper-romania',
-      image: 'assets/img/work-permit/2.png',
-      customerPrice: 560000,
-      agentPrice: 520000,
-      countryName: 'Romania',
-      countryFlag: 'assets/img/customer/appointment/Romania.png',
-      workType: 'Construction',
-      selectionType: 'LOTTERY',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    WorkPermitItem(
-      title: 'Hotel Staff - Japan',
-      slug: 'hotel-staff-japan',
-      image: 'assets/img/work-permit/1.jpg',
-      customerPrice: 680000,
-      agentPrice: 640000,
-      countryName: 'Japan',
-      countryFlag: 'assets/img/customer/appointment/Japan.png',
-      workType: 'Hospitality',
-      selectionType: 'DIRECT',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    WorkPermitItem(
-      title: 'Agriculture Worker - Poland',
-      slug: 'agriculture-worker-poland',
-      image: 'assets/img/work-permit/1.jpg',
-      customerPrice: 470000,
-      agentPrice: 435000,
-      countryName: 'Poland',
-      countryFlag: 'assets/img/customer/appointment/world.png',
-      workType: 'Agriculture',
-      selectionType: 'DELEGATE',
-      createdAt: DateTime.now().subtract(const Duration(days: 4)),
-    ),
-  ];
-
+  final HomeService _homeService = HomeService();
+  List<WorkPermitItem> _allItems = [];
   List<WorkPermitItem> _filteredItems = [];
 
   @override
   void initState() {
     super.initState();
-    _filteredItems = List.of(_allItems);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final permits = await _homeService.getWorkPermits();
+    if (mounted) {
+      setState(() {
+        _allItems = permits;
+        _filteredItems = List.of(_allItems);
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -186,6 +150,12 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   }
 
   Widget _buildWorkPermitSection() {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 50),
+        child: Center(child: CircularProgressIndicator(color: _brandBlue)),
+      );
+    }
     if (_filteredItems.isEmpty) {
       return const Padding(
         padding: EdgeInsets.only(top: 30),
@@ -193,8 +163,6 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
       );
     }
     final width = MediaQuery.of(context).size.width;
-    final crossAxisCount = 1;
-    final childAspectRatio = width >= 768 ? 1.25 : 0.95;
 
     return Column(
       children: [
@@ -239,16 +207,11 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                   const SizedBox(width: 16),
                 ],
                 Expanded(
-                  child: GridView.builder(
+                  child: ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _filteredItems.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: childAspectRatio,
-                    ),
+                    separatorBuilder: (context, index) => const SizedBox(height: 16),
                     itemBuilder: (context, index) => WorkPermitCard(
                       item: _filteredItems[index],
                       brandBlue: _brandBlue,

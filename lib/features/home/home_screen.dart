@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fui_kit/fui_kit.dart';
 
 import 'models/home_models.dart';
+import 'services/home_service.dart';
 import 'widgets/home_common_widgets.dart';
 import 'widgets/work_permit_card.dart';
 import '../../common/theme/app_palette.dart';
@@ -38,80 +39,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isLoggedIn = false;
 
-  final List<String> _countries = const [
-    'Bangladesh',
-    'Malaysia',
-    'Japan',
-    'Romania',
-  ];
-  final List<String> _workTypes = const [
-    'Factory',
-    'Construction',
-    'Hospitality',
-    'Agriculture',
-  ];
-  final List<String> _banners = const [
+  final HomeService _homeService = HomeService();
+  bool _isLoading = true;
+
+  List<String> _countries = [];
+  List<WorkTypeItem> _workTypes = [];
+  List<String> _banners = [
     'assets/img/ads/1.png',
-    'assets/img/ads/2.png',
-    'assets/img/ads/3.png',
-    'assets/img/ads/4.png',
-    'assets/img/ads/create/ads_bn.png',
-    'assets/img/ads/create/ads_en.png',
   ];
-  final List<WorkPermitItem> _workPermits = [
-    WorkPermitItem(
-      title: 'Factory Worker Visa - Malaysia',
-      slug: 'factory-worker-malaysia',
-      image: 'assets/img/work-permit/3.png',
-      customerPrice: 420000,
-      agentPrice: 390000,
-      countryName: 'Malaysia',
-      countryFlag: 'assets/img/customer/appointment/Malaysia.webp',
-      workType: 'Factory',
-      selectionType: 'DIRECT',
-      createdAt: DateTime.now().subtract(const Duration(hours: 10)),
-    ),
-    WorkPermitItem(
-      title: 'Construction Helper - Romania',
-      slug: 'construction-helper-romania',
-      image: 'assets/img/work-permit/2.png',
-      customerPrice: 560000,
-      agentPrice: 520000,
-      countryName: 'Romania',
-      countryFlag: 'assets/img/customer/appointment/Romania.png',
-      workType: 'Construction',
-      selectionType: 'LOTTERY',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    WorkPermitItem(
-      title: 'Hotel Staff - Japan',
-      slug: 'hotel-staff-japan',
-      image: 'assets/img/work-permit/1.jpg',
-      customerPrice: 680000,
-      agentPrice: 640000,
-      countryName: 'Japan',
-      countryFlag: 'assets/img/customer/appointment/Japan.png',
-      workType: 'Hospitality',
-      selectionType: 'DIRECT',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    WorkPermitItem(
-      title: 'Agriculture Worker - Poland',
-      slug: 'agriculture-worker-poland',
-      image: 'assets/img/work-permit/1.jpg',
-      customerPrice: 470000,
-      agentPrice: 435000,
-      countryName: 'Poland',
-      countryFlag: 'assets/img/customer/appointment/world.png',
-      workType: 'Agriculture',
-      selectionType: 'DIRECT',
-      createdAt: DateTime.now().subtract(const Duration(days: 4)),
-    ),
-  ];
+  List<WorkPermitItem> _workPermits = [];
 
   @override
   void initState() {
     super.initState();
+    _loadData();
     _bannerTimer = Timer.periodic(const Duration(milliseconds: 2300), (_) {
       if (!_bannerController.hasClients) return;
       _bannerIndex = (_bannerIndex + 1) % _banners.length;
@@ -121,6 +62,30 @@ class _HomeScreenState extends State<HomeScreen> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  Future<void> _loadData() async {
+    final results = await Future.wait([
+      _homeService.getCountries(),
+      _homeService.getWorkTypes(),
+      _homeService.getOfferBanners(),
+      _homeService.getWorkPermits(),
+    ]);
+
+    if (mounted) {
+      setState(() {
+        _countries = results[0] as List<String>;
+        _workTypes = results[1] as List<WorkTypeItem>;
+
+        final fetchedBanners = results[2] as List<String>;
+        if (fetchedBanners.isNotEmpty) {
+          _banners = fetchedBanners;
+        }
+
+        _workPermits = results[3] as List<WorkPermitItem>;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -276,15 +241,18 @@ class _HomeScreenState extends State<HomeScreen> {
         onProfile: _showComingSoon,
       ),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeroSection()),
-            SliverToBoxAdapter(child: _buildOfferBanner()),
-            SliverToBoxAdapter(child: _buildServices()),
-            SliverToBoxAdapter(child: _buildWorkPermitSection()),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
-        ),
+        child: _isLoading 
+            ? const Center(child: CircularProgressIndicator()) 
+            : CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(child: _buildHeroSection()),
+                  SliverToBoxAdapter(child: _buildOfferBanner()),
+                  SliverToBoxAdapter(child: _buildServices()),
+                  SliverToBoxAdapter(child: _buildWorkTypesSection()),
+                  SliverToBoxAdapter(child: _buildWorkPermitSection()),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                ],
+              ),
       ),
     );
   }
@@ -314,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _dropdown(
                 value: _workType,
                 hint: 'Type of Work',
-                items: _workTypes,
+                items: _workTypes.map((e) => e.name).toList(),
                 onChanged: (v) => setState(() => _workType = v),
               ),
             ),
@@ -418,13 +386,96 @@ class _HomeScreenState extends State<HomeScreen> {
           child: PageView.builder(
             controller: _bannerController,
             itemCount: _banners.length,
-            itemBuilder: (context, index) => Image.asset(
-              _banners[index],
-              fit: BoxFit.cover,
-              width: double.infinity,
-            ),
+            itemBuilder: (context, index) {
+              final banner = _banners[index];
+              if (banner.startsWith('http')) {
+                return Image.network(banner, fit: BoxFit.cover, width: double.infinity);
+              }
+              return Image.asset(
+                banner,
+                fit: BoxFit.cover,
+                width: double.infinity,
+              );
+            },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildWorkTypesSection() {
+    if (_workTypes.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        children: [
+          _sectionHeader('Work Categories', actionLabel: 'View All', onActionTap: () => context.push('/search')),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 140,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _workTypes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              itemBuilder: (context, index) {
+                final item = _workTypes[index];
+                return InkWell(
+                  onTap: () => context.push('/search'),
+                  child: Container(
+                    width: 110,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x0A0F172A),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          height: 40,
+                          width: 40,
+                          child: Image.network(
+                            item.icon,
+                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.work_outline, color: AppPalette.brandBlue, size: 30),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          item.name,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${item.totalAds} Ads',
+                            style: const TextStyle(fontSize: 10, color: AppPalette.brandBlue, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -438,16 +489,18 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
         children: [
-          _sectionHeader('Work Permit', actionLabel: 'See More'),
+          _sectionHeader('Work Permit', actionLabel: 'See More', onActionTap: () => context.push('/search')),
           const SizedBox(height: 14),
           SizedBox(
-            height: 390,
+            height: 540,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _workPermits.length,
               itemBuilder: (context, index) {
+                final double screenWidth = MediaQuery.of(context).size.width;
+                final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
                 return SizedBox(
-                  width: MediaQuery.of(context).size.width * .84,
+                  width: cardWidth,
                   child: WorkPermitCard(
                     item: _workPermits[index],
                     brandBlue: _brandBlue,
@@ -465,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _sectionHeader(String title, {required String actionLabel}) {
+  Widget _sectionHeader(String title, {required String actionLabel, VoidCallback? onActionTap}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -474,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 50/2, color: Color(0xFF111827)),
         ),
         TextButton.icon(
-          onPressed: _showComingSoon,
+          onPressed: onActionTap ?? _showComingSoon,
           style: TextButton.styleFrom(
             foregroundColor: _brandBlue,
             shape: RoundedRectangleBorder(

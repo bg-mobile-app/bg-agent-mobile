@@ -75,8 +75,24 @@ class AppBrandHeader extends StatelessWidget implements PreferredSizeWidget {
       title: const SizedBox.shrink(),
       actions: [
         if (isLoggedIn) ...[
-          IconButton(onPressed: onNotifications, icon: const Icon(Icons.notifications_none, color: Colors.black87), tooltip: 'Notifications'),
-          IconButton(onPressed: onProfile, icon: const Icon(Icons.person_outline, color: Colors.black87), tooltip: 'Profile'),
+          IconButton(
+            onPressed: onNotifications, 
+            icon: const Badge(
+              backgroundColor: Colors.red,
+              smallSize: 8,
+              child: Icon(Icons.notifications_none, color: Colors.black87, size: 28),
+            ), 
+            tooltip: 'Notifications'
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onProfile,
+            child: const CircleAvatar(
+              radius: 18,
+              backgroundColor: Color(0xFFD7E3FF),
+              child: Icon(Icons.person, color: Color(0xFF2563EB)),
+            ),
+          ),
         ] else ...[
           OutlinedButton(
             onPressed: onSignIn,
