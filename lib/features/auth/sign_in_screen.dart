@@ -36,6 +36,18 @@ class _SignInScreenState extends State<SignInScreen> {
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data != null && data['user'] != null) {
+          final role = data['user']['role'];
+          if (role != 'AGENCY_ADMIN') {
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access denied. Only Agency accounts can log in here.')));
+            }
+            return;
+          }
+        }
+
         await ApiClient().saveCookiesFromResponse(response);
         if (mounted) {
           Navigator.pop(context, true);

@@ -26,6 +26,21 @@ class WorkPermitItem {
     required this.createdAt,
   });
 
+  factory WorkPermitItem.getDummy() {
+    return WorkPermitItem(
+      title: 'Dummy Work Permit Title For Loading',
+      slug: 'dummy-slug',
+      image: '',
+      customerPrice: 150000,
+      agentPrice: 120000,
+      countryName: 'Dummy Country',
+      countryFlag: '',
+      workType: 'General Work',
+      selectionType: 'Direct',
+      createdAt: DateTime.now(),
+    );
+  }
+
   final String title;
   final String slug;
   final String image;

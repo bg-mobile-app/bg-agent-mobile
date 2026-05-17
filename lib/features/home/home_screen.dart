@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:fui_kit/fui_kit.dart';
 
 import 'models/home_models.dart';
@@ -481,9 +482,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWorkPermitSection() {
-    if (_workPermits.isEmpty) {
+    if (_workPermits.isEmpty && !_isLoading) {
       return const SizedBox.shrink();
     }
+    
+    final displayItems = _isLoading ? List.generate(4, (_) => WorkPermitItem.getDummy()) : _workPermits;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -491,18 +494,20 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _sectionHeader('Work Permit', actionLabel: 'See More', onActionTap: () => context.push('/search')),
           const SizedBox(height: 14),
-          SizedBox(
-            height: 540,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _workPermits.length,
+          Skeletonizer(
+            enabled: _isLoading,
+            child: SizedBox(
+              height: 540,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: displayItems.length,
               itemBuilder: (context, index) {
                 final double screenWidth = MediaQuery.of(context).size.width;
                 final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
                 return SizedBox(
                   width: cardWidth,
                   child: WorkPermitCard(
-                    item: _workPermits[index],
+                    item: displayItems[index],
                     brandBlue: _brandBlue,
                     onViewDetails: _showComingSoon,
                     formatBdt: _formatBdt,
@@ -512,6 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               separatorBuilder: (_, __) => const SizedBox(width: 14),
             ),
+          ),
           ),
         ],
       ),

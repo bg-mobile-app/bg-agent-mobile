@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:fui_kit/fui_kit.dart';
 import 'package:go_router/go_router.dart';
 
@@ -150,19 +151,14 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   }
 
   Widget _buildWorkPermitSection() {
-    if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 50),
-        child: Center(child: CircularProgressIndicator(color: _brandBlue)),
-      );
-    }
-    if (_filteredItems.isEmpty) {
+    if (_filteredItems.isEmpty && !_isLoading) {
       return const Padding(
         padding: EdgeInsets.only(top: 30),
         child: Text('No work permits found.'),
       );
     }
     final width = MediaQuery.of(context).size.width;
+    final displayItems = _isLoading ? List.generate(4, (_) => WorkPermitItem.getDummy()) : _filteredItems;
 
     return Column(
       children: [
@@ -207,18 +203,21 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                   const SizedBox(width: 16),
                 ],
                 Expanded(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _filteredItems.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) => WorkPermitCard(
-                      item: _filteredItems[index],
-                      brandBlue: _brandBlue,
-                      onViewDetails: () =>
-                          _openDetailsBySlug(_filteredItems[index]),
-                      formatBdt: _formatBdt,
-                      timeAgo: _timeAgo,
+                  child: Skeletonizer(
+                    enabled: _isLoading,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayItems.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 16),
+                      itemBuilder: (context, index) => WorkPermitCard(
+                        item: displayItems[index],
+                        brandBlue: _brandBlue,
+                        onViewDetails: () =>
+                            _openDetailsBySlug(displayItems[index]),
+                        formatBdt: _formatBdt,
+                        timeAgo: _timeAgo,
+                      ),
                     ),
                   ),
                 ),
