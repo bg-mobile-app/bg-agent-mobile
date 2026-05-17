@@ -249,7 +249,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverToBoxAdapter(child: _buildHeroSection()),
                   SliverToBoxAdapter(child: _buildOfferBanner()),
                   SliverToBoxAdapter(child: _buildServices()),
-                  SliverToBoxAdapter(child: _buildWorkTypesSection()),
                   SliverToBoxAdapter(child: _buildWorkPermitSection()),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
@@ -400,83 +399,6 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildWorkTypesSection() {
-    if (_workTypes.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Column(
-        children: [
-          _sectionHeader('Work Categories', actionLabel: 'View All', onActionTap: () => context.push('/search')),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 140,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _workTypes.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
-              itemBuilder: (context, index) {
-                final item = _workTypes[index];
-                return InkWell(
-                  onTap: () => context.push('/search'),
-                  child: Container(
-                    width: 110,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0A0F172A),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          height: 40,
-                          width: 40,
-                          child: Image.network(
-                            item.icon,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.work_outline, color: AppPalette.brandBlue, size: 30),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          item.name,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${item.totalAds} Ads',
-                            style: const TextStyle(fontSize: 10, color: AppPalette.brandBlue, fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }

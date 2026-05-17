@@ -51,7 +51,7 @@ class AppScaffold extends StatelessWidget {
       const WorkPermitListScreen(),
       const CreateAdScreen(),
       const ChatListScreen(),
-      _DashboardHostScreen(route: dashboardPath ?? '/dashboard/customer'),
+      _DashboardHostScreen(route: dashboardPath ?? '/dashboard/agency'),
     ];
 
     return Scaffold(
@@ -86,8 +86,10 @@ class _DashboardHostScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (route) {
+      case '/dashboard/agency':
+        return const DashboardScreen(currentHref: '/dashboard/agency');
       case '/dashboard/customer':
-        return const DashboardScreen();
+        return const DashboardScreen(currentHref: '/dashboard/customer');
       case '/dashboard/booking/my':
         return const MyBookingScreen();
       case '/dashboard/receive-booking/all-booking':

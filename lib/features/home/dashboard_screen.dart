@@ -4,132 +4,510 @@ import 'package:go_router/go_router.dart';
 import '../../common/theme/app_colors.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
+import 'models/dashboard_models.dart';
+import 'services/dashboard_service.dart';
 
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key, this.currentHref = '/dashboard/agency'});
+
+  final String currentHref;
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  static const List<String> _periods = [
+    'Today',
+    'This Week',
+    'This Month',
+    'This Year',
+    'Last Year',
+    'Last 2 Years',
+    'Last 3 Years',
+    'Last 4 Years',
+    'Last 5 Years',
+  ];
+
+  final DashboardService _dashboardService = DashboardService();
+  late Future<AgencyDashboardStats> _dashboardFuture;
+  String _selectedPeriod = 'This Month';
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardFuture = _dashboardService.getAgencyDashboard(_selectedPeriod);
+  }
+
+  void _changePeriod(String? period) {
+    if (period == null || period == _selectedPeriod) return;
+    setState(() {
+      _selectedPeriod = period;
+      _dashboardFuture = _dashboardService.getAgencyDashboard(_selectedPeriod);
+    });
+  }
+
+  Future<void> _refreshDashboard() async {
+    setState(() {
+      _dashboardFuture = _dashboardService.getAgencyDashboard(_selectedPeriod);
+    });
+    await _dashboardFuture;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardPageScaffold(
+      currentHref: widget.currentHref,
+      child: Container(
+        color: AppPalette.pageBackground,
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _refreshDashboard,
+            child: FutureBuilder<AgencyDashboardStats>(
+              future: _dashboardFuture,
+              builder: (context, snapshot) {
+                final stats = snapshot.data ?? AgencyDashboardStats.empty();
+                final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                final hasError = snapshot.hasError;
+
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1080),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _DashboardBreadcrumbs(),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Agency Dashboard Overview',
+                            style: AppTextStyles.headline1.copyWith(
+                              fontSize: 25,
+                              fontWeight: FontWeight.w800,
+                              height: 1.08,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Live booking, payment, commission, and expiry data for your agency.',
+                            style: AppTextStyles.body2.copyWith(
+                              color: AppPalette.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          _PeriodSelector(
+                            selectedPeriod: _selectedPeriod,
+                            periods: _periods,
+                            onChanged: _changePeriod,
+                            isLoading: isLoading,
+                          ),
+                          if (hasError) ...[
+                            const SizedBox(height: 12),
+                            _DashboardErrorBanner(onRetry: _refreshDashboard),
+                          ],
+                          const SizedBox(height: 16),
+                          if (isLoading && snapshot.data == null)
+                            const _DashboardLoadingState()
+                          else ...[
+                            _DashboardSection(
+                              title: 'Agency Summary',
+                              child: _DashboardCardGrid(
+                                cards: _buildAgencySummaryCards(stats),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            _DashboardSection(
+                              title: 'My Bookings',
+                              child: _DashboardCardGrid(
+                                cards: _buildMyBookingCards(stats.myBookings),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            _DashboardSection(
+                              title: 'Agency Bookings',
+                              child: _DashboardCardGrid(
+                                cards: _buildAgencyBookingCards(stats.agencyBookings),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            _DashboardSection(
+                              title: 'Expiry Reminders',
+                              child: _ExpiryReminderPanel(stats: stats.expiryReminders),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<DashboardSmallCard> _buildAgencySummaryCards(AgencyDashboardStats stats) {
+    final agency = stats.agencyBookings;
+    return [
+      DashboardSmallCard(
+        label: 'Total Agency Booking',
+        icon: Icons.fact_check_outlined,
+        value: '${agency.total}',
+      ),
+      DashboardSmallCard(
+        label: 'Ready For Flight',
+        icon: Icons.flight_takeoff_rounded,
+        value: '${agency.readyForFlight}',
+      ),
+      DashboardSmallCard(
+        label: 'Total Commission',
+        icon: Icons.account_balance_wallet_outlined,
+        value: _formatMoney(agency.commissionAmount),
+      ),
+      DashboardSmallCard(
+        label: 'Total Due',
+        icon: Icons.money_off_csred_outlined,
+        value: _formatMoney(agency.dueAmount),
+        red: true,
+      ),
+    ];
+  }
+
+  List<DashboardSmallCard> _buildMyBookingCards(MyBookingStats stats) {
+    return [
+      DashboardSmallCard(
+        label: 'Total Applied Job',
+        icon: Icons.menu_book_outlined,
+        value: '${stats.total}',
+      ),
+      DashboardSmallCard(
+        label: 'Under Processing',
+        icon: Icons.hourglass_top_rounded,
+        value: '${stats.processing}',
+      ),
+      DashboardSmallCard(
+        label: 'Success Flight',
+        icon: Icons.flight_takeoff_rounded,
+        value: '${stats.successFlight}',
+      ),
+      DashboardSmallCard(
+        label: 'Reject Flight',
+        icon: Icons.flight_land_rounded,
+        value: '${stats.rejectFlight}',
+        red: true,
+      ),
+      DashboardSmallCard(
+        label: 'Return Passport',
+        icon: Icons.badge_outlined,
+        value: '${stats.returnProcessing}',
+      ),
+      DashboardSmallCard(
+        label: 'Total Amount',
+        icon: Icons.payments_outlined,
+        value: _formatMoney(stats.totalAmount),
+      ),
+      DashboardSmallCard(
+        label: 'Paid Amount',
+        icon: Icons.account_balance_wallet_outlined,
+        value: _formatMoney(stats.paidAmount),
+      ),
+      DashboardSmallCard(
+        label: 'Due Amount',
+        icon: Icons.money_off_csred_outlined,
+        value: _formatMoney(stats.dueAmount),
+        red: true,
+      ),
+      DashboardSmallCard(
+        label: 'Commission Amount',
+        icon: Icons.savings_outlined,
+        value: _formatMoney(stats.commissionAmount),
+      ),
+    ];
+  }
+
+  List<DashboardSmallCard> _buildAgencyBookingCards(AgencyBookingStats stats) {
+    return [
+      DashboardSmallCard(label: 'All Booking', icon: Icons.list_alt_outlined, value: '${stats.total}'),
+      DashboardSmallCard(label: 'Applied Customer', icon: Icons.person_add_alt, value: '${stats.appliedCustomer}'),
+      DashboardSmallCard(label: 'BG Collect PP', icon: Icons.assignment_ind_outlined, value: '${stats.bgCollectPp}'),
+      DashboardSmallCard(label: 'BG Sent PP', icon: Icons.outbox_outlined, value: '${stats.bgSentPp}'),
+      DashboardSmallCard(label: 'Agency Receive PP', icon: Icons.inventory_2_outlined, value: '${stats.aRecievePp}'),
+      DashboardSmallCard(label: 'Under Processing', icon: Icons.hourglass_top_rounded, value: '${stats.underProcessing}'),
+      DashboardSmallCard(label: 'Visa Approved', icon: Icons.verified_user_outlined, value: '${stats.visaApproved}'),
+      DashboardSmallCard(label: 'BMET Done', icon: Icons.task_alt_rounded, value: '${stats.bmetDone}'),
+      DashboardSmallCard(label: 'Ticket Done', icon: Icons.airplane_ticket_outlined, value: '${stats.ticketDone}'),
+      DashboardSmallCard(label: 'PP Sent To BG', icon: Icons.mark_email_read_outlined, value: '${stats.ppSentToBg}'),
+      DashboardSmallCard(label: 'BG Received PP', icon: Icons.move_to_inbox_outlined, value: '${stats.bgReceivedPp}'),
+      DashboardSmallCard(label: 'Ready For Flight', icon: Icons.flight_takeoff_rounded, value: '${stats.readyForFlight}'),
+      DashboardSmallCard(label: 'Success Flight', icon: Icons.flight_rounded, value: '${stats.successFlight}'),
+      DashboardSmallCard(label: 'Return Request', icon: Icons.assignment_return_outlined, value: '${stats.returnRequest}'),
+      DashboardSmallCard(label: 'Return Accepted', icon: Icons.assignment_turned_in_outlined, value: '${stats.returnAccepted}'),
+      DashboardSmallCard(label: 'Return PP Sent To BG', icon: Icons.reply_all_outlined, value: '${stats.returnPpSentToBg}'),
+      DashboardSmallCard(label: 'BG Collect Return PP', icon: Icons.badge_outlined, value: '${stats.bgCollectReturnPp}'),
+      DashboardSmallCard(label: 'BG Handover PP', icon: Icons.handshake_outlined, value: '${stats.bgHandoverPpToCustomer}'),
+      DashboardSmallCard(label: 'Reject Flight', icon: Icons.flight_land_rounded, value: '${stats.rejectFlight}', red: true),
+      DashboardSmallCard(label: 'Total Amount', icon: Icons.payments_outlined, value: _formatMoney(stats.totalAmount)),
+      DashboardSmallCard(label: 'Paid Amount', icon: Icons.account_balance_wallet_outlined, value: _formatMoney(stats.paidAmount)),
+      DashboardSmallCard(label: 'Due Amount', icon: Icons.money_off_csred_outlined, value: _formatMoney(stats.dueAmount), red: true),
+      DashboardSmallCard(label: 'Commission Amount', icon: Icons.savings_outlined, value: _formatMoney(stats.commissionAmount)),
+    ];
+  }
+
+  String _formatMoney(int value) => '৳${_formatNumber(value)}';
+
+  String _formatNumber(int value) {
+    final raw = value.toString();
+    final chars = raw.split('').reversed.toList();
+    final buffer = StringBuffer();
+    for (var i = 0; i < chars.length; i++) {
+      if (i != 0 && i % 3 == 0) buffer.write(',');
+      buffer.write(chars[i]);
+    }
+    return buffer.toString().split('').reversed.join();
+  }
+}
+
+
+class _PeriodSelector extends StatelessWidget {
+  const _PeriodSelector({
+    required this.selectedPeriod,
+    required this.periods,
+    required this.onChanged,
+    required this.isLoading,
+  });
+
+  final String selectedPeriod;
+  final List<String> periods;
+  final ValueChanged<String?> onChanged;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppPalette.borderSoftBlue),
+        boxShadow: AppPalette.softShadow,
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedPeriod,
+          isExpanded: true,
+          icon: isLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppPalette.textPrimary,
+                ),
+          items: periods
+              .map(
+                (period) => DropdownMenuItem<String>(
+                  value: period,
+                  child: Text(
+                    period,
+                    style: AppTextStyles.subtitle1.copyWith(fontSize: 17),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: isLoading ? null : onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardErrorBanner extends StatelessWidget {
+  const _DashboardErrorBanner({required this.onRetry});
+
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline, color: AppPalette.danger),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Unable to load agency dashboard data. Please check your connection and try again.',
+              style: AppTextStyles.body2.copyWith(color: AppPalette.danger),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardLoadingState extends StatelessWidget {
+  const _DashboardLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 56),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _DashboardSection extends StatelessWidget {
+  const _DashboardSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppTextStyles.subtitle1.copyWith(
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 12),
+        child,
+      ],
+    );
+  }
+}
+
+class _DashboardCardGrid extends StatelessWidget {
+  const _DashboardCardGrid({required this.cards});
+
+  final List<DashboardSmallCard> cards;
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final crossAxisCount = width >= 960 ? 3 : (width >= 640 ? 2 : 1);
+    return GridView.count(
+      crossAxisCount: crossAxisCount,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 14,
+      mainAxisSpacing: 14,
+      childAspectRatio: width < 640 ? 2.45 : 2.0,
+      children: cards,
+    );
+  }
+}
 
-    return DashboardPageScaffold(
-      currentHref: '/dashboard/customer',
-      child: Container(
-        color: AppPalette.pageBackground,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1080),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _DashboardBreadcrumbs(),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Dashboard Overview',
-                      style: AppTextStyles.headline1.copyWith(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w800,
-                        height: 1.08,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const SizedBox(height: 18),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppPalette.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppPalette.borderSoftBlue),
-                        boxShadow: AppPalette.softShadow,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'This Month',
-                              style: AppTextStyles.subtitle1.copyWith(
-                                fontSize: 17,
-                              ),
-                            ),
-                          ),
-                          const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: AppPalette.textPrimary,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    GridView.count(
-                      crossAxisCount: crossAxisCount,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: width < 640 ? 2.45 : 2.0,
-                      children: const [
-                        DashboardSmallCard(
-                          label: 'Total Applied Job',
-                          icon: Icons.menu_book_outlined,
-                          value: '0',
-                        ),
-                        DashboardSmallCard(
-                          label: 'Under Processing',
-                          icon: Icons.hourglass_top_rounded,
-                          value: '0',
-                        ),
-                        DashboardSmallCard(
-                          label: 'Success Flight',
-                          icon: Icons.flight_takeoff_rounded,
-                          value: '0',
-                        ),
-                        DashboardSmallCard(
-                          label: 'Reject Flight',
-                          icon: Icons.flight_land_rounded,
-                          value: '0',
-                          red: true,
-                        ),
-                        DashboardSmallCard(
-                          label: 'Return Passport',
-                          icon: Icons.badge_outlined,
-                          value: '0',
-                        ),
-                        DashboardSmallCard(
-                          label: 'Total Appointment',
-                          icon: Icons.event_note_rounded,
-                          value: '0',
-                        ),
-                        DashboardSmallCard(
-                          label: 'Total Amount',
-                          icon: Icons.payments_outlined,
-                          value: '৳0',
-                        ),
-                        DashboardSmallCard(
-                          label: 'Paid Amount',
-                          icon: Icons.account_balance_wallet_outlined,
-                          value: '৳0',
-                        ),
-                        DashboardSmallCard(
-                          label: 'Due Amount',
-                          icon: Icons.money_off_csred_outlined,
-                          value: '৳0',
-                          red: true,
-                        ),
-                      ],
-                    ),
-                  ],
+class _ExpiryReminderPanel extends StatelessWidget {
+  const _ExpiryReminderPanel({required this.stats});
+
+  final ExpiryReminderStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _ExpiryReminderCard(title: 'Expiring in 3 Days', group: stats.days3),
+        const SizedBox(height: 12),
+        _ExpiryReminderCard(title: 'Expiring in 10 Days', group: stats.days10),
+      ],
+    );
+  }
+}
+
+class _ExpiryReminderCard extends StatelessWidget {
+  const _ExpiryReminderCard({required this.title, required this.group});
+
+  final String title;
+  final ExpiryReminderGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppPalette.borderSoftBlue),
+        boxShadow: AppPalette.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.alarm_outlined, color: AppPalette.brandBlue),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.subtitle1.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-            ),
+              _ReminderPill(label: 'Total', value: group.total),
+            ],
           ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _ReminderPill(label: 'Medical', value: group.medical),
+              _ReminderPill(label: 'Police', value: group.police),
+              _ReminderPill(label: 'Visa', value: group.visa),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReminderPill extends StatelessWidget {
+  const _ReminderPill({required this.label, required this.value});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppPalette.borderSoftBlue),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          color: AppPalette.brandBlue,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
         ),
       ),
     );
@@ -178,7 +556,7 @@ const List<SidebarLink> kDashboardSidebarLinks = [
   SidebarLink(
     name: 'Dashboard',
     icon: Icons.dashboard,
-    href: '/dashboard/customer',
+    href: '/dashboard/agency',
   ),
   SidebarLink(
     name: 'My Profile',
@@ -402,6 +780,7 @@ class DashboardPageScaffold extends StatelessWidget {
 
   String get _screenName {
     const titles = <String, String>{
+      '/dashboard/agency': 'Agency Dashboard',
       '/dashboard/customer': 'Dashboard',
       '/dashboard/booking/my': 'All Booking',
       '/dashboard/receive-booking/all-booking': 'All Booking',
@@ -779,13 +1158,18 @@ class DashboardSmallCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                    fontSize: 48,
-                    height: 0.95,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      fontSize: 48,
+                      height: 0.95,
+                    ),
                   ),
                 ),
               ],

@@ -12,6 +12,9 @@ class WorkPermitCard extends StatelessWidget {
     required this.timeAgo,
   });
 
+  static const double _imageHeight = 250;
+  static const double _titleHeight = 48;
+
   final WorkPermitItem item;
   final Color brandBlue;
   final VoidCallback onViewDetails;
@@ -40,87 +43,103 @@ class WorkPermitCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildImageHeader(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                    height: 1.2,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: _titleHeight,
+                    child: Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                        height: 1.2,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    _buildMetaCell('Industry', item.workType),
-                    Container(
-                      width: 1,
-                      height: 34,
-                      margin: const EdgeInsets.symmetric(horizontal: 14),
-                      color: const Color(0xFFE2E8F0),
-                    ),
-                    _buildMetaCell('Posted', timeAgo(item.createdAt), isBlue: true),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Package Price',
-                            style: TextStyle(
-                              fontSize: 10,
-                              letterSpacing: 0.8,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF94A3B8),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      _buildMetaCell('Industry', item.workType),
+                      Container(
+                        width: 1,
+                        height: 34,
+                        margin: const EdgeInsets.symmetric(horizontal: 14),
+                        color: const Color(0xFFE2E8F0),
+                      ),
+                      _buildMetaCell(
+                        'Posted',
+                        timeAgo(item.createdAt),
+                        isBlue: true,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Package Price',
+                              style: TextStyle(
+                                fontSize: 10,
+                                letterSpacing: 0.8,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF94A3B8),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'BDT ${formatBdt(item.customerPrice)}',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
+                            const SizedBox(height: 4),
+                            Text(
+                              'BDT ${formatBdt(item.customerPrice)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: onViewDetails,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: brandBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 14,
                           ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: onViewDetails,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: brandBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 14,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                        child: const Text(
+                          'View Details',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        elevation: 0,
                       ),
-                      child: const Text(
-                        'View Details',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -133,22 +152,28 @@ class WorkPermitCard extends StatelessWidget {
       return Image.network(
         path,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) =>
-            Container(color: const Color(0xFFF1F5F9), child: const Center(child: Icon(Icons.image_not_supported, color: Color(0xFF94A3B8)))),
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: const Color(0xFFF1F5F9),
+          child: const Center(
+            child: Icon(
+              Icons.image_not_supported,
+              color: Color(0xFF94A3B8),
+            ),
+          ),
+        ),
       );
     }
     return Image.asset(path, fit: fit);
   }
 
   Widget _buildImageHeader() {
-    return AspectRatio(
-      aspectRatio: 1.0,
-      child: SizedBox(
-        width: double.infinity,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildImage(item.image),
+    return SizedBox(
+      height: _imageHeight,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildImage(item.image),
           Positioned(
             left: 14,
             top: 14,
@@ -204,7 +229,6 @@ class WorkPermitCard extends StatelessWidget {
           ),
         ],
       ),
-    ),
     );
   }
 
