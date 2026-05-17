@@ -531,10 +531,6 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
     Navigator.pop(context);
     final href = link.href;
     if (href == null || href == widget.currentHref) return;
-    if (href == '/dashboard/booking/my') {
-      context.go('/booking');
-      return;
-    }
     context.go(href);
   }
 

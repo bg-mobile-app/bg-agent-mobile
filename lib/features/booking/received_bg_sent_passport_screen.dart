@@ -354,13 +354,7 @@ class _ReceivedBgSentPassportScreenState
                       setState(() => _searchQuery = _searchController.text),
                 ),
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    _viewToggle(),
-                    const SizedBox(width: 10),
-                    Expanded(child: _dateRangeButton()),
-                  ],
-                ),
+                _viewToggle(),
 
                 const SizedBox(height: 16),
                 if (_isCardView) _buildCardList() else _buildTableList(),
@@ -383,7 +377,7 @@ class _ReceivedBgSentPassportScreenState
         ),
         BreadCrumbItem(
           content: Text(
-            'BG Sent Passport',
+            'Under Processing',
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
@@ -551,6 +545,11 @@ class _ReceivedBgSentPassportScreenState
   Widget _buildCardList() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      Text(
+        'BG Sent Passport File • ${_filteredBookings.length} total entries',
+        style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
+      ),
+      const SizedBox(height: 10),
       ..._filteredBookings.map((item) {
         return ReceivedBookingCard(
           bookingId: item.id,
@@ -598,6 +597,24 @@ class _ReceivedBgSentPassportScreenState
       'Dec',
     ];
     return '${months[int.parse(parts[1]) - 1]} ${parts[2]}, ${parts[0]}';
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
   }
 
   String _money(int amount) {
