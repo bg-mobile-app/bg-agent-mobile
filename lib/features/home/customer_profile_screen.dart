@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/services/profile_service.dart';
@@ -54,16 +55,39 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final placeholderProfile = RecruitingAgencyMeDetailsProps(
+      id: 0,
+      image: null,
+      agencyName: 'Agency Name Loading',
+      status: 'Loading',
+      owner: Owner(id: 0, fullName: 'Owner Name', email: 'owner@example.com', phone: '01XXXXXXXXX'),
+      agencyAddress: 'Agency address loading',
+      district: District(name: 'District'),
+      policeStation: PoliceStation(name: 'Police Station'),
+      documents: const [Document(rlNo: 'RL-XXXX')],
+      bankInformation: const [
+        BankInformation(
+          bankName: 'Bank Name',
+          branchName: 'Branch Name',
+          accountName: 'Account Name',
+          accountNo: '000000000',
+          routingNo: '000000000',
+        ),
+      ],
+    );
+
+    final profile = _profileData ?? placeholderProfile;
+
     return DashboardPageScaffold(
       currentHref: '/dashboard/customer/profile',
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null
+          child: _errorMessage != null && !_isLoading
                   ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
-                  : SingleChildScrollView(
+                  : Skeletonizer(
+                      enabled: _isLoading,
+                      child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,25 +96,25 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           const SizedBox(height: 8),
                           const _PageHeading(),
                           const SizedBox(height: 16),
-                          _ProfileHeaderCard(profile: _profileData!),
+                          _ProfileHeaderCard(profile: profile),
                           const SizedBox(height: 18),
                           const _SectionTitle(
                             title: 'Agency Details',
                             subtitle: 'Information related to the recruiting agency',
                           ),
                           const SizedBox(height: 12),
-                          _BasicInfoCard(profile: _profileData!),
+                          _BasicInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _ContactInfoCard(profile: _profileData!),
+                          _ContactInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _BankInfoCard(profile: _profileData!),
+                          _BankInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _DocumentsInfoCard(profile: _profileData!),
+                          _DocumentsInfoCard(profile: profile),
                           const SizedBox(height: 16),
                           const _LogoutButton(),
                         ],
                       ),
-                    ),
+                    )),
         ),
       ),
     );
