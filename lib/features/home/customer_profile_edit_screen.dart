@@ -4,7 +4,6 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/services/location_service.dart';
 import '../../common/services/profile_service.dart';
-import 'models/agency_profile.dart';
 
 class CustomerProfileEditScreen extends StatefulWidget {
   const CustomerProfileEditScreen({super.key});
@@ -18,6 +17,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
   final ProfileService _profileService = ProfileService();
   final LocationService _locationService = LocationService();
 
+  // Controllers
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -44,32 +44,42 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
       _error = null;
     });
 
-    final profile = await _profileService.getAgencyProfile();
-    final districts = await _locationService.getDistricts();
+    try {
+      final districts = await _locationService.getDistricts();
+      if (!mounted) return;
+      _districts = districts;
 
-    if (!mounted) return;
+      final profile = await _profileService.getAgencyProfile();
+      if (!mounted) return;
+      if (profile == null) {
+        setState(() {
+          _error = 'Failed to load profile data.';
+          _isLoading = false;
+        });
+        return;
+      }
 
-    if (profile == null) {
       setState(() {
-        _error = 'Failed to load profile data.';
-        _isLoading = false;
+        _nameController.text = profile.owner?.fullName ?? '';
+        _phoneController.text = profile.owner?.phone ?? '';
+        _emailController.text = profile.owner?.email ?? '';
+        _addressController.text = profile.agencyAddress ?? '';
       });
-      return;
-    }
 
-    _nameController.text = profile.owner?.fullName ?? '';
-    _phoneController.text = profile.owner?.phone ?? '';
-    _emailController.text = profile.owner?.email ?? '';
-    _addressController.text = profile.agencyAddress ?? '';
-
-    _districts = districts;
-
-    final matchedDistrict = districts.where((d) => d.name == profile.district?.name).toList();
-    if (matchedDistrict.isNotEmpty) {
-      _selectedDistrictId = matchedDistrict.first.id;
-      _policeStations = await _locationService.getPoliceStations(_selectedDistrictId!);
-      final matchedPs = _policeStations.where((p) => p.name == profile.policeStation?.name).toList();
-      if (matchedPs.isNotEmpty) _selectedPoliceStationId = matchedPs.first.id;
+      final matchedDistrict = districts.where((d) => d.name == profile.district?.name).toList();
+      if (matchedDistrict.isNotEmpty) {
+        _selectedDistrictId = matchedDistrict.first.id;
+        _policeStations = await _locationService.getPoliceStations(_selectedDistrictId!);
+        final matchedPs = _policeStations.where((p) => p.name == profile.policeStation?.name).toList();
+        if (matchedPs.isNotEmpty) {
+          _selectedPoliceStationId = matchedPs.first.id;
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'An error occurred while loading details.';
+      });
     }
 
     setState(() {
@@ -84,36 +94,43 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
       _policeStations = [];
     });
     if (districtId == null) return;
-    final stations = await _locationService.getPoliceStations(districtId);
-    if (!mounted) return;
-    setState(() {
-      _policeStations = stations;
-    });
+    try {
+      final stations = await _locationService.getPoliceStations(districtId);
+      if (!mounted) return;
+      setState(() {
+        _policeStations = stations;
+      });
+    } catch (_) {}
   }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
-    final formData = FormData.fromMap({
-      'owner_full_name': _nameController.text.trim(),
-      'owner_phone': _phoneController.text.trim(),
-      'owner_email': _emailController.text.trim(),
-      'agency_address': _addressController.text.trim(),
-      if (_selectedDistrictId != null) 'district': _selectedDistrictId,
-      if (_selectedPoliceStationId != null) 'police_station': _selectedPoliceStationId,
-    });
+    try {
+      final formData = FormData.fromMap({
+        'owner_full_name': _nameController.text.trim(),
+        'owner_phone': _phoneController.text.trim(),
+        'owner_email': _emailController.text.trim(),
+        'agency_address': _addressController.text.trim(),
+        if (_selectedDistrictId != null) 'district': _selectedDistrictId,
+        if (_selectedPoliceStationId != null) 'police_station': _selectedPoliceStationId,
+      });
 
-    final updated = await _profileService.updateAgencyProfile(formData);
+      final updated = await _profileService.updateAgencyProfile(formData);
+      if (!mounted) return;
+      setState(() => _isSaving = false);
 
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-
-    if (updated != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully')));
-      Navigator.of(context).pop();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update profile')));
+      if (updated != null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully')));
+        Navigator.of(context).pop(true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update profile')));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
   }
 
@@ -132,7 +149,16 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
       appBar: AppBar(title: const Text('Edit Profile')),
       body: SafeArea(
         child: _error != null && !_isLoading
-            ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 16)),
+                    const SizedBox(height: 12),
+                    ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
+                  ],
+                ),
+              )
             : Skeletonizer(
                 enabled: _isLoading,
                 child: Form(
@@ -142,10 +168,10 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _field('Full Name', _nameController),
-                        _field('Phone', _phoneController),
-                        _field('Email', _emailController),
-                        _field('Address', _addressController),
+                        _field('Owner Full Name', _nameController),
+                        _field('Owner Phone', _phoneController),
+                        _field('Owner Email', _emailController),
+                        _field('Agency Address', _addressController),
                         _districtDropdown(),
                         _policeStationDropdown(),
                         const SizedBox(height: 20),
@@ -153,6 +179,14 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _isSaving ? null : _saveProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                             child: Text(_isSaving ? 'Saving...' : 'Update Profile'),
                           ),
                         ),
@@ -167,10 +201,13 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
 
   Widget _districtDropdown() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: DropdownButtonFormField<int>(
         value: _selectedDistrictId,
-        decoration: const InputDecoration(labelText: 'District', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+          labelText: 'District',
+          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+        ),
         items: _districts.map((d) => DropdownMenuItem<int>(value: d.id, child: Text(d.name))).toList(),
         onChanged: _isLoading ? null : _onDistrictChanged,
         validator: (v) => v == null ? 'District is required' : null,
@@ -180,10 +217,13 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
 
   Widget _policeStationDropdown() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: DropdownButtonFormField<int>(
         value: _selectedPoliceStationId,
-        decoration: const InputDecoration(labelText: 'Police Station', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+          labelText: 'Police Station',
+          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+        ),
         items: _policeStations.map((p) => DropdownMenuItem<int>(value: p.id, child: Text(p.name))).toList(),
         onChanged: _isLoading ? null : (v) => setState(() => _selectedPoliceStationId = v),
         validator: (v) => v == null ? 'Police Station is required' : null,
@@ -193,11 +233,14 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
 
   Widget _field(String label, TextEditingController controller) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         validator: (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null,
-        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_exception.dart';
 
 // Abstract class for cookie storage, to be implemented with your preferred storage
@@ -32,6 +33,33 @@ class InMemoryTokenStorage implements TokenStorage {
   Future<String?> getApiKey() async => _apiKey;
 }
 
+// Persistent cookie storage implementation using SharedPreferences
+class SharedPreferencesTokenStorage implements TokenStorage {
+  static const String _cookieKey = 'auth_cookies';
+  final String _apiKey = 'eef0787fa713f76_mobile_app_key_2026 xsmtpsib-206808a735e9f7cdbff5b-cMceaL6wYHHzIFkK';
+
+  @override
+  Future<String?> getCookies() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_cookieKey);
+  }
+
+  @override
+  Future<void> saveCookies(String cookies) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cookieKey, cookies);
+  }
+
+  @override
+  Future<void> clearCookies() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cookieKey);
+  }
+
+  @override
+  Future<String?> getApiKey() async => _apiKey;
+}
+
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   late Dio _dio;
@@ -43,7 +71,7 @@ class ApiClient {
   }
 
   ApiClient._internal() {
-    tokenStorage = InMemoryTokenStorage(); // Use real storage implementation here
+    tokenStorage = SharedPreferencesTokenStorage(); // Use real storage implementation here
     
     BaseOptions options = BaseOptions(
       baseUrl: baseUrl,
@@ -73,11 +101,22 @@ class ApiClient {
           final cookies = await tokenStorage.getCookies();
           if (cookies != null && cookies.isNotEmpty) {
             options.headers['Cookie'] = cookies;
+
+            // Extract csrftoken and set it as X-CSRFToken header
+            final cookiesMap = _parseCookieString(cookies);
+            final csrfToken = cookiesMap['csrftoken'];
+            if (csrfToken != null) {
+              options.headers['X-CSRFToken'] = csrfToken;
+            }
           }
 
           return handler.next(options);
         },
-        onResponse: (response, handler) {
+        onResponse: (response, handler) async {
+          final setCookieHeaders = response.headers['set-cookie'];
+          if (setCookieHeaders != null && setCookieHeaders.isNotEmpty) {
+            await _updateAndSaveCookies(setCookieHeaders);
+          }
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
@@ -91,19 +130,37 @@ class ApiClient {
                 final newCookies = await tokenStorage.getCookies();
                 if (newCookies != null) {
                   e.requestOptions.headers['Cookie'] = newCookies;
+                  
+                  // Also extract and update CSRF Token header for the retried request
+                  final cookiesMap = _parseCookieString(newCookies);
+                  final csrfToken = cookiesMap['csrftoken'];
+                  if (csrfToken != null) {
+                    e.requestOptions.headers['X-CSRFToken'] = csrfToken;
+                  }
                 }
                 
                 // create a new dio instance to avoid interceptor infinite loops
-                final retryDio = Dio(BaseOptions(baseUrl: baseUrl));
+                final retryDio = Dio(BaseOptions(
+                  baseUrl: baseUrl,
+                  connectTimeout: const Duration(seconds: 30),
+                  receiveTimeout: const Duration(seconds: 30),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Origin': 'https://demoapi.bideshgami.com',
+                    'Referer': 'https://demoapi.bideshgami.com/',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  },
+                ));
                 final response = await retryDio.fetch(e.requestOptions);
                 return handler.resolve(response);
               } on DioException catch (retryError) {
                 return handler.next(retryError);
               }
             } else {
-               debugPrint("Token refresh failed. User needs to login again.");
-               await tokenStorage.clearCookies();
-               // Here you might want to dispatch an event or use a global key to navigate to login screen
+                debugPrint("Token refresh failed. User needs to login again.");
+                await tokenStorage.clearCookies();
+                // Here you might want to dispatch an event or use a global key to navigate to login screen
             }
           }
           return handler.next(e);
@@ -114,29 +171,44 @@ class ApiClient {
 
   Future<bool> _refreshToken() async {
     try {
-      final refreshDio = Dio(BaseOptions(baseUrl: baseUrl));
+      final refreshDio = Dio(BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Origin': 'https://demoapi.bideshgami.com',
+          'Referer': 'https://demoapi.bideshgami.com/',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      ));
       
       // Get current cookies to send with refresh request
       final currentCookies = await tokenStorage.getCookies();
       final apiKey = await tokenStorage.getApiKey();
       
-      final headers = <String, dynamic>{
-        'Content-Type': 'application/json',
-      };
-      if (currentCookies != null) headers['Cookie'] = currentCookies;
+      final headers = <String, dynamic>{};
+      if (currentCookies != null) {
+        headers['Cookie'] = currentCookies;
+        final cookiesMap = _parseCookieString(currentCookies);
+        final csrfToken = cookiesMap['csrftoken'];
+        if (csrfToken != null) {
+          headers['X-CSRFToken'] = csrfToken;
+        }
+      }
       if (apiKey != null) headers['X-API-KEY'] = apiKey;
 
       final response = await refreshDio.post(
-        '/auth/token/refresh/',
+        '$baseUrl/auth/token/refresh/',
         options: Options(headers: headers),
       );
 
       if (response.statusCode == 200) {
-        // Extract new set-cookie header
-        final setCookieHeaders = response.headers.map['set-cookie'];
+        // Extract new set-cookie header case-insensitively
+        final setCookieHeaders = response.headers['set-cookie'];
         if (setCookieHeaders != null && setCookieHeaders.isNotEmpty) {
-           final cookies = setCookieHeaders.join('; ');
-           await tokenStorage.saveCookies(cookies);
+           await _updateAndSaveCookies(setCookieHeaders);
         }
         return true;
       }
@@ -149,13 +221,66 @@ class ApiClient {
 
   // Extracts cookies from a response and saves them
   Future<void> saveCookiesFromResponse(Response response) async {
-    final setCookieHeaders = response.headers.map['set-cookie'];
+    final setCookieHeaders = response.headers['set-cookie'];
     if (setCookieHeaders != null && setCookieHeaders.isNotEmpty) {
-      // Combine multiple cookies into a single string for storage
-      final cookieString = setCookieHeaders.join('; ');
-      await tokenStorage.saveCookies(cookieString);
-      debugPrint("Cookies saved successfully.");
+      await _updateAndSaveCookies(setCookieHeaders);
     }
+  }
+
+  Map<String, String> _parseCookieString(String cookieString) {
+    final Map<String, String> cookies = {};
+    final pairs = cookieString.split(';');
+    for (var pair in pairs) {
+      final trimmed = pair.trim();
+      if (trimmed.isEmpty) continue;
+      final eqIndex = trimmed.indexOf('=');
+      if (eqIndex != -1) {
+        final key = trimmed.substring(0, eqIndex).trim();
+        final value = trimmed.substring(eqIndex + 1).trim();
+        if (key.isNotEmpty) {
+          cookies[key] = value;
+        }
+      }
+    }
+    return cookies;
+  }
+
+  String _serializeCookies(Map<String, String> cookies) {
+    return cookies.entries.map((e) => '${e.key}=${e.value}').join('; ');
+  }
+
+  Future<void> _updateAndSaveCookies(List<String> setCookieHeaders) async {
+    final existingCookieStr = await tokenStorage.getCookies() ?? '';
+    final cookiesMap = _parseCookieString(existingCookieStr);
+
+    for (var header in setCookieHeaders) {
+      if (header.trim().isEmpty) continue;
+      final parts = header.split(';');
+      if (parts.isNotEmpty) {
+        final pair = parts[0].trim();
+        final eqIndex = pair.indexOf('=');
+        if (eqIndex != -1) {
+          final key = pair.substring(0, eqIndex).trim();
+          final value = pair.substring(eqIndex + 1).trim();
+          if (key.isNotEmpty) {
+            // Check for cookie deletion instructions from the server
+            final isExpired = value.isEmpty || 
+                              value.toLowerCase() == 'deleted' || 
+                              header.contains('Max-Age=0') || 
+                              header.contains('expires=Thu, 01 Jan 1970');
+            if (isExpired) {
+              cookiesMap.remove(key);
+            } else {
+              cookiesMap[key] = value;
+            }
+          }
+        }
+      }
+    }
+
+    final mergedCookieStr = _serializeCookies(cookiesMap);
+    await tokenStorage.saveCookies(mergedCookieStr);
+    debugPrint("Cookie jar updated persistent storage: $mergedCookieStr");
   }
 
   Dio get dio => _dio;

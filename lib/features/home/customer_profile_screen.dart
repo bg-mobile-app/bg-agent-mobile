@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/services/profile_service.dart';
+import '../../common/services/api_client.dart';
 import 'models/agency_profile.dart';
 import 'customer_profile_edit_screen.dart';
 import 'dashboard_screen.dart';
@@ -17,7 +19,7 @@ class CustomerProfileScreen extends StatefulWidget {
 
 class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final ProfileService _profileService = ProfileService();
-  RecruitingAgencyMeDetailsProps? _profileData;
+  RecruitingAgencyMeDetailsProps? _agencyProfileData;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -34,9 +36,10 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     });
     try {
       final data = await _profileService.getAgencyProfile();
+      if (!mounted) return;
       if (data != null) {
         setState(() {
-          _profileData = data;
+          _agencyProfileData = data;
           _isLoading = false;
         });
       } else {
@@ -46,6 +49,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = "An error occurred while fetching profile.";
         _isLoading = false;
@@ -55,7 +59,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final placeholderProfile = RecruitingAgencyMeDetailsProps(
+    final placeholderAgencyProfile = RecruitingAgencyMeDetailsProps(
       id: 0,
       image: null,
       agencyName: 'Agency Name Loading',
@@ -76,7 +80,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       ],
     );
 
-    final profile = _profileData ?? placeholderProfile;
+    final profile = _agencyProfileData ?? placeholderAgencyProfile;
 
     return DashboardPageScaffold(
       currentHref: '/dashboard/customer/profile',
@@ -84,10 +88,25 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         color: AppPalette.pageBackground,
         child: SafeArea(
           child: _errorMessage != null && !_isLoading
-                  ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
-                  : Skeletonizer(
-                      enabled: _isLoading,
-                      child: SingleChildScrollView(
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 16)),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _fetchProfile,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchProfile,
+                  child: Skeletonizer(
+                    enabled: _isLoading,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,11 +129,13 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           _BankInfoCard(profile: profile),
                           const SizedBox(height: 12),
                           _DocumentsInfoCard(profile: profile),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
                           const _LogoutButton(),
                         ],
                       ),
-                    )),
+                    ),
+                  ),
+                ),
         ),
       ),
     );
@@ -163,7 +184,7 @@ class _PageHeading extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Agency Profile',
+          'My Profile',
           style: TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.w800,
@@ -178,10 +199,16 @@ class _PageHeading extends StatelessWidget {
 
 class _ProfileHeaderCard extends StatelessWidget {
   final RecruitingAgencyMeDetailsProps profile;
+
   const _ProfileHeaderCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
+    final String? image = profile.image;
+    final String title = profile.agencyName.isNotEmpty ? profile.agencyName : 'N/A';
+    final String subtitle = profile.owner?.email ?? 'N/A';
+    final String status = profile.status.isNotEmpty ? profile.status : 'N/A';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -198,8 +225,8 @@ class _ProfileHeaderCard extends StatelessWidget {
                 ),
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundImage: profile.image != null
-                      ? NetworkImage(profile.image!)
+                  backgroundImage: image != null && image.isNotEmpty
+                      ? NetworkImage(image)
                       : const AssetImage('assets/img/sign-in/login.jpg') as ImageProvider,
                 ),
               ),
@@ -221,7 +248,8 @@ class _ProfileHeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            profile.agencyName.isNotEmpty ? profile.agencyName : 'N/A',
+            title,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -230,7 +258,7 @@ class _ProfileHeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            profile.owner?.email ?? 'N/A',
+            subtitle,
             style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
           ),
           const SizedBox(height: 10),
@@ -239,12 +267,12 @@ class _ProfileHeaderCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _Pill(
-                label: profile.status.isNotEmpty ? profile.status : 'N/A',
+                label: status.isNotEmpty ? status : 'N/A',
                 bg: const Color(0xFFE8F0FF),
                 fg: const Color(0xFF1E3A8A),
               ),
               const _Pill(
-                label: 'Active Now',
+                label: 'Agency Account',
                 bg: Color(0xFFEFF6FF),
                 fg: AppPalette.textStrongBlue,
               ),
@@ -255,11 +283,15 @@ class _ProfileHeaderCard extends StatelessWidget {
             width: 170,
             child: FilledButton.icon(
               onPressed: () {
+                final state = context.findAncestorStateOfType<_CustomerProfileScreenState>();
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const CustomerProfileEditScreen(),
                   ),
-                );
+                ).then((_) {
+                  // Trigger screen refresh when coming back from Edit Screen
+                  state?._fetchProfile();
+                });
               },
               icon: const Icon(Icons.edit_outlined, size: 18),
               label: const Text('Edit Profile'),
@@ -515,13 +547,11 @@ class _Pill extends StatelessWidget {
     required this.label,
     required this.bg,
     required this.fg,
-    this.outlined = false,
   });
 
   final String label;
   final Color bg;
   final Color fg;
-  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
@@ -530,7 +560,6 @@ class _Pill extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: outlined ? Border.all(color: AppPalette.borderNeutral) : null,
       ),
       child: Text(
         label,
@@ -551,7 +580,29 @@ class _LogoutButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: TextButton.icon(
-        onPressed: () {},
+        onPressed: () async {
+          final router = GoRouter.of(context);
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Confirm Logout'),
+              content: const Text('Are you sure you want to logout from this device?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: TextButton.styleFrom(foregroundColor: AppPalette.danger),
+                  child: const Text('Logout'),
+                ),
+              ],
+            ),
+          );
+
+          if (confirm == true) {
+            await ApiClient().tokenStorage.clearCookies();
+            router.go('/login');
+          }
+        },
         icon: const Icon(Icons.logout, color: AppPalette.danger),
         label: const Text(
           'Logout from Device',

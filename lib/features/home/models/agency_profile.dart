@@ -1,5 +1,5 @@
 class RecruitingAgencyMeDetailsProps {
-  final int id;
+  final dynamic id;
   final String? image;
   final String agencyName;
   final String status;
@@ -25,7 +25,7 @@ class RecruitingAgencyMeDetailsProps {
 
   factory RecruitingAgencyMeDetailsProps.fromJson(Map<String, dynamic> json) {
     return RecruitingAgencyMeDetailsProps(
-      id: json['id'] ?? 0,
+      id: json['id'],
       image: json['image'],
       agencyName: _readString(json, const ['agencyName', 'agency_name']),
       status: json['status'] ?? '',
@@ -45,7 +45,7 @@ class RecruitingAgencyMeDetailsProps {
 }
 
 class Owner {
-  final int id;
+  final dynamic id;
   final String fullName;
   final String email;
   final String phone;
@@ -59,7 +59,7 @@ class Owner {
 
   factory Owner.fromJson(Map<String, dynamic> json) {
     return Owner(
-      id: json['id'] ?? 0,
+      id: json['id'],
       fullName: _readString(json, const ['fullName', 'full_name']),
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
@@ -125,10 +125,17 @@ class District {
 
   District({required this.name});
 
-  factory District.fromJson(Map<String, dynamic> json) {
-    return District(
-      name: json['name'] ?? '',
-    );
+  factory District.fromJson(dynamic json) {
+    if (json is Map<String, dynamic>) {
+      return District(
+        name: json['name'] ?? '',
+      );
+    } else if (json is String) {
+      return District(
+        name: json,
+      );
+    }
+    return District(name: '');
   }
 }
 
@@ -137,10 +144,17 @@ class PoliceStation {
 
   PoliceStation({required this.name});
 
-  factory PoliceStation.fromJson(Map<String, dynamic> json) {
-    return PoliceStation(
-      name: json['name'] ?? '',
-    );
+  factory PoliceStation.fromJson(dynamic json) {
+    if (json is Map<String, dynamic>) {
+      return PoliceStation(
+        name: json['name'] ?? '',
+      );
+    } else if (json is String) {
+      return PoliceStation(
+        name: json,
+      );
+    }
+    return PoliceStation(name: '');
   }
 }
 

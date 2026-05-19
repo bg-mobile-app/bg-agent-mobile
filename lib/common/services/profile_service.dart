@@ -11,7 +11,6 @@ class ProfileService {
     try {
       final response = await _apiClient.get('/profile/agency/me/');
       if (response.statusCode == 200 && response.data != null) {
-        // response.data could be a Map or String, typically dio parses JSON to Map automatically
         if (response.data is Map<String, dynamic>) {
           return RecruitingAgencyMeDetailsProps.fromJson(response.data);
         } else if (response.data is String) {
@@ -46,3 +45,4 @@ class ProfileService {
     }
   }
 }
+
