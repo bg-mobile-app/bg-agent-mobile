@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
 import 'dashboard_screen.dart';
+import 'services/my_ads_service.dart';
 
 class MyAdsScreen extends StatefulWidget {
   const MyAdsScreen({super.key});
@@ -16,28 +19,63 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
   static const Color _brandBlue = Color(0xFF2563EB);
 
   final TextEditingController _searchController = TextEditingController();
+  final MyAdsService _myAdsService = MyAdsService();
+  Timer? _debounce;
+
   String _activeFilter = 'All Ads';
-  List<_AdItem> _visibleAds = List.of(_ads);
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<MyAdItem> _visibleAds = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAds();
+  }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  void _runFilter() {
-    final query = _searchController.text.trim().toLowerCase();
+  Future<void> _fetchAds() async {
     setState(() {
-      _visibleAds = _ads.where((ad) {
-        final matchesStatus =
-            _activeFilter == 'All Ads' || ad.status == _activeFilter;
-        final matchesQuery =
-            query.isEmpty ||
-            ad.title.toLowerCase().contains(query) ||
-            ad.country.toLowerCase().contains(query) ||
-            ad.id.toString().contains(query);
-        return matchesStatus && matchesQuery;
-      }).toList();
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final res = await _myAdsService.getOwnerOwnAdsList(
+        page: _currentPage,
+        search: _searchController.text,
+        status: _activeFilter == 'All Ads' ? '' : _activeFilter,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _visibleAds = res.results;
+        _totalPages = res.totalPages == 0 ? 1 : res.totalPages;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _errorMessage = error.toString());
+      _showInfo('Failed to load ads. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _currentPage = 1;
+      _fetchAds();
     });
   }
 
@@ -72,19 +110,32 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                     const SizedBox(height: 14),
                     _SearchBox(
                       controller: _searchController,
-                      onChanged: (_) => _runFilter(),
-                      onSearchTap: _runFilter,
+                      onChanged: _onSearchChanged,
+                      onSearchTap: () {
+                        _currentPage = 1;
+                        _fetchAds();
+                      },
                     ),
                     const SizedBox(height: 14),
                     _StatusFilters(
                       activeFilter: _activeFilter,
                       onSelected: (status) {
-                        setState(() => _activeFilter = status);
-                        _runFilter();
+                        setState(() {
+                          _activeFilter = status;
+                          _currentPage = 1;
+                        });
+                        _fetchAds();
                       },
                     ),
                     const SizedBox(height: 16),
-                    if (_visibleAds.isEmpty)
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_errorMessage != null)
+                      _ErrorBox(
+                        onRetry: _fetchAds,
+                        message: 'Could not load ads from server.',
+                      )
+                    else if (_visibleAds.isEmpty)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
@@ -99,20 +150,38 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                             color: AppPalette.textMuted,
                           ),
                         ),
-                      ),
-                    ..._visibleAds.map(
-                      (ad) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _AdCard(
-                          ad: ad,
-                          onTap: () =>
-                              _showInfo('Opening ad #${ad.id} details'),
-                          onEdit: () => _showInfo('Editing ad #${ad.id}'),
-                          onPromote: () =>
-                              _showInfo('Promote ad #${ad.id} request sent'),
+                      )
+                    else ...[
+                      ..._visibleAds.map(
+                        (ad) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _AdCard(
+                            ad: ad,
+                            onTap: () =>
+                                _showInfo('Opening ad #${ad.id} details'),
+                            onEdit: () => _showInfo('Editing ad #${ad.id}'),
+                            onPromote: () =>
+                                _showInfo('Promote ad #${ad.id} request sent'),
+                          ),
                         ),
                       ),
-                    ),
+                      _PaginationControls(
+                        currentPage: _currentPage,
+                        totalPages: _totalPages,
+                        onPrevious: _currentPage > 1
+                            ? () {
+                                setState(() => _currentPage--);
+                                _fetchAds();
+                              }
+                            : null,
+                        onNext: _currentPage < _totalPages
+                            ? () {
+                                setState(() => _currentPage++);
+                                _fetchAds();
+                              }
+                            : null,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -319,7 +388,7 @@ class _AdCard extends StatelessWidget {
     required this.onPromote,
   });
 
-  final _AdItem ad;
+  final MyAdItem ad;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onPromote;
@@ -350,12 +419,27 @@ class _AdCard extends StatelessWidget {
                 topLeft: Radius.circular(22),
                 bottomLeft: Radius.circular(22),
               ),
-              child: Image.asset(
-                ad.image,
-                width: 120,
-                height: 150,
-                fit: BoxFit.cover,
-              ),
+              child: ad.image.isNotEmpty
+                  ? Image.network(
+                      ad.image,
+                      width: 120,
+                      height: 150,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 120,
+                        height: 150,
+                        color: const Color(0xFFE2E8F0),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.image_not_supported),
+                      ),
+                    )
+                  : Container(
+                      width: 120,
+                      height: 150,
+                      color: const Color(0xFFE2E8F0),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.image_not_supported),
+                    ),
             ),
             Expanded(
               child: Padding(
@@ -470,56 +554,61 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _AdItem {
-  const _AdItem({
-    required this.id,
-    required this.title,
-    required this.status,
-    required this.image,
-    required this.country,
-  });
+class _ErrorBox extends StatelessWidget {
+  const _ErrorBox({required this.onRetry, required this.message});
 
-  final int id;
-  final String title;
-  final String status;
-  final String image;
-  final String country;
+  final VoidCallback onRetry;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: Column(
+        children: [
+          Text(message),
+          const SizedBox(height: 8),
+          ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
 }
 
-const _ads = [
-  _AdItem(
-    id: 20,
-    title: 'Factory Worker Hiring Circular - Malaysia',
-    status: 'ACTIVE',
-    image: 'assets/img/work-permit/3.png',
-    country: 'Malaysia',
-  ),
-  _AdItem(
-    id: 19,
-    title: 'Urgent Construction Visa - Romania',
-    status: 'PENDING',
-    image: 'assets/img/work-permit/2.png',
-    country: 'Romania',
-  ),
-  _AdItem(
-    id: 18,
-    title: 'Hotel Staff Job Offer - Japan',
-    status: 'END QUOTA',
-    image: 'assets/img/work-permit/1.jpg',
-    country: 'Japan',
-  ),
-  _AdItem(
-    id: 17,
-    title: 'Qatar Technical Worker Recruitment',
-    status: 'REJECTED',
-    image: 'assets/img/work-permit/2.png',
-    country: 'Qatar',
-  ),
-  _AdItem(
-    id: 16,
-    title: 'Italy Work Permit Special Package',
-    status: 'ACTIVE',
-    image: 'assets/img/work-permit/1.jpg',
-    country: 'Italy',
-  ),
-];
+class _PaginationControls extends StatelessWidget {
+  const _PaginationControls({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          OutlinedButton(onPressed: onPrevious, child: const Text('Previous')),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('Page $currentPage of $totalPages'),
+          ),
+          OutlinedButton(onPressed: onNext, child: const Text('Next')),
+        ],
+      ),
+    );
+  }
+}
