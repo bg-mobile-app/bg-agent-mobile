@@ -2,11 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
 import '../../common/theme/app_palette.dart';
+import '../../common/services/profile_service.dart';
+import 'models/agency_profile.dart';
 import 'customer_profile_edit_screen.dart';
 import 'dashboard_screen.dart';
 
-class CustomerProfileScreen extends StatelessWidget {
+class CustomerProfileScreen extends StatefulWidget {
   const CustomerProfileScreen({super.key});
+
+  @override
+  State<CustomerProfileScreen> createState() => _CustomerProfileScreenState();
+}
+
+class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
+  final ProfileService _profileService = ProfileService();
+  RecruitingAgencyMeDetailsProps? _profileData;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final data = await _profileService.getAgencyProfile();
+      if (data != null) {
+        setState(() {
+          _profileData = data;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = "Failed to load profile data.";
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = "An error occurred while fetching profile.";
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,35 +59,38 @@ class CustomerProfileScreen extends StatelessWidget {
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                _Breadcrumb(),
-                SizedBox(height: 8),
-                _PageHeading(),
-                SizedBox(height: 16),
-                _ProfileHeaderCard(),
-                SizedBox(height: 18),
-                _SectionTitle(
-                  title: 'Personal Details',
-                  subtitle:
-                      'As mentioned on your passport or government approved IDs',
-                ),
-                SizedBox(height: 12),
-                _BasicInfoCard(),
-                SizedBox(height: 12),
-                _ContactInfoCard(),
-                SizedBox(height: 12),
-                _PassportInfoCard(),
-                SizedBox(height: 12),
-                _PersonalizedInfoCard(),
-                SizedBox(height: 16),
-                _LogoutButton(),
-              ],
-            ),
-          ),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+                  ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _Breadcrumb(),
+                          const SizedBox(height: 8),
+                          const _PageHeading(),
+                          const SizedBox(height: 16),
+                          _ProfileHeaderCard(profile: _profileData!),
+                          const SizedBox(height: 18),
+                          const _SectionTitle(
+                            title: 'Agency Details',
+                            subtitle: 'Information related to the recruiting agency',
+                          ),
+                          const SizedBox(height: 12),
+                          _BasicInfoCard(profile: _profileData!),
+                          const SizedBox(height: 12),
+                          _ContactInfoCard(profile: _profileData!),
+                          const SizedBox(height: 12),
+                          _BankInfoCard(profile: _profileData!),
+                          const SizedBox(height: 12),
+                          _DocumentsInfoCard(profile: _profileData!),
+                          const SizedBox(height: 16),
+                          const _LogoutButton(),
+                        ],
+                      ),
+                    ),
         ),
       ),
     );
@@ -92,7 +139,7 @@ class _PageHeading extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Candidate Profile',
+          'Agency Profile',
           style: TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.w800,
@@ -100,14 +147,14 @@ class _PageHeading extends StatelessWidget {
           ),
         ),
         SizedBox(height: 4),
-       
       ],
     );
   }
 }
 
 class _ProfileHeaderCard extends StatelessWidget {
-  const _ProfileHeaderCard();
+  final RecruitingAgencyMeDetailsProps profile;
+  const _ProfileHeaderCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
@@ -125,9 +172,11 @@ class _ProfileHeaderCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: AppPalette.borderSoftBlue, width: 3),
                 ),
-                child: const CircleAvatar(
+                child: CircleAvatar(
                   radius: 50,
-                  backgroundImage: AssetImage('assets/img/sign-in/login.jpg'),
+                  backgroundImage: profile.image != null
+                      ? NetworkImage(profile.image!)
+                      : const AssetImage('assets/img/sign-in/login.jpg') as ImageProvider,
                 ),
               ),
               Positioned(
@@ -147,30 +196,30 @@ class _ProfileHeaderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Demo User',
-            style: TextStyle(
+          Text(
+            profile.agencyName.isNotEmpty ? profile.agencyName : 'N/A',
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
               color: AppPalette.textPrimary,
             ),
           ),
           const SizedBox(height: 3),
-          const Text(
-            'demo.user@example.com',
-            style: TextStyle(color: AppPalette.textMuted, fontSize: 14),
+          Text(
+            profile.owner?.email ?? 'N/A',
+            style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
           ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: const [
+            children: [
               _Pill(
-                label: 'Verified Candidate',
-                bg: Color(0xFFE8F0FF),
-                fg: Color(0xFF1E3A8A),
+                label: profile.status.isNotEmpty ? profile.status : 'N/A',
+                bg: const Color(0xFFE8F0FF),
+                fg: const Color(0xFF1E3A8A),
               ),
-              _Pill(
+              const _Pill(
                 label: 'Active Now',
                 bg: Color(0xFFEFF6FF),
                 fg: AppPalette.textStrongBlue,
@@ -240,100 +289,91 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _BasicInfoCard extends StatelessWidget {
-  const _BasicInfoCard();
+  final RecruitingAgencyMeDetailsProps profile;
+  const _BasicInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
     return _InfoCard(
-      icon: Icons.person_outline,
-      title: 'Basic Info',
-      rows: const [
-        _InfoRow(label: 'FULL NAME', value: 'Demo User'),
-        _InfoRow(label: 'DATE OF BIRTH', value: '1990-01-01'),
-        _InfoRow(label: 'GENDER', value: 'Male', isLast: true),
+      icon: Icons.business_outlined,
+      title: 'Agency Info',
+      rows: [
+        _InfoRow(label: 'AGENCY NAME', value: profile.agencyName.isNotEmpty ? profile.agencyName : 'N/A'),
+        _InfoRow(label: 'OWNER NAME', value: profile.owner?.fullName ?? 'N/A'),
+        _InfoRow(label: 'STATUS', value: profile.status.isNotEmpty ? profile.status : 'N/A', isLast: true),
       ],
     );
   }
 }
 
 class _ContactInfoCard extends StatelessWidget {
-  const _ContactInfoCard();
+  final RecruitingAgencyMeDetailsProps profile;
+  const _ContactInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
     return _InfoCard(
       icon: Icons.contact_page_outlined,
       title: 'Contact Info',
-      rows: const [
-        _InfoRow(label: 'EMAIL', value: 'demo.user@example.com'),
-        _InfoRow(label: 'PHONE', value: '+1 555 0102'),
-        _InfoRow(label: 'ADDRESS', value: 'Dhaka, Bangladesh'),
-        _InfoRow(label: 'POLICE STATION', value: 'Dhanmondi'),
-        _InfoRow(label: 'DISTRICT', value: 'Dhaka', isLast: true),
+      rows: [
+        _InfoRow(label: 'EMAIL', value: profile.owner?.email ?? 'N/A'),
+        _InfoRow(label: 'PHONE', value: profile.owner?.phone ?? 'N/A'),
+        _InfoRow(label: 'ADDRESS', value: profile.agencyAddress ?? 'N/A'),
+        _InfoRow(label: 'POLICE STATION', value: profile.policeStation?.name ?? 'N/A'),
+        _InfoRow(label: 'DISTRICT', value: profile.district?.name ?? 'N/A', isLast: true),
       ],
     );
   }
 }
 
-class _PassportInfoCard extends StatelessWidget {
-  const _PassportInfoCard();
+class _BankInfoCard extends StatelessWidget {
+  final RecruitingAgencyMeDetailsProps profile;
+  const _BankInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
+    List<_InfoRow> bankRows = [];
+    if (profile.bankInformation.isNotEmpty) {
+      final bank = profile.bankInformation.first;
+      bankRows = [
+        _InfoRow(label: 'BANK NAME', value: bank.bankName.isNotEmpty ? bank.bankName : 'N/A'),
+        _InfoRow(label: 'BRANCH NAME', value: bank.branchName.isNotEmpty ? bank.branchName : 'N/A'),
+        _InfoRow(label: 'ACCOUNT NAME', value: bank.accountName.isNotEmpty ? bank.accountName : 'N/A'),
+        _InfoRow(label: 'ACCOUNT NUMBER', value: bank.accountNo.isNotEmpty ? bank.accountNo : 'N/A'),
+        _InfoRow(label: 'ROUTING NUMBER', value: bank.routingNo.isNotEmpty ? bank.routingNo : 'N/A', isLast: true),
+      ];
+    } else {
+      bankRows = [const _InfoRow(label: 'INFO', value: 'No bank information available.', isLast: true)];
+    }
+
     return _InfoCard(
-      icon: Icons.import_contacts_outlined,
-      title: 'Passport Info',
-      rows: const [
-        _InfoRow(label: 'PASSPORT NUMBER', value: 'A12345678'),
-        _InfoRow(label: 'ISSUE DATE', value: '2020-03-01'),
-        _InfoRow(label: 'EXPIRE DATE', value: '2030-02-28', isLast: true),
-      ],
+      icon: Icons.account_balance_outlined,
+      title: 'Bank Info',
+      rows: bankRows,
     );
   }
 }
 
-class _PersonalizedInfoCard extends StatelessWidget {
-  const _PersonalizedInfoCard();
+class _DocumentsInfoCard extends StatelessWidget {
+  final RecruitingAgencyMeDetailsProps profile;
+  const _DocumentsInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CardTitle(
-            icon: Icons.accessibility_new_outlined,
-            title: 'Personalized Info',
-          ),
-          SizedBox(height: 14),
-          _TagSection(
-            label: 'LIKED SERVICES',
-            tags: [
-              _Pill(label: 'Work permit', bg: Color(0xFFE8F0FF), fg: Color(0xFF1E3A8A)),
-              _Pill(label: 'Student visa', bg: Color(0xFFE8F0FF), fg: Color(0xFF1E3A8A)),
-            ],
-          ),
-          SizedBox(height: 12),
-          _TagSection(
-            label: 'LIKED COUNTRIES',
-            tags: [
-              _Pill(label: 'Japan', bg: Color(0xFFDBEAFE), fg: Color(0xFF1E3A8A)),
-              _Pill(label: 'Malaysia', bg: Color(0xFFDBEAFE), fg: Color(0xFF1E3A8A)),
-            ],
-          ),
-          SizedBox(height: 12),
-          _TagSection(
-            label: 'LIKED JOB TYPE',
-            tags: [
-              _Pill(label: 'Factory', bg: Colors.white, fg: AppPalette.textPrimary, outlined: true),
-              _Pill(label: 'Hospitality', bg: Colors.white, fg: AppPalette.textPrimary, outlined: true),
-            ],
-          ),
-        ],
-      ),
+    List<_InfoRow> docRows = [];
+    if (profile.documents.isNotEmpty) {
+      final doc = profile.documents.first;
+      docRows = [
+        _InfoRow(label: 'RL NUMBER', value: doc.rlNo ?? 'N/A', isLast: true),
+      ];
+    } else {
+      docRows = [const _InfoRow(label: 'INFO', value: 'No document information available.', isLast: true)];
+    }
+
+    return _InfoCard(
+      icon: Icons.description_outlined,
+      title: 'Documents Info',
+      rows: docRows,
     );
   }
 }
@@ -414,8 +454,10 @@ class _InfoRow extends StatelessWidget {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(
@@ -426,43 +468,20 @@ class _InfoRow extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              color: AppPalette.textPrimary,
-              fontWeight: FontWeight.w600,
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppPalette.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TagSection extends StatelessWidget {
-  const _TagSection({required this.label, required this.tags});
-
-  final String label;
-  final List<Widget> tags;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: AppPalette.textMuted,
-            letterSpacing: 0.7,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(spacing: 8, runSpacing: 8, children: tags),
-      ],
     );
   }
 }

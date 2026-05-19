@@ -12,6 +12,7 @@ import 'widgets/work_permit_card.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
 import '../../common/theme/app_text_styles.dart';
+import '../../common/services/api_client.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus();
     _loadData();
     _bannerTimer = Timer.periodic(const Duration(milliseconds: 2300), (_) {
       if (!_bannerController.hasClients) return;
@@ -63,6 +65,13 @@ class _HomeScreenState extends State<HomeScreen> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final cookies = await ApiClient().tokenStorage.getCookies();
+    if (mounted && cookies != null && cookies.isNotEmpty) {
+      setState(() => _isLoggedIn = true);
+    }
   }
 
   Future<void> _loadData() async {
@@ -242,17 +251,18 @@ class _HomeScreenState extends State<HomeScreen> {
         onProfile: _showComingSoon,
       ),
       body: SafeArea(
-        child: _isLoading 
-            ? const Center(child: CircularProgressIndicator()) 
-            : CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(child: _buildHeroSection()),
-                  SliverToBoxAdapter(child: _buildOfferBanner()),
-                  SliverToBoxAdapter(child: _buildServices()),
-                  SliverToBoxAdapter(child: _buildWorkPermitSection()),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                ],
-              ),
+        child: Skeletonizer(
+          enabled: _isLoading,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: _buildHeroSection()),
+              SliverToBoxAdapter(child: _buildOfferBanner()),
+              SliverToBoxAdapter(child: _buildServices()),
+              SliverToBoxAdapter(child: _buildWorkPermitSection()),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -416,13 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _sectionHeader('Work Permit', actionLabel: 'See More', onActionTap: () => context.push('/search')),
           const SizedBox(height: 14),
-          Skeletonizer(
-            enabled: _isLoading,
-            child: SizedBox(
-              height: 540,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: displayItems.length,
+          SizedBox(
+            height: 540,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: displayItems.length,
               itemBuilder: (context, index) {
                 final double screenWidth = MediaQuery.of(context).size.width;
                 final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
@@ -439,7 +447,6 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               separatorBuilder: (_, __) => const SizedBox(width: 14),
             ),
-          ),
           ),
         ],
       ),

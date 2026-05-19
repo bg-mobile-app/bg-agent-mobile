@@ -1,0 +1,26 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../../features/home/models/agency_profile.dart';
+import 'api_client.dart';
+
+class ProfileService {
+  final ApiClient _apiClient = ApiClient();
+
+  Future<RecruitingAgencyMeDetailsProps?> getAgencyProfile() async {
+    try {
+      final response = await _apiClient.get('/profile/agency/me/');
+      if (response.statusCode == 200 && response.data != null) {
+        // response.data could be a Map or String, typically dio parses JSON to Map automatically
+        if (response.data is Map<String, dynamic>) {
+          return RecruitingAgencyMeDetailsProps.fromJson(response.data);
+        } else if (response.data is String) {
+          return RecruitingAgencyMeDetailsProps.fromJson(jsonDecode(response.data));
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching agency profile: $e');
+      return null;
+    }
+  }
+}

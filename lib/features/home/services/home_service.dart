@@ -84,8 +84,8 @@ class HomeService {
           title: json['title'] ?? 'Unknown',
           slug: json['slug'] ?? '',
           image: json['image'] ?? 'assets/img/work-permit/1.jpg', // fallback image
-          customerPrice: json['customerPrice'] ?? json['customer_price'] ?? 0,
-          agentPrice: json['agentPrice'] ?? json['agent_price'] ?? 0,
+          customerPrice: json['customerPrice'] is int ? json['customerPrice'] : (int.tryParse(json['customerPrice']?.toString() ?? '0') ?? int.tryParse(json['customer_price']?.toString() ?? '0') ?? 0),
+          agentPrice: json['agentPrice'] is int ? json['agentPrice'] : (int.tryParse(json['agentPrice']?.toString() ?? '0') ?? int.tryParse(json['agent_price']?.toString() ?? '0') ?? 0),
           countryName: json['countryName'] ?? json['country_name'] ?? 'Unknown',
           countryFlag: json['countryFlag'] ?? json['country_flag'] ?? 'assets/img/customer/appointment/world.png',
           workType: json['workType'] ?? json['work_type'] ?? 'Unknown',
@@ -95,8 +95,8 @@ class HomeService {
             : DateTime.now(),
         );
       }).toList();
-    } catch (e) {
-      debugPrint("Error fetching work permits: $e");
+    } catch (e, stacktrace) {
+      debugPrint("Error fetching work permits: $e\n$stacktrace");
       return [];
     }
   }

@@ -13,6 +13,7 @@ import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
 import '../../common/theme/app_text_styles.dart';
 import '../../common/widgets/app_search_bar.dart';
+import '../../common/services/api_client.dart';
 
 class WorkPermitListScreen extends StatefulWidget {
   const WorkPermitListScreen({super.key});
@@ -34,7 +35,15 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus();
     _loadData();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final cookies = await ApiClient().tokenStorage.getCookies();
+    if (mounted && cookies != null && cookies.isNotEmpty) {
+      setState(() => _isLoggedIn = true);
+    }
   }
 
   Future<void> _loadData() async {
@@ -210,13 +219,16 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: displayItems.length,
                       separatorBuilder: (context, index) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) => WorkPermitCard(
-                        item: displayItems[index],
-                        brandBlue: _brandBlue,
-                        onViewDetails: () =>
-                            _openDetailsBySlug(displayItems[index]),
-                        formatBdt: _formatBdt,
-                        timeAgo: _timeAgo,
+                      itemBuilder: (context, index) => SizedBox(
+                        height: 460,
+                        child: WorkPermitCard(
+                          item: displayItems[index],
+                          brandBlue: _brandBlue,
+                          onViewDetails: () =>
+                              _openDetailsBySlug(displayItems[index]),
+                          formatBdt: _formatBdt,
+                          timeAgo: _timeAgo,
+                        ),
                       ),
                     ),
                   ),
@@ -245,8 +257,20 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
         ),
         itemBuilder: (context, index) {
           final item = navLinkData[index];
+          final isSelected = item.name == 'Work Abroad';
           return InkWell(
-            onTap: _showComingSoon,
+            onTap: () {
+              if (isSelected) return;
+              if (item.href.isNotEmpty) {
+                if (item.href == '/') {
+                  context.go(item.href);
+                } else {
+                  context.push(item.href);
+                }
+              } else {
+                _showComingSoon();
+              }
+            },
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
@@ -258,9 +282,9 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                     width: 62,
                     height: 62,
                     decoration: BoxDecoration(
-                      color: index == 0 ? _brandBlue : Colors.white,
+                      color: isSelected ? _brandBlue : Colors.white,
                       borderRadius: BorderRadius.circular(18),
-                      boxShadow: index == 0
+                      boxShadow: isSelected
                           ? const [
                               BoxShadow(
                                 color: Color(0x332563EB),
@@ -279,7 +303,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                     child: Center(
                       child: FUI(
                         item.icon,
-                        color: index == 0 ? Colors.white : _brandBlue,
+                        color: isSelected ? Colors.white : _brandBlue,
                         width: 24,
                         height: 24,
                       ),
@@ -291,9 +315,10 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: isSelected ? _brandBlue : const Color(0xFF64748B),
                     ),
                   ),
                 ],
