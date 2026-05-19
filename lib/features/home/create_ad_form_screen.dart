@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../common/theme/app_palette.dart';
 import 'services/create_ad_service.dart';
@@ -18,6 +22,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   final CreateAdService _createAdService = CreateAdService();
   final TextEditingController _jobTitleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
 
   int _currentStep = 0;
   bool _isLoadingMeta = false;
@@ -26,6 +31,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   List<WorkTypeOption> _workTypes = [];
   int? _selectedCountryId;
   int? _selectedWorkTypeId;
+  XFile? _selectedImage;
 
   String _tr(String en, String bn) => widget.isBangla ? bn : en;
 
@@ -74,7 +80,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_tr('Ad created successfully', 'বিজ্ঞাপন সফলভাবে তৈরি হয়েছে'))),
       );
-      Navigator.pop(context);
+      _exitForm();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,6 +90,27 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       if (mounted) {
         setState(() => _isPublishing = false);
       }
+    }
+  }
+
+  void _exitForm() {
+    if (context.canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go('/dashboard/ads/create');
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (file == null || !mounted) return;
+      setState(() => _selectedImage = file);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_tr('Failed to pick image', 'ছবি নির্বাচন করা যায়নি'))),
+      );
     }
   }
   @override
@@ -153,7 +180,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
             if (_currentStep > 0) {
               setState(() => _currentStep--);
             } else {
-              Navigator.pop(context);
+              _exitForm();
             }
           },
           child: const Icon(Icons.arrow_back, color: AppPalette.brandBlue),
@@ -214,27 +241,42 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppPalette.brandBlue.withOpacity(0.1), width: 2),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(color: AppPalette.brandBlue.withOpacity(0.05), shape: BoxShape.circle),
-                  child: const Icon(Icons.cloud_upload_outlined, color: AppPalette.brandBlue, size: 32),
-                ),
-                const SizedBox(height: 16),
-                Text(_tr('Upload job poster or main image', 'কাজের পোস্টার বা প্রধান ছবি আপলোড করুন'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppPalette.textPrimary, height: 1.4)),
-                const SizedBox(height: 6),
-                const Text('(PNG, JPG, WEBP, Max 2MB)', style: TextStyle(fontSize: 12, color: AppPalette.textMuted)),
-              ],
+          InkWell(
+            onTap: _pickImage,
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppPalette.brandBlue.withOpacity(0.1), width: 2),
+              ),
+              child: Column(
+                children: [
+                  if (_selectedImage == null)
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(color: AppPalette.brandBlue.withOpacity(0.05), shape: BoxShape.circle),
+                      child: const Icon(Icons.cloud_upload_outlined, color: AppPalette.brandBlue, size: 32),
+                    )
+                  else
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        File(_selectedImage!.path),
+                        height: 120,
+                        width: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Text(_selectedImage == null ? _tr('Upload job poster or main image', 'কাজের পোস্টার বা প্রধান ছবি আপলোড করুন') : _tr('Image selected. Tap to change', 'ছবি নির্বাচন করা হয়েছে। পরিবর্তন করতে ট্যাপ করুন'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppPalette.textPrimary, height: 1.4)),
+                  const SizedBox(height: 6),
+                  const Text('(PNG, JPG, WEBP, Max 2MB)', style: TextStyle(fontSize: 12, color: AppPalette.textMuted)),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -728,9 +770,9 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
             Expanded(
               flex: 2,
               child: ElevatedButton(
-                onPressed: _isLoadingMeta || _isPublishing ? null : () {
+                onPressed: _isPublishing ? null : () {
                   if (_currentStep < 3) {
-                    setState(() => _currentStep++);
+                    setState(() => _currentStep = (_currentStep + 1).clamp(0, 3));
                   } else {
                     _publishAd();
                   }

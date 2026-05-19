@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/services/location_service.dart';
@@ -16,12 +17,20 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final ProfileService _profileService = ProfileService();
   final LocationService _locationService = LocationService();
+  final ImagePicker _imagePicker = ImagePicker();
 
-  // Controllers
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _agencyNameController = TextEditingController();
+  final _agencyPhoneController = TextEditingController();
+  final _agencyAddressController = TextEditingController();
+  final _ownerNameController = TextEditingController();
+  final _ownerPhoneController = TextEditingController();
+  final _ownerEmailController = TextEditingController();
+  final _bankNameController = TextEditingController();
+  final _branchNameController = TextEditingController();
+  final _accountNameController = TextEditingController();
+  final _accountNoController = TextEditingController();
+  final _routingNoController = TextEditingController();
+  final _rlNoController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -31,6 +40,12 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
   List<PoliceStationOption> _policeStations = [];
   int? _selectedDistrictId;
   int? _selectedPoliceStationId;
+
+  XFile? _profileImage;
+  XFile? _nidImage;
+  XFile? _tradeLicenseImage;
+  XFile? _rlLicenseImage;
+  XFile? _civilAviationLicenseImage;
 
   @override
   void initState() {
@@ -59,11 +74,22 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         return;
       }
 
+      final bank = profile.bankInformation.isNotEmpty ? profile.bankInformation.first : null;
+      final doc = profile.documents.isNotEmpty ? profile.documents.first : null;
+
       setState(() {
-        _nameController.text = profile.owner?.fullName ?? '';
-        _phoneController.text = profile.owner?.phone ?? '';
-        _emailController.text = profile.owner?.email ?? '';
-        _addressController.text = profile.agencyAddress ?? '';
+        _agencyNameController.text = profile.agencyName;
+        _agencyPhoneController.text = profile.owner?.phone ?? '';
+        _agencyAddressController.text = profile.agencyAddress ?? '';
+        _ownerNameController.text = profile.owner?.fullName ?? '';
+        _ownerPhoneController.text = profile.owner?.phone ?? '';
+        _ownerEmailController.text = profile.owner?.email ?? '';
+        _bankNameController.text = bank?.bankName ?? '';
+        _branchNameController.text = bank?.branchName ?? '';
+        _accountNameController.text = bank?.accountName ?? '';
+        _accountNoController.text = bank?.accountNo ?? '';
+        _routingNoController.text = bank?.routingNo ?? '';
+        _rlNoController.text = doc?.rlNo ?? '';
       });
 
       final matchedDistrict = districts.where((d) => d.name == profile.district?.name).toList();
@@ -75,7 +101,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
           _selectedPoliceStationId = matchedPs.first.id;
         }
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'An error occurred while loading details.';
@@ -94,13 +120,15 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
       _policeStations = [];
     });
     if (districtId == null) return;
-    try {
-      final stations = await _locationService.getPoliceStations(districtId);
-      if (!mounted) return;
-      setState(() {
-        _policeStations = stations;
-      });
-    } catch (_) {}
+    final stations = await _locationService.getPoliceStations(districtId);
+    if (!mounted) return;
+    setState(() => _policeStations = stations);
+  }
+
+  Future<void> _pickImage(ValueChanged<XFile?> onPicked) async {
+    final file = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (!mounted || file == null) return;
+    onPicked(file);
   }
 
   Future<void> _saveProfile() async {
@@ -108,16 +136,30 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final formData = FormData.fromMap({
-        'owner_full_name': _nameController.text.trim(),
-        'owner_phone': _phoneController.text.trim(),
-        'owner_email': _emailController.text.trim(),
-        'agency_address': _addressController.text.trim(),
+      final map = <String, dynamic>{
+        'agencyName': _agencyNameController.text.trim(),
+        'agencyPhone': _agencyPhoneController.text.trim(),
+        'agencyAddress': _agencyAddressController.text.trim(),
         if (_selectedDistrictId != null) 'district': _selectedDistrictId,
-        if (_selectedPoliceStationId != null) 'police_station': _selectedPoliceStationId,
-      });
+        if (_selectedPoliceStationId != null) 'policeStation': _selectedPoliceStationId,
+        'owner.fullName': _ownerNameController.text.trim(),
+        'owner.phone': _ownerPhoneController.text.trim(),
+        'owner.email': _ownerEmailController.text.trim(),
+        'bankInformation.bankName': _bankNameController.text.trim(),
+        'bankInformation.branchName': _branchNameController.text.trim(),
+        'bankInformation.accountName': _accountNameController.text.trim(),
+        'bankInformation.accountNo': _accountNoController.text.trim(),
+        'bankInformation.routingNo': _routingNoController.text.trim(),
+        'documents.rlNo': _rlNoController.text.trim(),
+      };
 
-      final updated = await _profileService.updateAgencyProfile(formData);
+      if (_profileImage != null) map['image'] = await MultipartFile.fromFile(_profileImage!.path);
+      if (_nidImage != null) map['documents.nidImage'] = await MultipartFile.fromFile(_nidImage!.path);
+      if (_tradeLicenseImage != null) map['documents.tradeLicenseImage'] = await MultipartFile.fromFile(_tradeLicenseImage!.path);
+      if (_rlLicenseImage != null) map['documents.rlLicenseImage'] = await MultipartFile.fromFile(_rlLicenseImage!.path);
+      if (_civilAviationLicenseImage != null) map['documents.civilAviationLicenseImage'] = await MultipartFile.fromFile(_civilAviationLicenseImage!.path);
+
+      final updated = await _profileService.updateAgencyProfile(FormData.fromMap(map));
       if (!mounted) return;
       setState(() => _isSaving = false);
 
@@ -130,16 +172,24 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _addressController.dispose();
+    _agencyNameController.dispose();
+    _agencyPhoneController.dispose();
+    _agencyAddressController.dispose();
+    _ownerNameController.dispose();
+    _ownerPhoneController.dispose();
+    _ownerEmailController.dispose();
+    _bankNameController.dispose();
+    _branchNameController.dispose();
+    _accountNameController.dispose();
+    _accountNoController.dispose();
+    _routingNoController.dispose();
+    _rlNoController.dispose();
     super.dispose();
   }
 
@@ -149,52 +199,64 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
       appBar: AppBar(title: const Text('Edit Profile')),
       body: SafeArea(
         child: _error != null && !_isLoading
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 16)),
-                    const SizedBox(height: 12),
-                    ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
-                  ],
-                ),
-              )
+            ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 16)), const SizedBox(height: 12), ElevatedButton(onPressed: _loadData, child: const Text('Retry'))]))
             : Skeletonizer(
                 enabled: _isLoading,
                 child: Form(
                   key: _formKey,
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _field('Owner Full Name', _nameController),
-                        _field('Owner Phone', _phoneController),
-                        _field('Owner Email', _emailController),
-                        _field('Agency Address', _addressController),
-                        _districtDropdown(),
-                        _policeStationDropdown(),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isSaving ? null : _saveProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(_isSaving ? 'Saving...' : 'Update Profile'),
-                          ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      _field('Agency Name', _agencyNameController),
+                      _field('Agency Phone', _agencyPhoneController),
+                      _field('Agency Address', _agencyAddressController),
+                      const SizedBox(height: 8),
+                      const Text('Owner Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                      _field('Owner Full Name', _ownerNameController),
+                      _field('Owner Phone', _ownerPhoneController),
+                      _field('Owner Email', _ownerEmailController, keyboardType: TextInputType.emailAddress),
+                      _districtDropdown(),
+                      _policeStationDropdown(),
+                      const SizedBox(height: 8),
+                      const Text('Bank Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                      _field('Bank Name', _bankNameController),
+                      _field('Branch Name', _branchNameController),
+                      _field('Account Name', _accountNameController),
+                      _field('Account Number', _accountNoController),
+                      _field('Routing Number', _routingNoController),
+                      const SizedBox(height: 8),
+                      const Text('Documents', style: TextStyle(fontWeight: FontWeight.bold)),
+                      _field('RL Number', _rlNoController),
+                      _imagePickerTile('Profile Image', _profileImage, () => _pickImage((v) => setState(() => _profileImage = v))),
+                      _imagePickerTile('NID Image', _nidImage, () => _pickImage((v) => setState(() => _nidImage = v))),
+                      _imagePickerTile('Trade License Image', _tradeLicenseImage, () => _pickImage((v) => setState(() => _tradeLicenseImage = v))),
+                      _imagePickerTile('RL License Image', _rlLicenseImage, () => _pickImage((v) => setState(() => _rlLicenseImage = v))),
+                      _imagePickerTile('Civil Aviation License Image', _civilAviationLicenseImage, () => _pickImage((v) => setState(() => _civilAviationLicenseImage = v))),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _saveProfile,
+                          child: Text(_isSaving ? 'Saving...' : 'Update Profile'),
                         ),
-                      ],
-                    ),
+                      ),
+                    ]),
                   ),
                 ),
               ),
+      ),
+    );
+  }
+
+  Widget _imagePickerTile(String label, XFile? file, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFD1D5DB))),
+        title: Text(label),
+        subtitle: Text(file?.name ?? 'No file selected'),
+        trailing: const Icon(Icons.upload_file),
+        onTap: onTap,
       ),
     );
   }
@@ -204,10 +266,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: DropdownButtonFormField<int>(
         value: _selectedDistrictId,
-        decoration: const InputDecoration(
-          labelText: 'District',
-          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-        ),
+        decoration: const InputDecoration(labelText: 'District', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))),
         items: _districts.map((d) => DropdownMenuItem<int>(value: d.id, child: Text(d.name))).toList(),
         onChanged: _isLoading ? null : _onDistrictChanged,
         validator: (v) => v == null ? 'District is required' : null,
@@ -220,10 +279,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: DropdownButtonFormField<int>(
         value: _selectedPoliceStationId,
-        decoration: const InputDecoration(
-          labelText: 'Police Station',
-          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-        ),
+        decoration: const InputDecoration(labelText: 'Police Station', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))),
         items: _policeStations.map((p) => DropdownMenuItem<int>(value: p.id, child: Text(p.name))).toList(),
         onChanged: _isLoading ? null : (v) => setState(() => _selectedPoliceStationId = v),
         validator: (v) => v == null ? 'Police Station is required' : null,
@@ -231,16 +287,14 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
     );
   }
 
-  Widget _field(String label, TextEditingController controller) {
+  Widget _field(String label, TextEditingController controller, {TextInputType? keyboardType}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
+        keyboardType: keyboardType,
         validator: (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-        ),
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))),
       ),
     );
   }
