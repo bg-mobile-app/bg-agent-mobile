@@ -768,57 +768,6 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final bool error;
 
-
-  Future<void> _loadBookings() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await _apiClient.get(
-        '/booking/wp/',
-        queryParameters: {
-          'status': 'BG_COLLECT_PP',
-          'search': _searchQuery.trim(),
-          'from_date': _selectedDateRange != null ? _formatApiDate(_selectedDateRange!.start) : '',
-          'to_date': _selectedDateRange != null ? _formatApiDate(_selectedDateRange!.end) : '',
-          'page': 1,
-        },
-      );
-      final data = response.data;
-      final results = data is Map<String, dynamic> ? (data['results'] as List? ?? const []) : const [];
-      final mapped = results.whereType<Map>().map((item) => _fromApi(Map<String, dynamic>.from(item))).toList();
-      if (!mounted) return;
-      setState(() {
-        _collectedBookings = mapped;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _collectedBookings = _bookings.where((item) => item.status == 'BG_COLLECT_PP').toList();
-      });
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  String _formatApiDate(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-  BookingItem _fromApi(Map<String, dynamic> json) {
-    return BookingItem(
-      workPermitId: json['workPermitId']?.toString() ?? json['work_permit_id']?.toString() ?? '-',
-      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      serviceType: json['serviceType']?.toString() ?? json['service_type']?.toString() ?? 'Work Permit',
-      createdAt: json['createdAt']?.toString() ?? json['created_at']?.toString() ?? DateTime.now().toIso8601String().split('T').first,
-      name: json['name']?.toString() ?? json['customer_name']?.toString() ?? 'Unknown',
-      passportNo: json['passportNo']?.toString() ?? json['passport_no']?.toString() ?? '-',
-      fromCountry: json['fromCountry']?.toString() ?? json['from_country']?.toString() ?? 'Bangladesh',
-      toCountry: json['toCountry']?.toString() ?? json['to_country']?.toString() ?? '-',
-      agencyTotalCost: int.tryParse(json['agencyTotalCost']?.toString() ?? json['agency_total_cost']?.toString() ?? '') ?? 0,
-      paidAmount: int.tryParse(json['paidAmount']?.toString() ?? json['paid_amount']?.toString() ?? '') ?? 0,
-      status: 'BG_COLLECT_PP',
-      statusLabel: 'BG Collect Passport',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
