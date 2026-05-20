@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/widgets/app_search_bar.dart';
 import '../../common/widgets/styled_data_table_card.dart';
@@ -10,9 +11,15 @@ import '../home/dashboard_screen.dart';
 import 'services/booking_service.dart';
 
 class ReceivedAllBookingScreen extends StatefulWidget {
-  const ReceivedAllBookingScreen({super.key, this.initialStatus = '', this.pageTitle = 'All Booking'});
+  const ReceivedAllBookingScreen({
+    super.key,
+    this.initialStatus = '',
+    this.pageTitle = 'All Booking',
+    this.currentHref = '/dashboard/receive-booking/all-booking',
+  });
   final String initialStatus;
   final String pageTitle;
+  final String currentHref;
 
   @override
   State<ReceivedAllBookingScreen> createState() =>
@@ -65,6 +72,27 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
       return matchesQuery && matchesDate;
     }).toList();
   }
+
+  List<BookingItem> get _skeletonBookings => List.generate(
+        6,
+        (index) => BookingItem(
+          workPermitId: 'WP-XXXX',
+          id: 1000 + index,
+          serviceType: 'Work Permit',
+          createdAt: '2026-01-01T00:00:00Z',
+          name: 'Loading Name',
+          passportNo: 'P0000000',
+          fromCountry: 'Bangladesh',
+          toCountry: 'Saudi Arabia',
+          agencyTotalCost: 0,
+          paidAmount: 0,
+          status: _selectedStatus.isEmpty ? 'APPLIED_FILE' : _selectedStatus,
+          statusLabel: 'Loading',
+        ),
+      );
+
+  List<BookingItem> get _visibleBookings =>
+      _isLoading && _bookings.isEmpty ? _skeletonBookings : _filteredBookings;
 
 
 
@@ -130,7 +158,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/receive-booking/all-booking',
+      currentHref: widget.currentHref,
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -161,24 +189,17 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                         Expanded(child: _dateRangeButton()),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    _statusChips(),
-
                     const SizedBox(height: 16),
-                    if (_isLoading)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (_errorMessage != null)
+                    if (_errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                       )
-                    else if (_isCardView)
-                      _buildCardList()
                     else
-                      _buildTableList(),
+                      Skeletonizer(
+                        enabled: _isLoading,
+                        child: _isCardView ? _buildCardList() : _buildTableList(),
+                      ),
                   ],
                 ),
               ),
@@ -351,7 +372,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     dataRowMaxHeight: 86,
     columnSpacing: 20,
     columns: _tableColumns(),
-    rows: _filteredBookings.map((item) {
+    rows: _visibleBookings.map((item) {
       final style = _styleFor(item.statusLabel);
       return DataRow(
         onLongPress: () => _openActionsSheet(context, item),
@@ -433,7 +454,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   Widget _buildCardList() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      ..._filteredBookings.map((item) {
+      ..._visibleBookings.map((item) {
         return ReceivedBookingCard(
           bookingId: item.id,
           postId: item.workPermitId,
