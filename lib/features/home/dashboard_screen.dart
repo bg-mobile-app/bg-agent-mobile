@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/theme/app_colors.dart';
 import '../../common/theme/app_palette.dart';
@@ -28,6 +29,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'Last 4 Years',
     'Last 5 Years',
   ];
+
+  static final AgencyDashboardStats _mockStats = AgencyDashboardStats(
+    myBookings: const MyBookingStats(
+      total: 99,
+      successFlight: 99,
+      rejectFlight: 99,
+      processing: 99,
+      returnProcessing: 99,
+      totalAmount: 999999,
+      paidAmount: 999999,
+      dueAmount: 999999,
+      commissionAmount: 999999,
+    ),
+    agencyBookings: const AgencyBookingStats(
+      total: 99,
+      appliedCustomer: 99,
+      bgCollectPp: 99,
+      bgSentPp: 99,
+      aRecievePp: 99,
+      underProcessing: 99,
+      visaApproved: 99,
+      bmetDone: 99,
+      ticketDone: 99,
+      ppSentToBg: 99,
+      bgReceivedPp: 99,
+      readyForFlight: 99,
+      successFlight: 99,
+      returnRequest: 99,
+      returnAccepted: 99,
+      returnPpSentToBg: 99,
+      bgCollectReturnPp: 99,
+      bgHandoverPpToCustomer: 99,
+      rejectFlight: 99,
+      totalAmount: 999999,
+      paidAmount: 999999,
+      dueAmount: 999999,
+      commissionAmount: 999999,
+    ),
+    expiryReminders: const ExpiryReminderStats(
+      days3: ExpiryReminderGroup(medical: 9, police: 9, visa: 9, total: 9),
+      days10: ExpiryReminderGroup(medical: 9, police: 9, visa: 9, total: 9),
+    ),
+  );
 
   final DashboardService _dashboardService = DashboardService();
   late Future<AgencyDashboardStats> _dashboardFuture;
@@ -66,8 +110,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: FutureBuilder<AgencyDashboardStats>(
               future: _dashboardFuture,
               builder: (context, snapshot) {
-                final stats = snapshot.data ?? AgencyDashboardStats.empty();
                 final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                final stats = snapshot.data ?? (isLoading ? _mockStats : AgencyDashboardStats.empty());
                 final hasError = snapshot.hasError;
 
                 return SingleChildScrollView(
@@ -108,35 +152,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _DashboardErrorBanner(onRetry: _refreshDashboard),
                           ],
                           const SizedBox(height: 16),
-                          if (isLoading && snapshot.data == null)
-                            const _DashboardLoadingState()
-                          else ...[
-                            _DashboardSection(
-                              title: 'Agency Summary',
-                              child: _DashboardCardGrid(
-                                cards: _buildAgencySummaryCards(stats),
-                              ),
+                          Skeletonizer(
+                            enabled: isLoading && snapshot.data == null,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _DashboardSection(
+                                  title: 'Agency Summary',
+                                  child: _DashboardCardGrid(
+                                    cards: _buildAgencySummaryCards(stats),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                _DashboardSection(
+                                  title: 'My Bookings',
+                                  child: _DashboardCardGrid(
+                                    cards: _buildMyBookingCards(stats.myBookings),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                _DashboardSection(
+                                  title: 'Agency Bookings',
+                                  child: _DashboardCardGrid(
+                                    cards: _buildAgencyBookingCards(stats.agencyBookings),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                _DashboardSection(
+                                  title: 'Expiry Reminders',
+                                  child: _ExpiryReminderPanel(stats: stats.expiryReminders),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 18),
-                            _DashboardSection(
-                              title: 'My Bookings',
-                              child: _DashboardCardGrid(
-                                cards: _buildMyBookingCards(stats.myBookings),
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            _DashboardSection(
-                              title: 'Agency Bookings',
-                              child: _DashboardCardGrid(
-                                cards: _buildAgencyBookingCards(stats.agencyBookings),
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            _DashboardSection(
-                              title: 'Expiry Reminders',
-                              child: _ExpiryReminderPanel(stats: stats.expiryReminders),
-                            ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
@@ -361,17 +409,7 @@ class _DashboardErrorBanner extends StatelessWidget {
   }
 }
 
-class _DashboardLoadingState extends StatelessWidget {
-  const _DashboardLoadingState();
 
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 56),
-      child: Center(child: CircularProgressIndicator()),
-    );
-  }
-}
 
 class _DashboardSection extends StatelessWidget {
   const _DashboardSection({required this.title, required this.child});

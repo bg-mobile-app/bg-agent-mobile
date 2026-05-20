@@ -19,6 +19,7 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
   static const Color _brandBlue = Color(0xFF2563EB);
 
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final MyAdsService _myAdsService = MyAdsService();
   Timer? _debounce;
 
@@ -32,6 +33,7 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _fetchAds();
   }
 
@@ -39,18 +41,32 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    // Trigger when user scrolls within 200 pixels of the bottom for a seamless load
+    if (currentScroll >= maxScroll - 200) {
+      if (!_isLoading && _currentPage < _totalPages) {
+        _fetchMoreAds();
+      }
+    }
   }
 
   Future<void> _fetchAds() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _currentPage = 1;
     });
 
     try {
       final res = await _myAdsService.getOwnerOwnAdsList(
-        page: _currentPage,
+        page: 1,
         search: _searchController.text,
         status: _activeFilter == 'All Ads' ? '' : _activeFilter,
       );
@@ -71,10 +87,38 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
     }
   }
 
+  Future<void> _fetchMoreAds() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final nextPage = _currentPage + 1;
+      final res = await _myAdsService.getOwnerOwnAdsList(
+        page: nextPage,
+        search: _searchController.text,
+        status: _activeFilter == 'All Ads' ? '' : _activeFilter,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _currentPage = nextPage;
+        _visibleAds = [..._visibleAds, ...res.results];
+        _totalPages = res.totalPages == 0 ? 1 : res.totalPages;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      _showInfo('Failed to load more ads.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      _currentPage = 1;
       _fetchAds();
     });
   }
@@ -93,6 +137,8 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
         color: const Color(0xFFF8FAFC),
         child: SafeArea(
           child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             child: Center(
               child: ConstrainedBox(
@@ -112,7 +158,6 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       onSearchTap: () {
-                        _currentPage = 1;
                         _fetchAds();
                       },
                     ),
@@ -122,14 +167,16 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                       onSelected: (status) {
                         setState(() {
                           _activeFilter = status;
-                          _currentPage = 1;
                         });
                         _fetchAds();
                       },
                     ),
                     const SizedBox(height: 16),
-                    if (_isLoading)
-                      const Center(child: CircularProgressIndicator())
+                    if (_isLoading && _currentPage == 1)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
                     else if (_errorMessage != null)
                       _ErrorBox(
                         onRetry: _fetchAds,
@@ -165,22 +212,15 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                           ),
                         ),
                       ),
-                      _PaginationControls(
-                        currentPage: _currentPage,
-                        totalPages: _totalPages,
-                        onPrevious: _currentPage > 1
-                            ? () {
-                                setState(() => _currentPage--);
-                                _fetchAds();
-                              }
-                            : null,
-                        onNext: _currentPage < _totalPages
-                            ? () {
-                                setState(() => _currentPage++);
-                                _fetchAds();
-                              }
-                            : null,
-                      ),
+                      if (_isLoading && _currentPage > 1)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF0D4CC7),
+                            ),
+                          ),
+                        ),
                     ],
                   ],
                 ),
@@ -201,23 +241,31 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0F4ECF)),
-        ),
-        Expanded(
-          child: Text(
-            'My Ads (বিজ্ঞাপন)',
-            style: AppTextStyles.headline2.copyWith(
-              color: const Color(0xFF0F4ECF),
-              fontWeight: FontWeight.w800,
-            ),
+        Text(
+          'My Ads (বিজ্ঞাপন)',
+          style: AppTextStyles.headline2.copyWith(
+            color: const Color(0xFF0F4ECF),
+            fontWeight: FontWeight.w800,
           ),
         ),
-        IconButton(
+        TextButton.icon(
           onPressed: onHelpTap,
-          icon: const Icon(Icons.help_outline, color: Color(0xFF0F4ECF)),
+          icon: const Icon(Icons.menu_book_outlined, color: Color(0xFF0F4ECF), size: 18),
+          label: const Text(
+            'Ad Guide',
+            style: TextStyle(
+              color: Color(0xFF0F4ECF),
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          style: TextButton.styleFrom(
+            backgroundColor: const Color(0xFFE0E7FF),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         ),
       ],
     );
@@ -302,10 +350,8 @@ class _SearchBox extends StatelessWidget {
               onChanged: onChanged,
               decoration: const InputDecoration(
                 fillColor: Colors.white,
-
-               
                 border: InputBorder.none,
-                 enabledBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 hintText: 'Search by title, country or post ID',
                 hintStyle: TextStyle(color: Color(0xFF64748B)),
@@ -575,38 +621,6 @@ class _ErrorBox extends StatelessWidget {
           Text(message),
           const SizedBox(height: 8),
           ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaginationControls extends StatelessWidget {
-  const _PaginationControls({
-    required this.currentPage,
-    required this.totalPages,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int currentPage;
-  final int totalPages;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          OutlinedButton(onPressed: onPrevious, child: const Text('Previous')),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('Page $currentPage of $totalPages'),
-          ),
-          OutlinedButton(onPressed: onNext, child: const Text('Next')),
         ],
       ),
     );

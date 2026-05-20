@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../common/theme/app_colors.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
 import '../../common/theme/app_text_styles.dart';
@@ -21,12 +21,18 @@ class ManageUserScreen extends StatefulWidget {
 class _ManageUserScreenState extends State<ManageUserScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<_StaffMember> _members = List<_StaffMember>.from(_seedMembers);
+  final StaffAccountsService _staffAccountsService = StaffAccountsService();
+
+  final List<RecruitingAgencyStaffGETProps> _members = [];
 
   String _query = '';
   bool _isCardView = false;
-  int _visibleCount = 6;
-  static const int _chunkSize = 6;
+  bool _isInitialLoading = true;
+  bool _isLoadingMore = false;
+  String? _error;
+
+  int _currentPage = 1;
+  bool _hasNextPage = true;
 
   static const bool _currentUserIsAdmin = true;
   static const String _currentUserRole = 'Admin';
@@ -36,6 +42,7 @@ class _ManageUserScreenState extends State<ManageUserScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _loadStaff(page: 1, isInitial: true);
   }
 
   @override
@@ -45,41 +52,71 @@ class _ManageUserScreenState extends State<ManageUserScreen> {
     super.dispose();
   }
 
+  Future<void> _loadStaff({required int page, bool isInitial = false}) async {
+    if (isInitial) {
+      setState(() {
+        _isInitialLoading = true;
+        _error = null;
+      });
+    } else {
+      if (_isLoadingMore || !_hasNextPage) return;
+      setState(() => _isLoadingMore = true);
+    }
+
+    try {
+      final response = await _staffAccountsService.getRecruitingAgencyStaff(
+        page: page,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        if (isInitial) _members.clear();
+        _members.addAll(response.results);
+        _currentPage = page;
+        _hasNextPage = response.next != null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to load staff. Please try again.';
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isInitialLoading = false;
+        _isLoadingMore = false;
+      });
+    }
+  }
+
   void _onScroll() {
-    if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients || _isInitialLoading) return;
     final threshold = _scrollController.position.maxScrollExtent - 180;
     if (_scrollController.position.pixels >= threshold) {
-      final total = _filteredMembers.length;
-      if (_visibleCount < total) {
-        setState(
-          () => _visibleCount = (_visibleCount + _chunkSize).clamp(0, total),
-        );
+      if (_hasNextPage && !_isLoadingMore) {
+        _loadStaff(page: _currentPage + 1);
       }
     }
   }
 
-  List<_StaffMember> get _filteredMembers {
+  List<RecruitingAgencyStaffGETProps> get _filteredMembers {
     final lower = _query.trim().toLowerCase();
     return _members.where((member) {
       final textMatch =
           lower.isEmpty ||
           member.userId.toLowerCase().contains(lower) ||
-          member.name.toLowerCase().contains(lower) ||
+          member.userCode.toLowerCase().contains(lower) ||
           member.email.toLowerCase().contains(lower) ||
           member.phone.toLowerCase().contains(lower) ||
           member.designation.toLowerCase().contains(lower) ||
-          member.role.toLowerCase().contains(lower);
+          member.userRole.toLowerCase().contains(lower);
       return textMatch;
     }).toList();
   }
 
-  List<_StaffMember> get _visibleItems {
-    final filtered = _filteredMembers;
-    return filtered.take(_visibleCount.clamp(0, filtered.length)).toList();
-  }
-
-  bool _canManage(_StaffMember member) =>
-      _currentUserIsAdmin || member.role == _currentUserRole;
+  bool _canManage(RecruitingAgencyStaffGETProps member) =>
+      _currentUserIsAdmin || member.userRole == _currentUserRole;
 
   Future<void> _toggleBlock(_StaffMember member) async {
     final nextIsBlocked = !member.isBlocked;
@@ -99,14 +136,9 @@ class _ManageUserScreenState extends State<ManageUserScreen> {
     } catch (_) {}
   }
 
-  void _resetInfiniteData() {
-    setState(() => _visibleCount = _chunkSize);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final filteredCount = _filteredMembers.length;
-    final visible = _visibleItems;
+    final visible = _filteredMembers;
 
     return DashboardPageScaffold(
       currentHref: '/dashboard/user/manage-user',
@@ -130,7 +162,7 @@ class _ManageUserScreenState extends State<ManageUserScreen> {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Infinite scroll enabled for list and card view.',
+                        'All staff from recruiting agency API.',
                         style: AppTextStyles.body2.copyWith(
                           color: AppPalette.textMuted,
                         ),
@@ -141,32 +173,35 @@ class _ManageUserScreenState extends State<ManageUserScreen> {
                         onViewChanged: (value) =>
                             setState(() => _isCardView = value),
                         controller: _searchController,
-                        onQueryChanged: (value) {
-                          _query = value;
-                          _resetInfiniteData();
-                        },
+                        onQueryChanged: (value) => setState(() => _query = value),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      _isCardView
-                          ? _CardGrid(
-                              members: visible,
-                              canManage: _canManage,
-                              onToggleBlock: _toggleBlock,
-                            )
-                          : _UserTableCard(
-                              members: visible,
-                              canManage: _canManage,
-                              onToggleBlock: _toggleBlock,
-                            ),
-                      const SizedBox(height: AppSpacing.md),
-                      Center(
-                        child: Text(
-                          visible.length < filteredCount
-                              ? 'Scroll down to load more users...'
-                              : 'Showing all $filteredCount users',
-                          style: AppTextStyles.body2,
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                          child: Text(_error!, style: const TextStyle(color: Colors.red)),
                         ),
+                      Skeletonizer(
+                        enabled: _isInitialLoading,
+                        child: _isCardView
+                            ? _CardGrid(
+                                members: _isInitialLoading
+                                    ? _skeletonMembers
+                                    : visible,
+                                canManage: _canManage,
+                                onToggleBlock: _toggleBlock,
+                              )
+                            : _UserTableCard(
+                                members: _isInitialLoading
+                                    ? _skeletonMembers
+                                    : visible,
+                                canManage: _canManage,
+                                onToggleBlock: _toggleBlock,
+                              ),
                       ),
+                      const SizedBox(height: AppSpacing.md),
+                      if (_isLoadingMore)
+                        const Center(child: CircularProgressIndicator()),
                     ],
                   ),
                 ),
@@ -179,57 +214,8 @@ class _ManageUserScreenState extends State<ManageUserScreen> {
   }
 }
 
-class _SearchAndActions extends StatelessWidget {
-  const _SearchAndActions({
-    required this.isCardView,
-    required this.onViewChanged,
-    required this.controller,
-    required this.onQueryChanged,
-  });
-  final bool isCardView;
-  final ValueChanged<bool> onViewChanged;
-  final TextEditingController controller;
-  final ValueChanged<String> onQueryChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            ViewToggleButton(isCardView: isCardView, onChanged: onViewChanged),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.go('/dashboard/user/create-user'),
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Add Member'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    elevation: 4,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        AppSearchBar(
-          controller: controller,
-          hintText: 'Search by user ID, email, phone, role...',
-          onChanged: onQueryChanged,
-          onSearchTap: () => onQueryChanged(controller.text),
-        ),
-      ],
-    );
-  }
-}
+// keep other widgets mostly unchanged
+class _SearchAndActions extends StatelessWidget { const _SearchAndActions({required this.isCardView,required this.onViewChanged,required this.controller,required this.onQueryChanged,}); final bool isCardView; final ValueChanged<bool> onViewChanged; final TextEditingController controller; final ValueChanged<String> onQueryChanged; @override Widget build(BuildContext context){ return Column(children:[Row(children:[ViewToggleButton(isCardView:isCardView,onChanged:onViewChanged),const SizedBox(width: AppSpacing.sm),Expanded(child:SizedBox(height:48,child:ElevatedButton.icon(onPressed:()=>context.go('/dashboard/user/create-user'),icon:const Icon(Icons.person_add),label:const Text('Add Member'))))]),const SizedBox(height: AppSpacing.sm),AppSearchBar(controller:controller,hintText:'Search by user ID, email, phone, role...',onChanged:onQueryChanged,onSearchTap:()=>onQueryChanged(controller.text))]);}}
 
 class _UserTableCard extends StatelessWidget {
   const _UserTableCard({
@@ -237,25 +223,25 @@ class _UserTableCard extends StatelessWidget {
     required this.canManage,
     required this.onToggleBlock,
   });
-  final List<_StaffMember> members;
-  final bool Function(_StaffMember member) canManage;
-  final ValueChanged<_StaffMember> onToggleBlock;
+
+  final List<RecruitingAgencyStaffGETProps> members;
+  final bool Function(RecruitingAgencyStaffGETProps member) canManage;
+  final ValueChanged<RecruitingAgencyStaffGETProps> onToggleBlock;
 
   @override
   Widget build(BuildContext context) {
     const currentUserRole = 'Admin';
     final isAdmin = currentUserRole == 'Admin';
-
     return StyledDataTableCard(
       columns: [
-              const DataColumn(label: Text('USER ID')),
-              const DataColumn(label: Text('EMAIL')),
-              const DataColumn(label: Text('PHONE')),
-              const DataColumn(label: Text('ROLE')),
-              const DataColumn(label: Text('DESIGNATION')),
-              if (isAdmin) const DataColumn(label: Text('ACTIVITY')),
-              const DataColumn(label: Text('STATUS / ACTIONS')),
-            ],
+        const DataColumn(label: Text('USER ID')),
+        const DataColumn(label: Text('EMAIL')),
+        const DataColumn(label: Text('PHONE')),
+        const DataColumn(label: Text('ROLE')),
+        const DataColumn(label: Text('DESIGNATION')),
+        if (isAdmin) const DataColumn(label: Text('ACTIVITY')),
+        const DataColumn(label: Text('STATUS / ACTIONS')),
+      ],
       rows: members.map((member) {
               final hasPermission = canManage(member);
               return DataRow(
@@ -373,9 +359,13 @@ class _UserTableCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Text(isBlocked ? 'Blocked' : 'Active'),
                 ],
-              );
-            }).toList(),
+              ),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 }
@@ -386,169 +376,118 @@ class _CardGrid extends StatelessWidget {
     required this.canManage,
     required this.onToggleBlock,
   });
-  final List<_StaffMember> members;
-  final bool Function(_StaffMember member) canManage;
-  final ValueChanged<_StaffMember> onToggleBlock;
+
+  final List<RecruitingAgencyStaffGETProps> members;
+  final bool Function(RecruitingAgencyStaffGETProps member) canManage;
+  final ValueChanged<RecruitingAgencyStaffGETProps> onToggleBlock;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: List.generate(
-        members.length,
-        (index) => Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: _StaffCard(
-            member: members[index],
-            canManage: canManage(members[index]),
-            onToggleBlock: () => onToggleBlock(members[index]),
-          ),
-        ),
-      ),
-    );
-  }
-}
+    const currentUserRole = 'Admin';
+    final isAdmin = currentUserRole == 'Admin';
 
-class _StaffCard extends StatelessWidget {
-  const _StaffCard({
-    required this.member,
-    required this.canManage,
-    required this.onToggleBlock,
-  });
-  final _StaffMember member;
-  final bool canManage;
-  final VoidCallback onToggleBlock;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D0D2563),
-            blurRadius: 30,
-            offset: Offset(0, 10),
-          ),
-        ],
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 400,
+        mainAxisSpacing: AppSpacing.md,
+        crossAxisSpacing: AppSpacing.md,
+        mainAxisExtent: 220,
       ),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      itemCount: members.length,
+      itemBuilder: (context, index) {
+        final m = members[index];
+        final isBlocked = m.isActive == 'False';
+        final hasPermission = canManage(m);
+        
+        final initials = m.userCode.length >= 4 
+            ? m.userCode.substring(m.userCode.length - 4) 
+            : m.userCode;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: AppPalette.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppPalette.borderNeutral),
+            boxShadow: AppPalette.cardShadow,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xs,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCE2F7),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '#${member.userId}',
-                  style: AppTextStyles.caption.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF434655),
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _RoleBadge(role: member.role, color: member.roleColor),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          CircleAvatar(
-            radius: 44,
-            backgroundColor: AppPalette.brandBlue.withValues(alpha: 0.1),
-            child: CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              child: Text(
-                member.name.split(' ').map((e) => e[0]).take(2).join(),
-                style: AppTextStyles.subtitle1,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            member.name,
-            style: AppTextStyles.subtitle1.copyWith(fontSize: 20),
-          ),
-          Text(member.designation, style: AppTextStyles.body2),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade100),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.mail,
-                      color: AppPalette.brandBlue,
-                      size: 18,
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '#${m.userCode}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppPalette.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          m.designation,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppPalette.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(member.email, style: AppTextStyles.body2),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.phone,
-                      color: AppPalette.brandBlue,
-                      size: 18,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(member.phone, style: AppTextStyles.body2),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Active Status',
-                style: AppTextStyles.body2.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Switch(
-                value: !member.isBlocked,
-                onChanged: canManage ? (_) => onToggleBlock() : null,
-                activeTrackColor: AppPalette.brandBlue,
-                inactiveTrackColor: const Color(0xFFC3C6D7),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: canManage ? () {} : null,
-                  icon: const Icon(Icons.history, size: 18),
-                  label: const Text('Activity'),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE9EDFF),
-                    foregroundColor: AppColors.textPrimary,
-                    elevation: 2,
-                    side: BorderSide.none,
-                    shadowColor: Colors.black.withValues(alpha: 0.1),
                   ),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppPalette.borderSoftBlue,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      m.userRole,
+                      style: const TextStyle(
+                        color: AppPalette.brandBlue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -563,287 +502,85 @@ class _StaffCard extends StatelessWidget {
                     side: BorderSide.none,
                     shadowColor: Colors.black.withValues(alpha: 0.1),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoleBadge extends StatelessWidget {
-  const _RoleBadge({required this.role, required this.color});
-  final String role;
-  final Color color;
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.sm,
-      vertical: AppSpacing.xs,
-    ),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(
-      role,
-      style: AppTextStyles.caption.copyWith(
-        color: color,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  );
-}
-
-class _CustomToggleSwitch extends StatefulWidget {
-  const _CustomToggleSwitch({required this.value, required this.onChanged});
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  State<_CustomToggleSwitch> createState() => _CustomToggleSwitchState();
-}
-
-class _CustomToggleSwitchState extends State<_CustomToggleSwitch> {
-  late bool _currentValue;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentValue = widget.value;
-  }
-
-  @override
-  void didUpdateWidget(_CustomToggleSwitch oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _currentValue = widget.value;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      height: 44,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE9EDFF),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Stack(
-        children: [
-          AnimatedAlign(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            alignment: _currentValue
-                ? Alignment.centerRight
-                : Alignment.centerLeft,
-            child: Container(
-              width: 64,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(Icons.phone_outlined, size: 16, color: AppPalette.textMuted),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      m.phone,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppPalette.textMuted,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: widget.onChanged != null
-                      ? () {
-                          setState(() => _currentValue = false);
-                          widget.onChanged!(false);
-                        }
-                      : null,
-                  behavior: HitTestBehavior.opaque,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              const Spacer(),
+              const Divider(height: 1, color: AppPalette.borderNeutral),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
                     children: [
-                      Icon(
-                        Icons.block,
-                        size: 18,
-                        color: !_currentValue
-                            ? AppPalette.danger
-                            : const Color(0xFF434655),
+                      SizedBox(
+                        height: 24,
+                        width: 40,
+                        child: Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: !isBlocked,
+                            onChanged: hasPermission ? (_) => onToggleBlock(m) : null,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Block',
+                        isBlocked ? 'Blocked' : 'Active',
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: !_currentValue
-                              ? AppPalette.danger
-                              : const Color(0xFF434655),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isBlocked ? AppPalette.danger : AppPalette.success,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: widget.onChanged != null
-                      ? () {
-                          setState(() => _currentValue = true);
-                          widget.onChanged!(true);
-                        }
-                      : null,
-                  behavior: HitTestBehavior.opaque,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 18,
-                        color: _currentValue
-                            ? AppPalette.success
-                            : const Color(0xFF434655),
+                  if (isAdmin)
+                    TextButton(
+                      onPressed: hasPermission ? () {} : null,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(50, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Active',
+                      child: const Text(
+                        'See Activity',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: _currentValue
-                              ? AppPalette.success
-                              : const Color(0xFF434655),
+                          color: AppPalette.brandBlue,
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _StaffMember {
-  const _StaffMember({
-    required this.userId,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.role,
-    required this.designation,
-    required this.roleColor,
-    this.isBlocked = false,
-  });
-  final String userId;
-  final String name;
-  final String email;
-  final String phone;
-  final String role;
-  final String designation;
-  final Color roleColor;
-  final bool isBlocked;
-  _StaffMember copyWith({bool? isBlocked}) => _StaffMember(
-    userId: userId,
-    name: name,
-    email: email,
-    phone: phone,
-    role: role,
-    designation: designation,
-    roleColor: roleColor,
-    isBlocked: isBlocked ?? this.isBlocked,
-  );
-}
-
-const List<_StaffMember> _seedMembers = [
-  _StaffMember(
-    userId: 'STF-1024',
-    name: 'Kabir Ahmed',
-    email: 'k.ahmed@bideshgami.com',
-    phone: '+880 1712 345 678',
-    role: 'Admin',
-    designation: 'Senior Operations Manager',
-    roleColor: AppPalette.success,
-  ),
-  _StaffMember(
-    userId: 'STF-1002',
-    name: 'Sarah Jenkins',
-    email: 'sarah@company.com',
-    phone: '+1 202 555 0123',
-    role: 'Manager',
-    designation: 'Regional Manager',
-    roleColor: AppPalette.brandBlue,
-  ),
-  _StaffMember(
-    userId: 'STF-1003',
-    name: 'Amara Okafor',
-    email: 'amara@company.com',
-    phone: '+1 202 555 0160',
-    role: 'Support',
-    designation: 'Customer Support Lead',
-    roleColor: AppPalette.warning,
-  ),
-  _StaffMember(
-    userId: 'STF-1004',
-    name: 'David Tuan',
-    email: 'david@company.com',
-    phone: '+1 202 555 0135',
-    role: 'Reviewer',
-    designation: 'Quality Reviewer',
-    roleColor: AppPalette.danger,
-  ),
-  _StaffMember(
-    userId: 'STF-1005',
-    name: 'Nora Silva',
-    email: 'nora@company.com',
-    phone: '+1 202 555 0144',
-    role: 'Manager',
-    designation: 'Operations Manager',
-    roleColor: AppPalette.brandBlue,
-  ),
-  _StaffMember(
-    userId: 'STF-1006',
-    name: 'Kofi Mensah',
-    email: 'kofi@company.com',
-    phone: '+1 202 555 0174',
-    role: 'Support',
-    designation: 'Support Executive',
-    roleColor: AppPalette.warning,
-  ),
-  _StaffMember(
-    userId: 'STF-1007',
-    name: 'Ruma Das',
-    email: 'ruma@company.com',
-    phone: '+880 1700 112233',
-    role: 'Support',
-    designation: 'Support Associate',
-    roleColor: AppPalette.warning,
-  ),
-  _StaffMember(
-    userId: 'STF-1008',
-    name: 'Tanvir Hasan',
-    email: 'tanvir@company.com',
-    phone: '+880 1755 010101',
-    role: 'Reviewer',
-    designation: 'Compliance Reviewer',
-    roleColor: AppPalette.danger,
-  ),
-  _StaffMember(
-    userId: 'STF-1009',
-    name: 'Maya Roy',
-    email: 'maya@company.com',
-    phone: '+880 1888 778899',
-    role: 'Manager',
-    designation: 'Area Manager',
-    roleColor: AppPalette.brandBlue,
-  ),
+const _skeletonMembers = [
+  RecruitingAgencyStaffGETProps(id: 0, userId: 'loading', userCode: 'STF-0000', email: 'loading@example.com', phone: '+0 000', userRole: 'Role', designation: 'Designation', isActive: 'True'),
+  RecruitingAgencyStaffGETProps(id: 1, userId: 'loading2', userCode: 'STF-0001', email: 'loading2@example.com', phone: '+0 001', userRole: 'Role', designation: 'Designation', isActive: 'True'),
+  RecruitingAgencyStaffGETProps(id: 2, userId: 'loading3', userCode: 'STF-0002', email: 'loading3@example.com', phone: '+0 002', userRole: 'Role', designation: 'Designation', isActive: 'True'),
 ];

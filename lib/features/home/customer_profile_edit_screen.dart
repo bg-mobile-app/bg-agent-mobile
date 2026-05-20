@@ -24,9 +24,6 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
   final _agencyNameController = TextEditingController();
   final _agencyPhoneController = TextEditingController();
   final _agencyAddressController = TextEditingController();
-  final _ownerNameController = TextEditingController();
-  final _ownerPhoneController = TextEditingController();
-  final _ownerEmailController = TextEditingController();
   final _bankNameController = TextEditingController();
   final _branchNameController = TextEditingController();
   final _accountNameController = TextEditingController();
@@ -94,11 +91,8 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         _existingCivilAviationLicenseUrl = doc?.civilAviationLicenseImage;
 
         _agencyNameController.text = profile.agencyName;
-        _agencyPhoneController.text = profile.owner?.phone ?? '';
+        _agencyPhoneController.text = profile.agencyPhone ?? profile.owner?.phone ?? '';
         _agencyAddressController.text = profile.agencyAddress ?? '';
-        _ownerNameController.text = profile.owner?.fullName ?? '';
-        _ownerPhoneController.text = profile.owner?.phone ?? '';
-        _ownerEmailController.text = profile.owner?.email ?? '';
         _bankNameController.text = bank?.bankName ?? '';
         _branchNameController.text = bank?.branchName ?? '';
         _accountNameController.text = bank?.accountName ?? '';
@@ -107,13 +101,25 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         _rlNoController.text = doc?.rlNo ?? '';
       });
 
-      final matchedDistrict = districts.where((d) => d.name == profile.district?.name).toList();
-      if (matchedDistrict.isNotEmpty) {
-        _selectedDistrictId = matchedDistrict.first.id;
-        _policeStations = await _locationService.getPoliceStations(_selectedDistrictId!);
-        final matchedPs = _policeStations.where((p) => p.name == profile.policeStation?.name).toList();
-        if (matchedPs.isNotEmpty) {
-          _selectedPoliceStationId = matchedPs.first.id;
+      if (profile.district != null) {
+        final matchedDistrict = districts.where((d) =>
+          (profile.district!.id != null && d.id == int.tryParse(profile.district!.id.toString())) ||
+          (d.name.toLowerCase() == profile.district!.name.toLowerCase())
+        ).toList();
+
+        if (matchedDistrict.isNotEmpty) {
+          _selectedDistrictId = matchedDistrict.first.id;
+          _policeStations = await _locationService.getPoliceStations(_selectedDistrictId!);
+
+          if (profile.policeStation != null) {
+            final matchedPs = _policeStations.where((p) =>
+              (profile.policeStation!.id != null && p.id == int.tryParse(profile.policeStation!.id.toString())) ||
+              (p.name.toLowerCase() == profile.policeStation!.name.toLowerCase())
+            ).toList();
+            if (matchedPs.isNotEmpty) {
+              _selectedPoliceStationId = matchedPs.first.id;
+            }
+          }
         }
       }
     } catch (_) {
@@ -157,9 +163,6 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         'agencyAddress': _agencyAddressController.text.trim(),
         if (_selectedDistrictId != null) 'district': _selectedDistrictId,
         if (_selectedPoliceStationId != null) 'policeStation': _selectedPoliceStationId,
-        'owner.fullName': _ownerNameController.text.trim(),
-        'owner.phone': _ownerPhoneController.text.trim(),
-        'owner.email': _ownerEmailController.text.trim(),
         'bankInformation.bankName': _bankNameController.text.trim(),
         'bankInformation.branchName': _branchNameController.text.trim(),
         'bankInformation.accountName': _accountNameController.text.trim(),
@@ -196,9 +199,6 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
     _agencyNameController.dispose();
     _agencyPhoneController.dispose();
     _agencyAddressController.dispose();
-    _ownerNameController.dispose();
-    _ownerPhoneController.dispose();
-    _ownerEmailController.dispose();
     _bankNameController.dispose();
     _branchNameController.dispose();
     _accountNameController.dispose();
@@ -276,31 +276,6 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
                               label: 'Agency Address',
                               controller: _agencyAddressController,
                               icon: Icons.map,
-                            ),
-                          ],
-                        ),
-
-                        // Card 2: Owner Information
-                        _buildSectionCard(
-                          title: 'Owner Information',
-                          icon: Icons.person,
-                          children: [
-                            _buildCustomTextField(
-                              label: 'Full Name',
-                              controller: _ownerNameController,
-                              icon: Icons.badge_outlined,
-                            ),
-                            _buildCustomTextField(
-                              label: 'Phone Number',
-                              controller: _ownerPhoneController,
-                              icon: Icons.phone,
-                              keyboardType: TextInputType.phone,
-                            ),
-                            _buildCustomTextField(
-                              label: 'Email Address',
-                              controller: _ownerEmailController,
-                              icon: Icons.email_outlined,
-                              keyboardType: TextInputType.emailAddress,
                             ),
                           ],
                         ),
@@ -444,6 +419,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
                   bottom: 4,
                   right: 4,
                   child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => _pickImage((v) => setState(() => _profileImage = v)),
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -631,6 +607,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
 
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
           height: 120,
@@ -759,6 +736,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
 
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
           height: 95,
@@ -828,6 +806,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         : (existingUrl != null ? existingUrl.split('/').last : 'Not Uploaded');
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

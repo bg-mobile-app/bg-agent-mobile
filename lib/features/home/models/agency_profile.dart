@@ -7,6 +7,7 @@ class RecruitingAgencyMeDetailsProps {
   final List<Document> documents;
   final List<BankInformation> bankInformation;
   final String? agencyAddress;
+  final String? agencyPhone;
   final District? district;
   final PoliceStation? policeStation;
 
@@ -19,6 +20,7 @@ class RecruitingAgencyMeDetailsProps {
     this.documents = const [],
     this.bankInformation = const [],
     this.agencyAddress,
+    this.agencyPhone,
     this.district,
     this.policeStation,
   });
@@ -36,6 +38,7 @@ class RecruitingAgencyMeDetailsProps {
               .toList() ??
           [],
       agencyAddress: _readNullableString(json, const ['agencyAddress', 'agency_address']),
+      agencyPhone: _readNullableString(json, const ['agencyPhone', 'agency_phone']),
       district: json['district'] != null ? District.fromJson(json['district']) : null,
       policeStation: (json['policeStation'] ?? json['police_station']) != null
           ? PoliceStation.fromJson(json['policeStation'] ?? json['police_station'])
@@ -121,40 +124,46 @@ class BankInformation {
 }
 
 class District {
+  final dynamic id;
   final String name;
 
-  District({required this.name});
+  District({this.id, required this.name});
 
   factory District.fromJson(dynamic json) {
     if (json is Map<String, dynamic>) {
       return District(
+        id: json['id'],
         name: json['name'] ?? '',
       );
     } else if (json is String) {
       return District(
+        id: null,
         name: json,
       );
     }
-    return District(name: '');
+    return District(id: null, name: '');
   }
 }
 
 class PoliceStation {
+  final dynamic id;
   final String name;
 
-  PoliceStation({required this.name});
+  PoliceStation({this.id, required this.name});
 
   factory PoliceStation.fromJson(dynamic json) {
     if (json is Map<String, dynamic>) {
       return PoliceStation(
+        id: json['id'],
         name: json['name'] ?? '',
       );
     } else if (json is String) {
       return PoliceStation(
+        id: null,
         name: json,
       );
     }
-    return PoliceStation(name: '');
+    return PoliceStation(id: null, name: '');
   }
 }
 

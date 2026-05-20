@@ -1,7 +1,70 @@
 import '../../../common/services/api_client.dart';
 
+class TypesHandler<T> {
+  const TypesHandler({
+    required this.count,
+    required this.next,
+    required this.previous,
+    required this.results,
+    required this.pageSize,
+  });
+
+  final int count;
+  final String? next;
+  final String? previous;
+  final List<T> results;
+  final int pageSize;
+}
+
+class RecruitingAgencyStaffGETProps {
+  const RecruitingAgencyStaffGETProps({
+    required this.id,
+    required this.userId,
+    required this.userCode,
+    required this.email,
+    required this.phone,
+    required this.userRole,
+    required this.designation,
+    required this.isActive,
+  });
+
+  final int id;
+  final String userId;
+  final String userCode;
+  final String email;
+  final String phone;
+  final String userRole;
+  final String designation;
+  final String isActive;
+
+  RecruitingAgencyStaffGETProps copyWith({String? isActive}) =>
+      RecruitingAgencyStaffGETProps(
+        id: id,
+        userId: userId,
+        userCode: userCode,
+        email: email,
+        phone: phone,
+        userRole: userRole,
+        designation: designation,
+        isActive: isActive ?? this.isActive,
+      );
+
+  factory RecruitingAgencyStaffGETProps.fromJson(Map<String, dynamic> json) =>
+      RecruitingAgencyStaffGETProps(
+        id: json['id'] is int ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
+        userId: json['userId']?.toString() ?? '',
+        userCode: json['userCode']?.toString() ?? '',
+        email: json['email']?.toString() ?? '',
+        phone: json['phone']?.toString() ?? '',
+        userRole: json['userRole']?.toString() ?? '',
+        designation: json['designation']?.toString() ?? '',
+        isActive: json['isActive']?.toString() == 'False' ? 'False' : 'True',
+      );
+}
+
 class StaffAccountsService {
-  StaffAccountsService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
+  StaffAccountsService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient();
 
   final ApiClient _apiClient;
 
