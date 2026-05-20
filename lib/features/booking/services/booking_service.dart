@@ -241,6 +241,12 @@ class MyAppointmentsResponse {
   final int pageSize;
   final List<ReceivedBookingItemDto> results;
 
+  int get totalPages {
+    if (pageSize <= 0) return 1;
+    final pages = (count / pageSize).ceil();
+    return pages > 0 ? pages : 1;
+  }
+
   const MyAppointmentsResponse({
     required this.count,
     required this.pageSize,
