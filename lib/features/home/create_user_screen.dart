@@ -75,7 +75,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/user/create-user',
+      currentHref: _isEditMode ? '/dashboard/user/manage-user' : '/dashboard/user/create-user',
       child: Container(
         color: const Color(0xFFD5E1F2),
         child: SafeArea(
@@ -243,7 +243,8 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
 
       _showMessage(_isEditMode ? 'Staff account updated successfully.' : 'Staff account created successfully.');
       if (mounted) Navigator.of(context).maybePop();
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('CreateUserScreen submit error: $e\n$st');
       _showMessage(_isEditMode ? 'Failed to update staff account: $e' : 'Failed to create staff account: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -270,7 +271,8 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           ..addAll(permissions.map((e) => e.toString()));
       }
       if (mounted) setState(() {});
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('CreateUserScreen load user error for userId=${widget.userId}: $e\n$st');
       _showMessage('Failed to load user details: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isLoadingUser = false);
@@ -347,7 +349,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
         BreadCrumbItem(content: Text('Manage User', style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted))),
         BreadCrumbItem(
           content: Text(
-            'Create User',
+            _isEditMode ? 'Update User' : 'Create User',
             style: AppTextStyles.caption.copyWith(color: AppPalette.textStrongBlue, fontWeight: FontWeight.w700),
           ),
         ),

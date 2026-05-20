@@ -52,7 +52,7 @@ class RecruitingAgencyStaffGETProps {
   factory RecruitingAgencyStaffGETProps.fromJson(Map<String, dynamic> json) =>
       RecruitingAgencyStaffGETProps(
         id: json['id'] is int ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
-        userId: json['userId']?.toString() ?? '',
+        userId: (json['userId'] ?? json['user_id'] ?? json['id'])?.toString() ?? '',
         userCode: json['userCode']?.toString() ?? '',
         email: json['email']?.toString() ?? '',
         phone: json['phone']?.toString() ?? '',
