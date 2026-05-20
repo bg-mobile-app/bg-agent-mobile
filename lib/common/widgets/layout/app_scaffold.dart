@@ -35,6 +35,7 @@ import '../../../features/home/my_ads_screen.dart';
 import '../../../features/home/manage_user_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
+import '../../../features/home/terms_conditions_screen.dart';
 import '../../../features/home/commission_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
 import 'app_bottom_nav.dart';
@@ -157,6 +158,8 @@ class _DashboardHostScreen extends StatelessWidget {
         return const NotificationsScreen();
       case '/dashboard/ads/my':
         return const MyAdsScreen();
+      case '/dashboard/terms-and-conditions':
+        return const TermsConditionsScreen();
       default:
         if (route.startsWith('/dashboard/user/create-user/')) {
           final userId = route.substring('/dashboard/user/create-user/'.length);
