@@ -3,6 +3,7 @@ import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
+import 'services/check_status_service.dart';
 import 'dashboard_screen.dart';
 
 class CheckStatusScreen extends StatefulWidget {
@@ -16,35 +17,12 @@ class _CheckStatusScreenState extends State<CheckStatusScreen> {
   final _formKey = GlobalKey<FormState>();
   final _passportController = TextEditingController();
   final _bookingIdController = TextEditingController();
+  final CheckStatusService _checkStatusService = CheckStatusService();
 
   List<BookingStatusItem> _data = [];
   bool _submitted = false;
-
-  final List<BookingStatusItem> _allMockData = const [
-    BookingStatusItem(
-      id: '1001',
-      name: 'Demo User',
-      passportNo: 'A12345678',
-      toCountry: 'Japan',
-      serviceType: 'WORK_PERMIT',
-      branch: 'Dhaka Branch',
-      statusLabel: 'Under Processing',
-      appointmentDate: '2026-05-18',
-      visaExpiryDate: '2027-05-18',
-    ),
-    BookingStatusItem(
-      id: '1002',
-      name: 'John Smith',
-      passportNo: 'B98765432',
-      toCountry: 'Malaysia',
-      serviceType: 'WORK_PERMIT',
-      branch: 'Chattogram Branch',
-      statusLabel: 'Medical Required',
-      appointmentDate: '2026-06-03',
-      medicalExpiryDate: '2026-08-03',
-      policeClearanceExpiryDate: '2026-11-03',
-    ),
-  ];
+  bool _isSubmitting = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -53,20 +31,42 @@ class _CheckStatusScreenState extends State<CheckStatusScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final passport = _passportController.text.trim().toLowerCase();
+    final passport = _passportController.text.trim();
     final bookingId = _bookingIdController.text.trim();
 
-    final result = _allMockData.where((item) {
-      return item.passportNo.toLowerCase() == passport && item.id == bookingId;
-    }).toList();
-
     setState(() {
-      _data = result;
-      _submitted = true;
+      _isSubmitting = true;
+      _errorMessage = null;
+      _submitted = false;
     });
+
+    try {
+      final result = await _checkStatusService.getMyBookingStatus(
+        passportNo: passport,
+        bookingId: bookingId,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _data = result.map(BookingStatusItem.fromDto).toList();
+        _submitted = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _data = [];
+        _errorMessage = 'Failed to fetch booking status. Please try again.';
+        _submitted = true;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 
   void _clear() {
@@ -76,6 +76,7 @@ class _CheckStatusScreenState extends State<CheckStatusScreen> {
     setState(() {
       _data = [];
       _submitted = false;
+      _errorMessage = null;
     });
   }
 
@@ -136,9 +137,18 @@ class _CheckStatusScreenState extends State<CheckStatusScreen> {
                           spacing: 10,
                           children: [
                             FilledButton(
-                              onPressed: _submit,
+                              onPressed: _isSubmitting ? null : _submit,
                               style: FilledButton.styleFrom(backgroundColor: AppPalette.brandBlue),
-                              child: const Text('Submit'),
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Submit'),
                             ),
                             OutlinedButton(
                               onPressed: _clear,
@@ -153,7 +163,21 @@ class _CheckStatusScreenState extends State<CheckStatusScreen> {
                 ),
                 if (_submitted) ...[
                   const SizedBox(height: 20),
-                  if (_data.isEmpty)
+                  if (_errorMessage != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppPalette.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppPalette.borderSoftBlue),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    )
+                  else if (_data.isEmpty)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -304,4 +328,20 @@ class BookingStatusItem {
   final String? medicalExpiryDate;
   final String? policeClearanceExpiryDate;
   final String? visaExpiryDate;
+
+  factory BookingStatusItem.fromDto(BookingStatusDto dto) {
+    return BookingStatusItem(
+      id: dto.id.toString(),
+      name: dto.name,
+      passportNo: dto.passportNo,
+      toCountry: dto.toCountry,
+      serviceType: dto.serviceType,
+      branch: dto.branch,
+      statusLabel: dto.statusLabel,
+      appointmentDate: dto.appointmentDate,
+      medicalExpiryDate: dto.medicalExpiryDate,
+      policeClearanceExpiryDate: dto.policeClearanceExpiryDate,
+      visaExpiryDate: dto.visaExpiryDate,
+    );
+  }
 }
