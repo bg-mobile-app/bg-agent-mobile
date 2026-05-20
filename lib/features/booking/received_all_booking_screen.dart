@@ -7,6 +7,7 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
+import 'services/booking_service.dart';
 
 class ReceivedAllBookingScreen extends StatefulWidget {
   const ReceivedAllBookingScreen({super.key});
@@ -22,275 +23,16 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
 
-  final List<BookingItem> _bookings = const [
-    BookingItem(
-      workPermitId: 'WP-1201',
-      id: 4571,
-      serviceType: 'Work Permit',
-      createdAt: '2026-04-12',
-      name: 'Rakib Hasan',
-      passportNo: 'B12345678',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Romania',
-      agencyTotalCost: 85000,
-      paidAmount: 40000,
-      status: 'APPLIED_FILE',
-      statusLabel: 'Applied File',
-    ),
-    BookingItem(
-      workPermitId: 'ST-2003',
-      id: 4572,
-      serviceType: 'Student Visa',
-      createdAt: '2026-04-18',
-      name: 'Nusrat Jahan',
-      passportNo: 'A98765432',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Canada',
-      agencyTotalCost: 120000,
-      paidAmount: 120000,
-      status: 'VISA_APPROVED',
-      statusLabel: 'Visa Approved',
-      visaExpiryDate: '2027-03-28',
-      paymentStepCount: 3,
-      hasAfterVisaPayout: false,
-    ),
-    BookingItem(
-      workPermitId: 'HJ-3098',
-      id: 4573,
-      serviceType: 'Hajj Package',
-      createdAt: '2026-04-22',
-      name: 'Abdul Karim',
-      passportNo: 'E44112233',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Saudi Arabia',
-      agencyTotalCost: 230000,
-      paidAmount: 80000,
-      status: 'UNDER_PROCESSING',
-      statusLabel: 'Under Processing',
-      medicalExpiryDate: '2026-12-22',
-      policeClearanceExpiryDate: '2026-11-11',
-      isReturn: true,
-    ),
-    BookingItem(
-      workPermitId: 'WP-1204',
-      id: 4574,
-      serviceType: 'Work Permit',
-      createdAt: '2026-04-25',
-      name: 'Sadia Akter',
-      passportNo: 'B66778899',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Italy',
-      agencyTotalCost: 98000,
-      paidAmount: 50000,
-      status: 'A_RECEIVE_PP',
-      statusLabel: 'Passport Received',
-      medicalExpiryDate: '2026-10-30',
-      paymentStepCount: 3,
-      hasAdvancePayout: false,
-    ),
-    BookingItem(
-      workPermitId: 'WP-1208',
-      id: 4575,
-      serviceType: 'Work Permit',
-      createdAt: '2026-04-28',
-      name: 'Mehedi Rahman',
-      passportNo: 'K11223344',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Poland',
-      agencyTotalCost: 91000,
-      paidAmount: 91000,
-      status: 'BMET_DONE',
-      statusLabel: 'BMET Done',
-      medicalExpiryDate: '2026-12-19',
-      policeClearanceExpiryDate: '2026-11-05',
-      visaExpiryDate: '2027-01-15',
-      hasAfterVisaPayout: true,
-    ),
-    BookingItem(
-      workPermitId: 'ST-2011',
-      id: 4576,
-      serviceType: 'Student Visa',
-      createdAt: '2026-05-01',
-      name: 'Tahmid Chowdhury',
-      passportNo: 'P55667788',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Australia',
-      agencyTotalCost: 165000,
-      paidAmount: 120000,
-      status: 'UNDER_PROCESSING',
-      statusLabel: 'Under Processing',
-      appointmentDate: '2026-06-12',
-      medicalExpiryDate: '2026-11-22',
-      policeClearanceExpiryDate: '2026-10-18',
-    ),
-    BookingItem(
-      workPermitId: 'HJ-3110',
-      id: 4577,
-      serviceType: 'Hajj Package',
-      createdAt: '2026-05-03',
-      name: 'Farida Begum',
-      passportNo: 'L99001122',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Saudi Arabia',
-      agencyTotalCost: 245000,
-      paidAmount: 245000,
-      status: 'SUCCESS_FLIGHT',
-      statusLabel: 'Success Flight',
-      visaExpiryDate: '2027-02-10',
-      hasBeforeFlightPayout: true,
-    ),
-    BookingItem(
-      workPermitId: 'WP-1216',
-      id: 4578,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-05',
-      name: 'Shuvo Sarker',
-      passportNo: 'M30313233',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Greece',
-      agencyTotalCost: 102000,
-      paidAmount: 70000,
-      status: 'TICKET_DONE',
-      statusLabel: 'Ticket Done',
-      appointmentDate: '2026-05-27',
-      visaExpiryDate: '2026-12-31',
-      hasBeforeFlightPayout: false,
-    ),
-    BookingItem(
-      workPermitId: 'ST-2020',
-      id: 4579,
-      serviceType: 'Student Visa',
-      createdAt: '2026-05-07',
-      name: 'Nabila Islam',
-      passportNo: 'Q77889900',
-      fromCountry: 'Bangladesh',
-      toCountry: 'United Kingdom',
-      agencyTotalCost: 175000,
-      paidAmount: 85000,
-      status: 'APPLIED_FILE',
-      statusLabel: 'Applied File',
-      appointmentDate: '2026-06-20',
-    ),
-    BookingItem(
-      workPermitId: 'WP-1222',
-      id: 4580,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-09',
-      name: 'Rafiul Alam',
-      passportNo: 'S12121212',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Portugal',
-      agencyTotalCost: 108000,
-      paidAmount: 108000,
-      status: 'VISA_APPROVED',
-      statusLabel: 'Visa Approved',
-      visaExpiryDate: '2027-04-01',
-      paymentStepCount: 3,
-      hasAfterVisaPayout: false,
-    ),
-    BookingItem(
-      workPermitId: 'WP-1229',
-      id: 4581,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-11',
-      name: 'Jahidul Islam',
-      passportNo: 'T45454545',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Croatia',
-      agencyTotalCost: 94000,
-      paidAmount: 64000,
-      status: 'PP_SENT_TO_BG',
-      statusLabel: 'Passport Sent',
-      medicalExpiryDate: '2026-12-12',
-      policeClearanceExpiryDate: '2026-10-29',
-      appointmentDate: '2026-06-03',
-    ),
-    BookingItem(
-      workPermitId: 'WP-1233',
-      id: 4582,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-12',
-      name: 'Arman Hossain',
-      passportNo: 'U56565656',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Serbia',
-      agencyTotalCost: 96000,
-      paidAmount: 35000,
-      status: 'BG_COLLECT_PP',
-      statusLabel: 'BG Collect Passport',
-      medicalExpiryDate: '2026-11-26',
-      policeClearanceExpiryDate: '2026-10-21',
-    ),
-    BookingItem(
-      workPermitId: 'ST-2026',
-      id: 4583,
-      serviceType: 'Student Visa',
-      createdAt: '2026-05-13',
-      name: 'Maliha Noor',
-      passportNo: 'V98989898',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Ireland',
-      agencyTotalCost: 158000,
-      paidAmount: 60000,
-      status: 'BG_COLLECT_PP',
-      statusLabel: 'BG Collect Passport',
-      appointmentDate: '2026-06-18',
-      medicalExpiryDate: '2026-12-08',
-    ),
-    BookingItem(
-      workPermitId: 'WP-1240',
-      id: 4584,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-14',
-      name: 'Siam Ahmed',
-      passportNo: 'W11112222',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Malta',
-      agencyTotalCost: 99500,
-      paidAmount: 99500,
-      status: 'BG_SENT_PP',
-      statusLabel: 'BG Sent Passport',
-      visaExpiryDate: '2027-03-20',
-    ),
-    BookingItem(
-      workPermitId: 'HJ-3122',
-      id: 4585,
-      serviceType: 'Hajj Package',
-      createdAt: '2026-05-15',
-      name: 'Hasina Khatun',
-      passportNo: 'X33334444',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Saudi Arabia',
-      agencyTotalCost: 238000,
-      paidAmount: 110000,
-      status: 'A_RECEIVE_PP',
-      statusLabel: 'Passport Received',
-      appointmentDate: '2026-06-07',
-      medicalExpiryDate: '2026-12-30',
-      paymentStepCount: 3,
-      hasAdvancePayout: true,
-    ),
-    BookingItem(
-      workPermitId: 'WP-1248',
-      id: 4586,
-      serviceType: 'Work Permit',
-      createdAt: '2026-05-16',
-      name: 'Imran Kabir',
-      passportNo: 'Y77778888',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Lithuania',
-      agencyTotalCost: 93000,
-      paidAmount: 45000,
-      status: 'BG_COLLECT_PP',
-      statusLabel: 'BG Collect Passport',
-      policeClearanceExpiryDate: '2026-11-09',
-    ),
-  ];
+  final BookingService _bookingService = BookingService();
+  List<BookingItem> _bookings = const [];
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _fetchBookings();
   }
 
   @override
@@ -310,15 +52,77 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
           item.name.toLowerCase().contains(query) ||
           item.passportNo.toLowerCase().contains(query) ||
           item.statusLabel.toLowerCase().contains(query);
-      final createdAt = DateTime.parse(item.createdAt);
+      final createdAt = DateTime.tryParse(item.createdAt);
       final matchesDate =
           _selectedDateRange == null ||
-          (!createdAt.isBefore(_selectedDateRange!.start) &&
+          (createdAt != null &&
+              !createdAt.isBefore(_selectedDateRange!.start) &&
               !createdAt.isAfter(_selectedDateRange!.end));
       return matchesQuery && matchesDate;
     }).toList();
   }
 
+
+
+  Future<void> _fetchBookings() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await _bookingService.getReceiveBookings(
+        status: '',
+        search: _searchQuery,
+        page: 1,
+        fromDate: _selectedDateRange == null ? null : _formatApiDate(_selectedDateRange!.start),
+        toDate: _selectedDateRange == null ? null : _formatApiDate(_selectedDateRange!.end),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _bookings = response.results.map(_mapDtoToBookingItem).toList();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _errorMessage = 'Failed to load bookings. Please try again.');
+    } finally {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
+  }
+
+  BookingItem _mapDtoToBookingItem(ReceiveBookingItemDto item) {
+    return BookingItem(
+      workPermitId: item.workPermitId.isEmpty ? '-' : item.workPermitId,
+      id: item.id,
+      serviceType: item.serviceType,
+      createdAt: item.createdAt,
+      name: item.name,
+      passportNo: item.passportNo ?? '-',
+      fromCountry: item.fromCountry,
+      toCountry: item.toCountry,
+      agencyTotalCost: item.agencyTotalCost ?? 0,
+      paidAmount: item.paidAmount ?? 0,
+      status: item.status,
+      statusLabel: item.statusLabel,
+      appointmentDate: item.appointmentDate,
+      medicalExpiryDate: item.medicalExpiryDate,
+      policeClearanceExpiryDate: item.policeClearanceExpiryDate,
+      visaExpiryDate: item.visaExpiryDate,
+      hasAdvancePayout: item.hasAdvancePayout,
+      hasAfterVisaPayout: item.hasAfterVisaPayout,
+      hasBeforeFlightPayout: item.hasBeforeFlightPayout,
+      paymentStepCount: item.paymentStepCount,
+      isReturn: item.isReturn,
+    );
+  }
+
+  String _formatApiDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
@@ -340,8 +144,10 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                       controller: _searchController,
                       hintText: 'Search by booking ID, name, passport or status',
                       onChanged: (value) => setState(() => _searchQuery = value),
-                      onSearchTap: () =>
-                          setState(() => _searchQuery = _searchController.text),
+                      onSearchTap: () {
+                        setState(() => _searchQuery = _searchController.text);
+                        _fetchBookings();
+                      },
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -353,7 +159,20 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    if (_isCardView) _buildCardList() else _buildTableList(),
+                    if (_isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                      )
+                    else if (_isCardView)
+                      _buildCardList()
+                    else
+                      _buildTableList(),
                   ],
                 ),
               ),
@@ -435,6 +254,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
               );
               if (picked == null) return;
               setState(() => _selectedDateRange = picked);
+              _fetchBookings();
             },
             child: Row(
               children: [
@@ -458,7 +278,10 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
           const Spacer(),
           if (_selectedDateRange != null)
             InkWell(
-              onTap: () => setState(() => _selectedDateRange = null),
+              onTap: () {
+                setState(() => _selectedDateRange = null);
+                _fetchBookings();
+              },
               borderRadius: BorderRadius.circular(999),
               child: const Padding(
                 padding: EdgeInsets.all(4),
