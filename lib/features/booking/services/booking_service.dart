@@ -35,7 +35,34 @@ class BookingService {
       rethrow;
     }
   }
-  Future<MyAppointmentsResponse> getMyAppointments({
+  
+  Future<ReceiveBookingsResponse> getMyBookings({
+    required String status,
+    required int page,
+    String search = '',
+    String? fromDate,
+    String? toDate,
+  }) async {
+    try {
+      final queryParameters = <String, dynamic>{
+        'status': status,
+        'search': search.trim(),
+        'page': page,
+      };
+      if (fromDate != null && fromDate.isNotEmpty) queryParameters['from_date'] = fromDate;
+      if (toDate != null && toDate.isNotEmpty) queryParameters['to_date'] = toDate;
+
+      final response = await _apiClient.get('/booking/wp/my-bookings/', queryParameters: queryParameters);
+      if (response.data is Map<String, dynamic>) {
+        return ReceiveBookingsResponse.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw Exception('Invalid response type: ${response.data.runtimeType}');
+    } catch (e, stacktrace) {
+      debugPrint('Error fetching my bookings: $e\n$stacktrace');
+      rethrow;
+    }
+  }
+Future<MyAppointmentsResponse> getMyAppointments({
     required int page,
     String search = '',
     String? fromDate,
