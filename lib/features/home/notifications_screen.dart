@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
+import '../../common/models/notification.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
+import 'services/notifications_service.dart';
 import 'dashboard_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _loading = false;
   List<AppNotificationItem> _notifications = [];
+  final NotificationsService _notificationsService = NotificationsService();
 
   @override
   void initState() {
@@ -26,34 +29,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _fetchNotifications() async {
     setState(() => _loading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 450));
+    final notifications = await _notificationsService.fetchNotifications();
     if (!mounted) return;
     setState(() {
-      _notifications = [
-        AppNotificationItem(
-          id: 1,
-          title: 'Payment received',
-          message: 'Your payment invoice #1022 has been confirmed.',
-          createdAt: DateTime.now().subtract(const Duration(minutes: 10)),
-          linkUrl: '/dashboard/my-payments',
-          isRead: false,
-        ),
-        AppNotificationItem(
-          id: 2,
-          title: 'Appointment updated',
-          message: 'Your appointment date has been moved to next week.',
-          createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-          linkUrl: '/dashboard/booking/appointment',
-          isRead: false,
-        ),
-        AppNotificationItem(
-          id: 3,
-          title: 'Profile verification',
-          message: 'Your profile verification is now complete.',
-          createdAt: DateTime.now().subtract(const Duration(days: 1)),
-          isRead: true,
-        ),
-      ];
+      _notifications = notifications;
       _loading = false;
     });
   }
@@ -61,10 +40,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _markRead(int id) async {
     if (_loading) return;
     setState(() => _loading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 220));
+    final success = await _notificationsService.markRead(id: id);
     if (!mounted) return;
     setState(() {
-      _notifications = _notifications.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList();
+      if (success) {
+        _notifications = _notifications.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList();
+      }
       _loading = false;
     });
   }
@@ -72,10 +53,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _markAllRead() async {
     if (_loading) return;
     setState(() => _loading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+    final success = await _notificationsService.markRead(id: 'ALL');
     if (!mounted) return;
     setState(() {
-      _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
+      if (success) {
+        _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
+      }
       _loading = false;
     });
   }
@@ -267,33 +250,4 @@ String timeAgo(DateTime? date) {
     }
   }
   return 'just now';
-}
-
-class AppNotificationItem {
-  const AppNotificationItem({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.createdAt,
-    required this.isRead,
-    this.linkUrl,
-  });
-
-  final int id;
-  final String title;
-  final String message;
-  final DateTime createdAt;
-  final bool isRead;
-  final String? linkUrl;
-
-  AppNotificationItem copyWith({bool? isRead}) {
-    return AppNotificationItem(
-      id: id,
-      title: title,
-      message: message,
-      createdAt: createdAt,
-      isRead: isRead ?? this.isRead,
-      linkUrl: linkUrl,
-    );
-  }
 }
