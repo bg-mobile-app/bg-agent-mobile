@@ -3,8 +3,8 @@ import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
-import '../../common/widgets/app_custom_input_field.dart';
 import 'dashboard_screen.dart';
+import 'services/staff_accounts_service.dart';
 
 class CreateUserScreen extends StatefulWidget {
   const CreateUserScreen({super.key});
@@ -14,16 +14,21 @@ class CreateUserScreen extends StatefulWidget {
 }
 
 class _CreateUserScreenState extends State<CreateUserScreen> {
-  final _fullNameController = TextEditingController(text: 'John Doe');
-  final _contactNoController = TextEditingController(text: '+1 234 567 8900');
-  final _designationController = TextEditingController(text: 'Sales Executive');
-  final _phoneController = TextEditingController(text: '017XXXXXXXX');
-  final _emailController = TextEditingController(text: 'john@example.com');
-  final _passwordController = TextEditingController(text: 'Demo@123');
-  final _confirmPasswordController = TextEditingController(text: 'Demo@123');
+  final _formKey = GlobalKey<FormState>();
+  final _staffAccountsService = StaffAccountsService();
+
+  final _fullNameController = TextEditingController();
+  final _contactNoController = TextEditingController();
+  final _designationController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   final List<String> _genders = ['MALE', 'FEMALE', 'OTHER'];
   String _selectedGender = 'MALE';
+
+  bool _isSubmitting = false;
 
   final List<String> _allPermissions = [
     'ADS_CREATE',
@@ -47,7 +52,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
     _fullNameController.dispose();
     _contactNoController.dispose();
     _designationController.dispose();
-    _phoneController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -61,135 +66,196 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
       child: Container(
         color: const Color(0xFFD5E1F2),
         child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _breadcrumb(),
-                      const SizedBox(height: 8),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Onboard New Talent',
-                          style: AppTextStyles.headline2,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _breadcrumb(),
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('Onboard New Talent', style: AppTextStyles.headline2),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Fill in the details below to grant system access\nto a new team member.',
-                        textAlign: TextAlign.left,
-                        style: AppTextStyles.caption,
-                      ),
-                      const SizedBox(height: 18),
-                      _formCard(
-                        icon: Icons.badge_outlined,
-                        title: 'Basic Information',
-                        child: Column(
-                          children: [
-                            _input('Full Name', 'John Doe', controller: _fullNameController),
-                            _input('Contact Number', '+1 234 567 8900', controller: _contactNoController),
-                            Row(
-                              children: [
-                                Expanded(child: _genderInput()),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: _input(
-                                    'Designation',
-                                    'Sales Executive',
-                                    controller: _designationController,
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Fill in the details below to grant system access\nto a new team member.',
+                          textAlign: TextAlign.left,
+                          style: AppTextStyles.caption,
+                        ),
+                        const SizedBox(height: 18),
+                        _formCard(
+                          icon: Icons.badge_outlined,
+                          title: 'Basic Information',
+                          child: Column(
+                            children: [
+                              _input('Full Name', 'John Doe', controller: _fullNameController, requiredField: true),
+                              _input('Contact Number', '+1 234 567 8900', controller: _contactNoController, requiredField: true),
+                              Row(
+                                children: [
+                                  Expanded(child: _genderInput()),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _input(
+                                      'Designation',
+                                      'Sales Executive',
+                                      controller: _designationController,
+                                      requiredField: true,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              _permissionsInput(),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _formCard(
+                          icon: Icons.lock_outline,
+                          title: 'Login Information',
+                          child: Column(
+                            children: [
+                              _input('Username (Optional)', 'john_doe', controller: _usernameController),
+                              _input(
+                                'Email Address',
+                                'john@example.com',
+                                controller: _emailController,
+                                requiredField: true,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: _validateEmail,
+                              ),
+                              _input('Password', 'Demo@123', controller: _passwordController, eye: true),
+                              _input(
+                                'Confirm Password',
+                                'Demo@123',
+                                controller: _confirmPasswordController,
+                                eye: true,
+                                validator: _validateConfirmPassword,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isSubmitting ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0C4ACD),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            const SizedBox(height: 4),
-                            const SizedBox(height: 4),
-                            _permissionsInput(),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _formCard(
-                        icon: Icons.lock_outline,
-                        title: 'Login Information',
-                        child: Column(
-                          children: [
-                            _input('Phone Number (Login ID)', '017XXXXXXXX', controller: _phoneController),
-                            _input('Email Address', 'john@example.com', controller: _emailController),
-                            _input('Password', 'Demo@123', controller: _passwordController, eye: true),
-                            _input('Confirm Password', 'Demo@123', controller: _confirmPasswordController, eye: true),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            final payload = {
-                              'fullName': _fullNameController.text,
-                              'contactNo': _contactNoController.text,
-                              'gender': _selectedGender,
-                              'designation': _designationController.text,
-                              'permissions': _selectedPermissions.toList(),
-                              'phone': _phoneController.text,
-                              'email': _emailController.text,
-                              'password': _passwordController.text,
-                              'password2': _confirmPasswordController.text,
-                            };
-                            debugPrint('Create User Payload: $payload');
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0C4ACD),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text(
-                            'Create Staff Account',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                            child: _isSubmitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Text(
+                                    'Create Staff Account',
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                                  ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _fullNameController.text = 'John Doe';
-                            _contactNoController.text = '+1 234 567 8900';
-                            _designationController.text = 'Sales Executive';
-                            _phoneController.text = '017XXXXXXXX';
-                            _emailController.text = 'john@example.com';
-                            _passwordController.text = 'Demo@123';
-                            _confirmPasswordController.text = 'Demo@123';
-                            setState(() {
-                              _selectedGender = 'MALE';
-                              _selectedPermissions
-                                ..clear()
-                                ..addAll(_allPermissions);
-                            });
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF9EB7E3)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0C4ACD)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: _isSubmitting ? null : _resetForm,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFF9EB7E3)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0C4ACD)),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    final valid = _formKey.currentState?.validate() ?? false;
+    if (!valid) return;
+    if (_selectedPermissions.isEmpty) {
+      _showMessage('Please select at least one permission.', isError: true);
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _staffAccountsService.createRecruitingAgencyStaff(
+        fullName: _fullNameController.text.trim(),
+        contactNo: _contactNoController.text.trim(),
+        gender: _selectedGender,
+        designation: _designationController.text.trim(),
+        permissions: _selectedPermissions.toList(),
+        email: _emailController.text.trim(),
+        username: _usernameController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      _showMessage('Staff account created successfully.');
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (e) {
+      _showMessage('Failed to create staff account: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _resetForm() {
+    _formKey.currentState?.reset();
+    _fullNameController.clear();
+    _contactNoController.clear();
+    _designationController.clear();
+    _usernameController.clear();
+    _emailController.clear();
+    _passwordController.clear();
+    _confirmPasswordController.clear();
+    setState(() {
+      _selectedGender = 'MALE';
+      _selectedPermissions.clear();
+    });
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) return 'Email is required';
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(email)) return 'Please enter a valid email address';
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (_passwordController.text.isEmpty) return null;
+    if ((value ?? '').isEmpty) return 'Please confirm password';
+    if (value != _passwordController.text) return 'Passwords do not match';
+    return null;
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
       ),
     );
   }
@@ -221,152 +287,97 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   Widget _breadcrumb() {
     return BreadCrumb(
       items: <BreadCrumbItem>[
-        BreadCrumbItem(
-          content: Text(
-            'Dashboard',
-            style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted),
-          ),
-        ),
-        BreadCrumbItem(
-          content: Text(
-            'Manage User',
-            style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted),
-          ),
-        ),
+        BreadCrumbItem(content: Text('Dashboard', style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted))),
+        BreadCrumbItem(content: Text('Manage User', style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted))),
         BreadCrumbItem(
           content: Text(
             'Create User',
-            style: AppTextStyles.caption.copyWith(
-              color: AppPalette.textStrongBlue,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppTextStyles.caption.copyWith(color: AppPalette.textStrongBlue, fontWeight: FontWeight.w700),
           ),
         ),
       ],
-      divider: const Icon(
-        Icons.chevron_right_rounded,
-        size: 16,
-        color: Color(0xFF94A3B8),
-      ),
+      divider: const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
     );
   }
 
   Widget _genderInput() => Padding(
         padding: const EdgeInsets.only(bottom: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Gender',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Gender', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F))),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFDBEAFE)),
+              borderRadius: BorderRadius.circular(18),
             ),
-            const SizedBox(height: 6),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFDBEAFE)),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0D2563EB),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: _selectedGender,
-                  style: AppTextStyles.body2.copyWith(color: const Color(0xFF667085)),
-                  icon: const Icon(Icons.expand_more, color: Color(0xFF6B7280)),
-                  items: _genders
-                      .map(
-                        (gender) => DropdownMenuItem<String>(
-                          value: gender,
-                          child: Text(gender),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => _selectedGender = value);
-                  },
-                ),
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: _selectedGender,
+                style: AppTextStyles.body2.copyWith(color: const Color(0xFF667085)),
+                icon: const Icon(Icons.expand_more, color: Color(0xFF6B7280)),
+                items: _genders.map((gender) => DropdownMenuItem<String>(value: gender, child: Text(gender))).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _selectedGender = value);
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ]),
       );
 
   Widget _permissionsInput() => Padding(
         padding: const EdgeInsets.only(bottom: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Permissions',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Permissions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F))),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFDBEAFE)),
+              borderRadius: BorderRadius.circular(18),
             ),
-            const SizedBox(height: 6),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFDBEAFE)),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0D2563EB),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: Text(
+                  _selectedPermissions.isEmpty ? 'Select permissions...' : '${_selectedPermissions.length} permission(s) selected',
+                  style: AppTextStyles.body2.copyWith(color: const Color(0xFF667085)),
+                ),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _allPermissions
+                          .map(
+                            (permission) => _PermissionChip(
+                              label: permission,
+                              selected: _selectedPermissions.contains(permission),
+                              onTap: () {
+                                setState(() {
+                                  if (_selectedPermissions.contains(permission)) {
+                                    _selectedPermissions.remove(permission);
+                                  } else {
+                                    _selectedPermissions.add(permission);
+                                  }
+                                });
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
                 ],
               ),
-              child: Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  title: Text(
-                    _selectedPermissions.isEmpty
-                        ? 'Select permissions...'
-                        : '${_selectedPermissions.length} permission(s) selected',
-                    style: AppTextStyles.body2.copyWith(color: const Color(0xFF667085)),
-                  ),
-                  iconColor: const Color(0xFF6B7280),
-                  collapsedIconColor: const Color(0xFF6B7280),
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                  childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _allPermissions
-                            .map(
-                              (permission) => _PermissionChip(
-                                label: permission,
-                                selected: _selectedPermissions.contains(permission),
-                                onTap: () {
-                                  setState(() {
-                                    if (_selectedPermissions.contains(permission)) {
-                                      _selectedPermissions.remove(permission);
-                                    } else {
-                                      _selectedPermissions.add(permission);
-                                    }
-                                  });
-                                },
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
-          ],
-        ),
+          ),
+        ]),
       );
 
   Widget _input(
@@ -374,27 +385,41 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
     String placeholder, {
     required TextEditingController controller,
     bool eye = false,
-  }) => Padding(
+    bool requiredField = false,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) =>
+      Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3E4A5F))),
           const SizedBox(height: 6),
-          AppCustomInputField(
-            hintText: placeholder,
+          TextFormField(
             controller: controller,
+            keyboardType: keyboardType,
             obscureText: eye,
-            suffixIcon: eye ? const Icon(Icons.visibility_outlined, color: Color(0xFF6B7280)) : null,
+            validator: validator ??
+                (requiredField
+                    ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null
+                    : null),
+            decoration: InputDecoration(
+              hintText: placeholder,
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0C4ACD))),
+              errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
+              focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
+              suffixIcon: eye ? const Icon(Icons.visibility_outlined, color: Color(0xFF6B7280)) : null,
+            ),
           ),
         ]),
       );
 }
 
 class _PermissionChip extends StatelessWidget {
-  const _PermissionChip({
-    required this.label,
-    this.selected = false,
-    this.onTap,
-  });
+  const _PermissionChip({required this.label, this.selected = false, this.onTap});
 
   final String label;
   final bool selected;
@@ -415,19 +440,11 @@ class _PermissionChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              selected ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 18,
-              color: selected ? const Color(0xFF0C4ACD) : const Color(0xFFC7CDD8),
-            ),
+            Icon(selected ? Icons.check_box : Icons.check_box_outline_blank, size: 18, color: selected ? const Color(0xFF0C4ACD) : const Color(0xFFC7CDD8)),
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 15,
-                color: selected ? const Color(0xFF0C4ACD) : const Color(0xFF222938),
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 15, color: selected ? const Color(0xFF0C4ACD) : const Color(0xFF222938), fontWeight: FontWeight.w500),
             ),
           ],
         ),
