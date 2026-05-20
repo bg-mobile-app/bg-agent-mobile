@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
@@ -5,6 +7,7 @@ import '../../common/widgets/app_search_bar.dart';
 import '../../common/widgets/styled_data_table_card.dart';
 import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
+import '../../common/services/api_client.dart';
 import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
 
@@ -22,6 +25,10 @@ class _ReceivedBgSentPassportScreenState
   late final TextEditingController _searchController;
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
+  final ApiClient _apiClient = ApiClient();
+  bool _isLoading = false;
+  List<BookingItem> _collectedBookings = const [];
+  Timer? _searchDebounce;
 
   final List<BookingItem> _bookings = const [
     BookingItem(
@@ -292,16 +299,20 @@ class _ReceivedBgSentPassportScreenState
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _collectedBookings =
+        _bookings.where((item) => item.status == 'BG_SENT_PP').toList();
+    _loadBookings();
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   List<BookingItem> get _filteredBookings {
-    final bgSentPassportOnly = _bookings
+    final bgSentPassportOnly = _collectedBookings
         .where((item) => item.status == 'BG_SENT_PP')
         .toList();
     final query = _searchQuery.trim().toLowerCase();
@@ -321,6 +332,86 @@ class _ReceivedBgSentPassportScreenState
           item.statusLabel.toLowerCase().contains(query);
       return matchesQuery && matchesDate;
     }).toList();
+  }
+
+
+
+  Future<void> _loadBookings() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _apiClient.get(
+        '/booking/wp/',
+        queryParameters: {
+          'status': 'BG_SENT_PP',
+          'search': _searchQuery.trim(),
+          'from_date': _selectedDateRange != null ? _formatApiDate(_selectedDateRange!.start) : '',
+          'to_date': _selectedDateRange != null ? _formatApiDate(_selectedDateRange!.end) : '',
+          'page': 1,
+        },
+      );
+      final data = response.data;
+      final results = data is Map<String, dynamic>
+          ? (data['results'] as List? ?? const [])
+          : const [];
+      final mapped = results
+          .whereType<Map>()
+          .map((item) => _fromApi(Map<String, dynamic>.from(item)))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _collectedBookings = mapped;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _collectedBookings =
+            _bookings.where((item) => item.status == 'BG_SENT_PP').toList();
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _formatApiDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  BookingItem _fromApi(Map<String, dynamic> json) {
+    return BookingItem(
+      workPermitId: json['workPermitId']?.toString() ??
+          json['work_permit_id']?.toString() ??
+          '-',
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      serviceType: json['serviceType']?.toString() ??
+          json['service_type']?.toString() ??
+          'Work Permit',
+      createdAt: json['createdAt']?.toString() ??
+          json['created_at']?.toString() ??
+          DateTime.now().toIso8601String().split('T').first,
+      name: json['name']?.toString() ??
+          json['customer_name']?.toString() ??
+          'Unknown',
+      passportNo: json['passportNo']?.toString() ??
+          json['passport_no']?.toString() ??
+          '-',
+      fromCountry: json['fromCountry']?.toString() ??
+          json['from_country']?.toString() ??
+          'Bangladesh',
+      toCountry: json['toCountry']?.toString() ??
+          json['to_country']?.toString() ??
+          '-',
+      agencyTotalCost: int.tryParse(
+              json['agencyTotalCost']?.toString() ??
+                  json['agency_total_cost']?.toString() ??
+                  '') ??
+          0,
+      paidAmount: int.tryParse(
+              json['paidAmount']?.toString() ??
+                  json['paid_amount']?.toString() ??
+                  '') ??
+          0,
+      status: 'BG_SENT_PP',
+      statusLabel: 'BG Sent Passport',
+    );
   }
 
   @override
@@ -349,15 +440,30 @@ class _ReceivedBgSentPassportScreenState
                 AppSearchBar(
                   controller: _searchController,
                   hintText: 'Search by booking ID, name, passport or status',
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  onSearchTap: () =>
-                      setState(() => _searchQuery = _searchController.text),
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                    _searchDebounce?.cancel();
+                    _searchDebounce =
+                        Timer(const Duration(milliseconds: 400), _loadBookings);
+                  },
+                  onSearchTap: () {
+                    setState(() => _searchQuery = _searchController.text);
+                    _loadBookings();
+                  },
                 ),
                 const SizedBox(height: 14),
-                _viewToggle(),
+                Row(
+                  children: [
+                    _viewToggle(),
+                    const SizedBox(width: 10),
+                    Expanded(child: _dateRangeButton()),
+                  ],
+                ),
 
                 const SizedBox(height: 16),
-                if (_isCardView) _buildCardList() else _buildTableList(),
+                if (_isLoading) const Center(child: CircularProgressIndicator()),
+                if (!_isLoading)
+                  (_isCardView ? _buildCardList() : _buildTableList()),
               ],
             ),
           ),
@@ -426,6 +532,7 @@ class _ReceivedBgSentPassportScreenState
               );
               if (picked == null) return;
               setState(() => _selectedDateRange = picked);
+              _loadBookings();
             },
             child: Row(
               children: [
@@ -448,7 +555,10 @@ class _ReceivedBgSentPassportScreenState
           const Spacer(),
           if (_selectedDateRange != null)
             InkWell(
-              onTap: () => setState(() => _selectedDateRange = null),
+              onTap: () {
+                setState(() => _selectedDateRange = null);
+                _loadBookings();
+              },
               child: const Icon(
                 Icons.close_rounded,
                 size: 18,
