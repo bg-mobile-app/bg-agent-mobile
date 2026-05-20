@@ -47,6 +47,20 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant ReceivedAllBookingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final statusChanged = oldWidget.initialStatus != widget.initialStatus;
+    final routeChanged = oldWidget.currentHref != widget.currentHref;
+    if (!statusChanged && !routeChanged) return;
+
+    _selectedStatus = widget.initialStatus;
+    _searchController.clear();
+    _searchQuery = '';
+    _selectedDateRange = null;
+    _fetchBookings();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
