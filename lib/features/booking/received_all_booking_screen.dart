@@ -210,6 +210,50 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     );
   }
 
+  Widget _statusChips() {
+    const statuses = <String>[
+      '',
+      'APPLIED_FILE',
+      'BG_COLLECT_PP',
+      'BG_SENT_PP',
+      'A_RECEIVE_PP',
+      'UNDER_PROCESSING',
+      'VISA_APPROVED',
+      'BMET_DONE',
+      'TICKET_DONE',
+      'PP_SENT_TO_BG',
+      'BG_RECEIVED_PP',
+      'READY_FOR_FLIGHT',
+      'SUCCESS_FLIGHT',
+      'RETURN_REQUEST',
+      'RETURN_ACCEPTED',
+      'RETURN_PP_SENT_TO_BG',
+      'BG_COLLECT_RETURN_PP',
+      'CLEAR_FOR_HANDOVER',
+      'BG_HANDOVER_PP_TO_CUSTOMER',
+      'REJECT_FILE',
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: statuses.map((status) {
+          final selected = _selectedStatus == status;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(status.isEmpty ? 'ALL' : status.replaceAll('_', ' ')),
+              selected: selected,
+              onSelected: (_) {
+                setState(() => _selectedStatus = status);
+                _fetchBookings();
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _breadcrumb() {
     return BreadCrumb(
       items: <BreadCrumbItem>[
