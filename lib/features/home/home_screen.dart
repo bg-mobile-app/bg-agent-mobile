@@ -11,7 +11,6 @@ import 'widgets/home_common_widgets.dart';
 import 'widgets/work_permit_card.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
-import '../../common/theme/app_text_styles.dart';
 import '../../common/services/api_client.dart';
 
 class HomeScreen extends StatefulWidget {

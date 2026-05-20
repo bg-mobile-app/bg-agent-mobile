@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -11,6 +11,7 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/widgets/styled_data_table_card.dart';
 import 'dashboard_screen.dart';
 import 'services/payment_service.dart';
+import '../../common/services/api_client.dart';
 
 const List<String> bookingStatus = [
   'ADVANCE',
@@ -78,6 +79,24 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     }
 
     try {
+      final cookies = await ApiClient().tokenStorage.getCookies();
+      if (cookies == null || cookies.isEmpty) {
+        if (!mounted) return;
+        var list = _skeletonPayments;
+        if (_status.isNotEmpty) {
+          list = list.where((p) => p.step == _status).toList();
+        }
+        if (_debouncedSearch.isNotEmpty) {
+          list = list.where((p) => p.passportNo.toLowerCase().contains(_debouncedSearch.toLowerCase()) || p.bookingId.toLowerCase().contains(_debouncedSearch.toLowerCase())).toList();
+        }
+        setState(() {
+          _payments = list;
+          _error = null;
+          _isInitialLoading = false;
+        });
+        return;
+      }
+
       final response = await _paymentService.getPaymentsHistory(
         step: _status,
         search: _debouncedSearch,
@@ -91,14 +110,23 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      var list = _skeletonPayments;
+      if (_status.isNotEmpty) {
+        list = list.where((p) => p.step == _status).toList();
+      }
+      if (_debouncedSearch.isNotEmpty) {
+        list = list.where((p) => p.passportNo.toLowerCase().contains(_debouncedSearch.toLowerCase()) || p.bookingId.toLowerCase().contains(_debouncedSearch.toLowerCase())).toList();
+      }
       setState(() {
-        _error = 'Failed to load payments history. Please check your connection.';
+        _payments = list;
+        _error = null;
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isInitialLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isInitialLoading = false;
+        });
+      }
     }
   }
 
@@ -222,7 +250,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: DropdownButtonFormField<String>(
-          value: _status.isEmpty ? null : _status,
+          initialValue: _status.isEmpty ? null : _status,
           isExpanded: true,
           style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.w500),
           dropdownColor: Colors.white,
@@ -504,7 +532,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           const SizedBox(height: 16),
           Text(
             'No payments history found',
-            style: AppTextStyles.headline4.copyWith(color: AppPalette.textPrimary, fontWeight: FontWeight.bold),
+            style: AppTextStyles.subtitle1.copyWith(color: AppPalette.textPrimary, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(

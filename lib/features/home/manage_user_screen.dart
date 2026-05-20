@@ -81,11 +81,12 @@ class _ManageUserScreenState extends State<ManageUserScreen> {
         _error = 'Failed to load staff. Please try again.';
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isInitialLoading = false;
-        _isLoadingMore = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isInitialLoading = false;
+          _isLoadingMore = false;
+        });
+      }
     }
   }
 

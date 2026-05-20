@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 
 import '../../common/theme/app_palette.dart';
-import '../../common/theme/app_text_styles.dart';
 import '../../common/widgets/styled_data_table_card.dart';
 import '../../common/widgets/view_toggle_button.dart';
 import '../home/dashboard_screen.dart';
