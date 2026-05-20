@@ -668,7 +668,7 @@ const List<SidebarLink> kDashboardSidebarLinks = [
         href: '/dashboard/receive-booking/success-flight',
       ),
       SidebarLink(
-        name: 'Reject Flight',
+        name: 'Reject File',
         href: '/dashboard/receive-booking/reject-flight',
       ),
     ],

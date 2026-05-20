@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/widgets/app_search_bar.dart';
 import '../../common/widgets/styled_data_table_card.dart';
@@ -10,7 +11,15 @@ import '../home/dashboard_screen.dart';
 import 'services/booking_service.dart';
 
 class ReceivedAllBookingScreen extends StatefulWidget {
-  const ReceivedAllBookingScreen({super.key});
+  const ReceivedAllBookingScreen({
+    super.key,
+    this.initialStatus = '',
+    this.pageTitle = 'All Booking',
+    this.currentHref = '/dashboard/receive-booking/all-booking',
+  });
+  final String initialStatus;
+  final String pageTitle;
+  final String currentHref;
 
   @override
   State<ReceivedAllBookingScreen> createState() =>
@@ -21,6 +30,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   bool _isCardView = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
+  late String _selectedStatus;
   DateTimeRange? _selectedDateRange;
 
   final BookingService _bookingService = BookingService();
@@ -32,6 +42,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _selectedStatus = widget.initialStatus;
     _fetchBookings();
   }
 
@@ -62,6 +73,27 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     }).toList();
   }
 
+  List<BookingItem> get _skeletonBookings => List.generate(
+        6,
+        (index) => BookingItem(
+          workPermitId: 'WP-XXXX',
+          id: 1000 + index,
+          serviceType: 'Work Permit',
+          createdAt: '2026-01-01T00:00:00Z',
+          name: 'Loading Name',
+          passportNo: 'P0000000',
+          fromCountry: 'Bangladesh',
+          toCountry: 'Saudi Arabia',
+          agencyTotalCost: 0,
+          paidAmount: 0,
+          status: _selectedStatus.isEmpty ? 'APPLIED_FILE' : _selectedStatus,
+          statusLabel: 'Loading',
+        ),
+      );
+
+  List<BookingItem> get _visibleBookings =>
+      _isLoading && _bookings.isEmpty ? _skeletonBookings : _filteredBookings;
+
 
 
   Future<void> _fetchBookings() async {
@@ -72,7 +104,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
 
     try {
       final response = await _bookingService.getReceiveBookings(
-        status: '',
+        status: _selectedStatus,
         search: _searchQuery,
         page: 1,
         fromDate: _selectedDateRange == null ? null : _formatApiDate(_selectedDateRange!.start),
@@ -126,7 +158,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/receive-booking/all-booking',
+      currentHref: widget.currentHref,
       child: Container(
         color: AppPalette.pageBackground,
         child: SafeArea(
@@ -157,22 +189,17 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                         Expanded(child: _dateRangeButton()),
                       ],
                     ),
-
                     const SizedBox(height: 16),
-                    if (_isLoading)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (_errorMessage != null)
+                    if (_errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                       )
-                    else if (_isCardView)
-                      _buildCardList()
                     else
-                      _buildTableList(),
+                      Skeletonizer(
+                        enabled: _isLoading,
+                        child: _isCardView ? _buildCardList() : _buildTableList(),
+                      ),
                   ],
                 ),
               ),
@@ -205,7 +232,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
         ),
         BreadCrumbItem(
           content: Text(
-            'All Booking',
+            widget.pageTitle,
             style: TextStyle(
               color: AppPalette.textStrongBlue,
               fontSize: 12,
@@ -300,20 +327,8 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   Widget _buildTableList() => StyledDataTableCard(
     dataRowMaxHeight: 86,
     columnSpacing: 20,
-    columns: const [
-      DataColumn(label: Text('Post ID')),
-      DataColumn(label: Text('Booking ID')),
-      DataColumn(label: Text('Apply Date')),
-      DataColumn(label: Text('Customer Info')),
-      DataColumn(label: Text('From & To')),
-      DataColumn(label: Text('Total Cost')),
-      DataColumn(label: Text('Medical Expiry')),
-      DataColumn(label: Text('Police Expiry')),
-      DataColumn(label: Text('Visa Expiry')),
-      DataColumn(label: Text('Appointment')),
-      DataColumn(label: Text('Status')),
-    ],
-    rows: _filteredBookings.map((item) {
+    columns: _tableColumns(),
+    rows: _visibleBookings.map((item) {
       final style = _styleFor(item.statusLabel);
       return DataRow(
         onLongPress: () => _openActionsSheet(context, item),
@@ -329,34 +344,6 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
           ),
           DataCell(Text('${item.fromCountry} → ${item.toCountry}')),
           DataCell(Text('৳ ${_money(item.agencyTotalCost)}')),
-          DataCell(
-            Text(
-              item.medicalExpiryDate == null
-                  ? '-'
-                  : _displayDate(item.medicalExpiryDate!),
-            ),
-          ),
-          DataCell(
-            Text(
-              item.policeClearanceExpiryDate == null
-                  ? '-'
-                  : _displayDate(item.policeClearanceExpiryDate!),
-            ),
-          ),
-          DataCell(
-            Text(
-              item.visaExpiryDate == null
-                  ? '-'
-                  : _displayDate(item.visaExpiryDate!),
-            ),
-          ),
-          DataCell(
-            Text(
-              item.appointmentDate == null
-                  ? '-'
-                  : _displayDate(item.appointmentDate!),
-            ),
-          ),
           DataCell(
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -374,15 +361,56 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
               ),
             ),
           ),
+          if (_selectedStatus == 'UNDER_PROCESSING')
+            DataCell(Text(item.medicalExpiryDate == null ? '-' : _displayDate(item.medicalExpiryDate!))),
+          if (_selectedStatus == 'UNDER_PROCESSING')
+            DataCell(Text(item.policeClearanceExpiryDate == null ? '-' : _displayDate(item.policeClearanceExpiryDate!))),
+          if (_selectedStatus == 'VISA_APPROVED')
+            DataCell(Text(item.visaExpiryDate == null ? '-' : _displayDate(item.visaExpiryDate!))),
+          const DataCell(
+            Icon(
+              Icons.more_horiz_rounded,
+              color: AppPalette.textMuted,
+              size: 18,
+            ),
+          ),
         ],
       );
     }).toList(),
   );
 
+  List<DataColumn> _tableColumns() {
+    const baseColumns = <DataColumn>[
+      DataColumn(label: Text('Post ID')),
+      DataColumn(label: Text('Booking ID')),
+      DataColumn(label: Text('Apply Date')),
+      DataColumn(label: Text('Customer Info')),
+      DataColumn(label: Text('From & To')),
+      DataColumn(label: Text('Total Cost')),
+      DataColumn(label: Text('Status')),
+    ];
+    if (_selectedStatus == 'UNDER_PROCESSING') {
+      return const [
+        ...baseColumns,
+        DataColumn(label: Text('Medical Expiry Date')),
+        DataColumn(label: Text('Police Clearance Expiry Date')),
+        DataColumn(label: Text('Actions')),
+      ];
+    }
+    if (_selectedStatus == 'VISA_APPROVED') {
+      return const [
+        ...baseColumns,
+        DataColumn(label: Text('Visa Expiry Date')),
+        DataColumn(label: Text('Actions')),
+      ];
+    }
+    return const [...baseColumns, DataColumn(label: Text('Actions'))];
+  }
+
   Widget _buildCardList() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      ..._filteredBookings.map((item) {
+      ..._visibleBookings.map((item) {
         return ReceivedBookingCard(
           bookingId: item.id,
           postId: item.workPermitId,
@@ -407,7 +435,9 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   );
 
   String _displayDate(String iso) {
-    final parts = iso.split('-');
+    final parsed = DateTime.tryParse(iso);
+    if (parsed == null) return iso;
+    final date = parsed.toLocal();
     const months = [
       'Jan',
       'Feb',
@@ -422,7 +452,7 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
       'Nov',
       'Dec',
     ];
-    return '${months[int.parse(parts[1]) - 1]} ${parts[2]}, ${parts[0]}';
+    return '${months[date.month - 1]} ${date.day.toString().padLeft(2, '0')}, ${date.year}';
   }
 
   String _money(int amount) {
