@@ -14,6 +14,8 @@ import 'services/payment_service.dart';
 import '../../common/services/api_client.dart';
 
 const List<String> bookingStatus = [
+  'PENDING',
+  'PAID',
   'ADVANCE',
   'AFTER_VISA',
   'BEFORE_FLIGHT',
@@ -98,8 +100,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       }
 
       final response = await _paymentService.getPaymentsHistory(
-        step: _status,
+        status: _status,
         search: _debouncedSearch,
+        currentPage: 1,
       );
 
       if (!mounted) return;
@@ -291,11 +294,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     return StyledDataTableCard(
       columns: const [
         DataColumn(label: Text('Payment Invoice')),
+        DataColumn(label: Text('Service Type')),
         DataColumn(label: Text('Booking ID')),
         DataColumn(label: Text('Post ID')),
         DataColumn(label: Text('Payment Date')),
         DataColumn(label: Text('Passport No')),
         DataColumn(label: Text('Amount')),
+        DataColumn(label: Text('Transaction Type')),
+        DataColumn(label: Text('Step')),
         DataColumn(label: Text('Status')),
       ],
       rows: items
@@ -303,12 +309,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             (item) => DataRow(
               cells: [
                 DataCell(Text('#INV-${item.id}', style: const TextStyle(fontWeight: FontWeight.w700))),
+                DataCell(Text(item.terminal)),
                 DataCell(Text(item.bookingId)),
                 DataCell(Text(item.postId)),
                 DataCell(Text(_formatListDate(item.collectedAt))),
                 DataCell(Text(item.passportNo)),
                 DataCell(Text('৳ ${_money(item.amount)}', style: const TextStyle(fontWeight: FontWeight.w700))),
-                DataCell(_statusChip(item.step)),
+                DataCell(Text(item.transactionType.isEmpty ? '-' : item.transactionType)),
+                DataCell(Text(item.step.isEmpty ? '-' : item.step)),
+                DataCell(_statusChip(item.status.isEmpty ? item.step : item.status)),
               ],
             ),
           )
@@ -379,25 +388,26 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Color(0xFF191B24)),
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(color: const Color(0xFFD8E6FF), borderRadius: BorderRadius.circular(8)),
-                            child: Text(item.postId, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF38485D))),
+                            child: Text('Post: ${item.postId}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF38485D))),
                           ),
-                          const SizedBox(width: 8),
-                          const Text('•', style: TextStyle(color: Color(0xFF737687), fontSize: 12)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(item.bookingId, style: const TextStyle(fontSize: 15, color: Color(0xFF434655))),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFFEAF4FF), borderRadius: BorderRadius.circular(8)),
+                            child: Text('Booking: ${item.bookingId}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF38485D))),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                _statusChip(item.step),
+                _statusChip(item.status.isEmpty ? item.step : item.status),
               ],
             ),
           ),
@@ -418,7 +428,23 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   children: [
                     Expanded(child: _detailTile('PASSPORT NO', item.passportNo, Icons.badge_outlined)),
                     const SizedBox(width: 14),
-                    Expanded(child: _detailTile('PAYMENT TYPE', item.step, Icons.article_outlined)),
+                    Expanded(child: _detailTile('SERVICE TYPE', item.terminal, Icons.miscellaneous_services_outlined)),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(child: _detailTile('TRANSACTION TYPE', item.transactionType, Icons.compare_arrows_rounded)),
+                    const SizedBox(width: 14),
+                    Expanded(child: _detailTile('STEP', item.step, Icons.linear_scale_rounded)),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(child: _detailTile('STATUS', item.status.isEmpty ? item.step : item.status, Icons.verified_outlined)),
+                    const SizedBox(width: 14),
+                    const Expanded(child: SizedBox()),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -653,6 +679,7 @@ final List<PaymentsHistory> _skeletonPayments = [
     sequence: '1',
     terminal: 'BKASH',
     transactionType: 'CREDIT',
+    status: 'PAID',
   ),
   PaymentsHistory(
     id: 999,
@@ -665,6 +692,7 @@ final List<PaymentsHistory> _skeletonPayments = [
     sequence: '2',
     terminal: 'BKASH',
     transactionType: 'DEBIT',
+    status: 'PAID',
   ),
   PaymentsHistory(
     id: 998,
@@ -677,6 +705,7 @@ final List<PaymentsHistory> _skeletonPayments = [
     sequence: '3',
     terminal: 'NAGAD',
     transactionType: 'CREDIT',
+    status: 'PAID',
   ),
   PaymentsHistory(
     id: 997,
@@ -689,5 +718,6 @@ final List<PaymentsHistory> _skeletonPayments = [
     sequence: '1',
     terminal: 'ROCKET',
     transactionType: 'CREDIT',
+    status: 'PENDING',
   ),
 ];

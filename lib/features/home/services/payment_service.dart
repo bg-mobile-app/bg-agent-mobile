@@ -25,6 +25,7 @@ class PaymentsHistory {
   final String step;
   final String sequence;
   final String transactionType;
+  final String status;
   final int amount;
   final DateTime collectedAt;
 
@@ -37,6 +38,7 @@ class PaymentsHistory {
     required this.step,
     required this.sequence,
     required this.transactionType,
+    required this.status,
     required this.amount,
     required this.collectedAt,
   });
@@ -59,6 +61,7 @@ class PaymentsHistory {
       step: json['step']?.toString() ?? '',
       sequence: json['sequence']?.toString() ?? '',
       transactionType: json['transactionType']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
       amount: parsedAmount,
       collectedAt: DateTime.tryParse(json['collectedAt']?.toString() ?? '') ?? DateTime.now(),
     );
@@ -73,6 +76,7 @@ class PaymentsHistory {
     String? step,
     String? sequence,
     String? transactionType,
+    String? status,
     int? amount,
     DateTime? collectedAt,
   }) {
@@ -85,6 +89,7 @@ class PaymentsHistory {
       step: step ?? this.step,
       sequence: sequence ?? this.sequence,
       transactionType: transactionType ?? this.transactionType,
+      status: status ?? this.status,
       amount: amount ?? this.amount,
       collectedAt: collectedAt ?? this.collectedAt,
     );
@@ -98,19 +103,21 @@ class PaymentService {
   final ApiClient _apiClient;
 
   Future<TypesHandler<PaymentsHistory>> getPaymentsHistory({
-    String? step,
+    String? status,
     String? search,
+    int currentPage = 1,
   }) async {
     final queryParams = <String, dynamic>{};
-    if (step != null && step.isNotEmpty) {
-      queryParams['step'] = step;
+    if (status != null && status.isNotEmpty) {
+      queryParams['status'] = status;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
     }
+    queryParams['page'] = currentPage;
 
     final response = await _apiClient.get(
-      '/payment/payments-history-list/',
+      '/payment/history-agency/',
       queryParameters: queryParams,
     );
 
