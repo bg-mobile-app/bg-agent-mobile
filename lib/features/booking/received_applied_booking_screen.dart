@@ -7,6 +7,7 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
+import 'services/booking_service.dart';
 
 class ReceivedAppliedBookingScreen extends StatefulWidget {
   const ReceivedAppliedBookingScreen({super.key});
@@ -23,7 +24,10 @@ class _ReceivedAppliedBookingScreenState
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
 
-  final List<BookingItem> _bookings = const [
+  final BookingService _bookingService = BookingService();
+  bool _isLoading = false;
+
+  static const List<BookingItem> _collectedBookings = [
     BookingItem(
       workPermitId: 'WP-1201',
       id: 4571,
@@ -208,10 +212,37 @@ class _ReceivedAppliedBookingScreenState
     ),
   ];
 
+  late List<BookingItem> _bookings;
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _bookings = List<BookingItem>.from(_collectedBookings.where((item) => item.status == 'APPLIED_FILE'));
+    _fetchAppliedBookings();
+  }
+
+  Future<void> _fetchAppliedBookings() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _bookingService.getReceivedBookings(
+        status: 'APPLIED_FILE',
+        page: 1,
+        search: _searchQuery,
+        fromDate: _selectedDateRange == null ? null : _formatDate(_selectedDateRange!.start),
+        toDate: _selectedDateRange == null ? null : _formatDate(_selectedDateRange!.end),
+      );
+      if (!mounted) return;
+      setState(() {
+        if (response.results.isNotEmpty) {
+          _bookings = response.results.map(BookingItem.fromDto).toList();
+        }
+      });
+    } catch (_) {
+      // keep collected data as fallback
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -221,9 +252,7 @@ class _ReceivedAppliedBookingScreenState
   }
 
   List<BookingItem> get _filteredBookings {
-    final appliedOnly = _bookings
-        .where((item) => item.status == 'APPLIED_FILE')
-        .toList();
+    final appliedOnly = _bookings.where((item) => item.status == 'APPLIED_FILE').toList();
     final query = _searchQuery.trim().toLowerCase();
     return appliedOnly.where((item) {
       final createdAt = DateTime.parse(item.createdAt);
@@ -272,12 +301,11 @@ class _ReceivedAppliedBookingScreenState
                     AppSearchBar(
                       controller: _searchController,
                       hintText: 'Search by booking ID, name, passport or status',
-                      onChanged:
-                          (value) => setState(() => _searchQuery = value),
-                      onSearchTap:
-                          () => setState(
-                            () => _searchQuery = _searchController.text,
-                          ),
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      onSearchTap: () {
+                        setState(() => _searchQuery = _searchController.text);
+                        _fetchAppliedBookings();
+                      },
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -288,7 +316,12 @@ class _ReceivedAppliedBookingScreenState
                       ],
                     ),
                     const SizedBox(height: 16),
-                    if (_isCardView) _buildCardList() else _buildTableList(),
+                    if (_isLoading)
+                      const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+                    else if (_isCardView)
+                      _buildCardList()
+                    else
+                      _buildTableList(),
                   ],
                 ),
               ),
@@ -359,6 +392,7 @@ class _ReceivedAppliedBookingScreenState
               );
               if (picked == null) return;
               setState(() => _selectedDateRange = picked);
+              _fetchAppliedBookings();
             },
             child: Row(
               children: [
@@ -370,7 +404,13 @@ class _ReceivedAppliedBookingScreenState
           ),
           const Spacer(),
           if (_selectedDateRange != null)
-            InkWell(onTap: () => setState(() => _selectedDateRange = null), child: const Icon(Icons.close_rounded, size: 18, color: AppPalette.textMuted)),
+            InkWell(
+              onTap: () {
+                setState(() => _selectedDateRange = null);
+                _fetchAppliedBookings();
+              },
+              child: const Icon(Icons.close_rounded, size: 18, color: AppPalette.textMuted),
+            ),
         ],
       ),
     );
@@ -727,6 +767,29 @@ class BookingItem {
     this.hasAfterVisaPayout = false,
     this.hasBeforeFlightPayout = false,
   });
+
+
+
+  factory BookingItem.fromDto(ReceivedBookingItemDto dto) {
+    return BookingItem(
+      workPermitId: dto.workPermitSlug.isNotEmpty ? dto.workPermitSlug : dto.workPermitId.toString(),
+      id: dto.id,
+      serviceType: dto.serviceType.isNotEmpty ? dto.serviceType : 'Work Permit',
+      createdAt: dto.createdAt.isNotEmpty ? dto.createdAt : DateTime.now().toIso8601String().split('T').first,
+      name: dto.name,
+      passportNo: dto.passportNo ?? '-',
+      fromCountry: dto.fromCountry ?? 'Bangladesh',
+      toCountry: dto.toCountry,
+      agencyTotalCost: dto.packagePrice ?? 0,
+      paidAmount: dto.paidAmount ?? 0,
+      status: dto.status,
+      statusLabel: dto.statusLabel,
+      medicalExpiryDate: dto.medicalExpiryDate,
+      policeClearanceExpiryDate: dto.policeClearanceExpiryDate,
+      visaExpiryDate: dto.visaExpiryDate,
+      appointmentDate: dto.appointmentDate,
+    );
+  }
 
   final String workPermitId;
   final int id;
