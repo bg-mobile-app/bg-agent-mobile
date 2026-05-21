@@ -9,7 +9,7 @@ class ProfileService {
 
   Future<RecruitingAgencyMeDetailsProps?> getAgencyProfile() async {
     try {
-      final response = await _apiClient.get('/profile/recruiting-agency/me/');
+      final response = await _apiClient.get('/profile/agency/me/');
       if (response.statusCode == 200 && response.data != null) {
         if (response.data is Map<String, dynamic>) {
           return RecruitingAgencyMeDetailsProps.fromJson(response.data);
@@ -27,7 +27,7 @@ class ProfileService {
   Future<RecruitingAgencyMeDetailsProps?> updateAgencyProfile(FormData formData) async {
     try {
       final response = await _apiClient.patch(
-        '/profile/recruiting-agency/me/',
+        '/profile/agency/me/',
         data: formData,
         options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
