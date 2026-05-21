@@ -12,6 +12,7 @@ import 'widgets/work_permit_card.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
 import '../../common/services/api_client.dart';
+import '../../common/services/profile_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,8 +40,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _bannerIndex = 0;
 
   bool _isLoggedIn = false;
+  String? _profileImageUrl;
 
   final HomeService _homeService = HomeService();
+  final ProfileService _profileService = ProfileService();
   bool _isLoading = true;
 
   List<String> _countries = [];
@@ -70,6 +73,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final cookies = await ApiClient().tokenStorage.getCookies();
     if (mounted && cookies != null && cookies.isNotEmpty) {
       setState(() => _isLoggedIn = true);
+      final profile = await _profileService.getAgencyProfile();
+      if (mounted) {
+        setState(() => _profileImageUrl = profile?.image);
+      }
     }
   }
 
@@ -246,8 +253,9 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         onSignUp: () => context.push('/sign-up/customer'),
-        onNotifications: _showComingSoon,
-        onProfile: _showComingSoon,
+        onNotifications: () => context.push('/dashboard/notifications'),
+        onProfile: () => context.push('/dashboard/customer-profile'),
+        profileImageUrl: _profileImageUrl,
       ),
       body: SafeArea(
         child: Skeletonizer(

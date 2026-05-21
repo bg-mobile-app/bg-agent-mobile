@@ -5,6 +5,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../common/theme/app_colors.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
+import '../../common/services/profile_service.dart';
+import 'models/agency_profile.dart';
 import 'models/dashboard_models.dart';
 import 'services/dashboard_service.dart';
 
@@ -806,7 +808,7 @@ const List<SidebarLink> kDashboardSidebarLinks = [
   ),
 ];
 
-class DashboardPageScaffold extends StatelessWidget {
+class DashboardPageScaffold extends StatefulWidget {
   const DashboardPageScaffold({
     super.key,
     required this.child,
@@ -815,6 +817,27 @@ class DashboardPageScaffold extends StatelessWidget {
 
   final Widget child;
   final String currentHref;
+
+  @override
+  State<DashboardPageScaffold> createState() => _DashboardPageScaffoldState();
+}
+
+class _DashboardPageScaffoldState extends State<DashboardPageScaffold> {
+  final ProfileService _profileService = ProfileService();
+  RecruitingAgencyMeDetailsProps? _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await _profileService.getAgencyProfile();
+    if (mounted) {
+      setState(() => _profile = profile);
+    }
+  }
 
   String get _screenName {
     const titles = <String, String>{
@@ -840,9 +863,9 @@ class DashboardPageScaffold extends StatelessWidget {
       '/dashboard/change-password': 'Change Password',
       '/dashboard/customer-profile': 'Customer Profile',
     };
-    final matchedTitle = titles[currentHref];
+    final matchedTitle = titles[widget.currentHref];
     if (matchedTitle != null) return matchedTitle;
-    final parts = currentHref
+    final parts = widget.currentHref
         .split('/')
         .where((part) => part.isNotEmpty)
         .toList();
@@ -859,15 +882,16 @@ class DashboardPageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final owner = _profile?.owner;
     return Scaffold(
       backgroundColor: Colors.white,
       endDrawer: CustomerSidebarDrawer(
-        currentHref: currentHref,
-        fullName: 'Demo User',
-        userId: 'BG-1024',
-        email: 'demo.user@example.com',
-        phone: '+1 555 0102',
-        profileImage: 'assets/img/logo/logo_black.png',
+        currentHref: widget.currentHref,
+        fullName: owner?.fullName ?? _profile?.agencyName ?? 'User',
+        userId: owner?.userCode ?? 'N/A',
+        email: owner?.email ?? 'N/A',
+        phone: owner?.phone ?? _profile?.agencyPhone ?? 'N/A',
+        profileImage: _profile?.image,
         links: kDashboardSidebarLinks,
       ),
       appBar: AppBar(
@@ -902,6 +926,27 @@ class DashboardPageScaffold extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: () => context.push('/dashboard/notifications'),
+            icon: const Icon(Icons.notifications_none, color: Colors.black87),
+            tooltip: 'Notifications',
+          ),
+          GestureDetector(
+            onTap: () => context.push('/dashboard/customer-profile'),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: const Color(0xFFD7E3FF),
+                backgroundImage: (_profile?.image != null && _profile!.image!.isNotEmpty)
+                    ? NetworkImage(_profile!.image!)
+                    : null,
+                child: (_profile?.image == null || _profile!.image!.isEmpty)
+                    ? const Icon(Icons.person, size: 18, color: Color(0xFF2563EB))
+                    : null,
+              ),
+            ),
+          ),
           Builder(
             builder: (context) => IconButton(
               onPressed: () => Scaffold.of(context).openEndDrawer(),
@@ -934,7 +979,7 @@ class CustomerSidebarDrawer extends StatefulWidget {
   final String userId;
   final String email;
   final String phone;
-  final String profileImage;
+  final String? profileImage;
   final List<SidebarLink> links;
 
   @override
@@ -1024,13 +1069,22 @@ class _SidebarUserInfo extends StatelessWidget {
   final String userId;
   final String email;
   final String phone;
-  final String profileImage;
+  final String? profileImage;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        CircleAvatar(radius: 40, backgroundImage: AssetImage(profileImage)),
+        CircleAvatar(
+          radius: 40,
+          backgroundColor: const Color(0xFFD7E3FF),
+          backgroundImage: (profileImage != null && profileImage!.isNotEmpty)
+              ? NetworkImage(profileImage!)
+              : null,
+          child: (profileImage == null || profileImage!.isEmpty)
+              ? const Icon(Icons.person, color: Color(0xFF2563EB), size: 36)
+              : null,
+        ),
         const SizedBox(height: 8),
         Text(
           fullName.toUpperCase(),

@@ -41,6 +41,7 @@ class AppBrandHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.onSignUp,
     required this.onNotifications,
     required this.onProfile,
+    this.profileImageUrl,
     this.backgroundColor = const Color(0xFFF5F8FF),
   });
 
@@ -50,6 +51,7 @@ class AppBrandHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onSignUp;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
+  final String? profileImageUrl;
   final Color backgroundColor;
 
   @override
@@ -87,10 +89,15 @@ class AppBrandHeader extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 8),
           GestureDetector(
             onTap: onProfile,
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 18,
-              backgroundColor: Color(0xFFD7E3FF),
-              child: Icon(Icons.person, color: Color(0xFF2563EB)),
+              backgroundColor: const Color(0xFFD7E3FF),
+              backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
+                  ? NetworkImage(profileImageUrl!)
+                  : null,
+              child: (profileImageUrl == null || profileImageUrl!.isEmpty)
+                  ? const Icon(Icons.person, color: Color(0xFF2563EB))
+                  : null,
             ),
           ),
         ] else ...[
