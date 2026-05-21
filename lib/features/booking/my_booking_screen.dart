@@ -158,17 +158,110 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     );
   }
 
-  Widget _statusDropdown() => DropdownButtonFormField<String>(
-    value: _status,
-    decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Status Filter'),
-    items: widget.availableStatuses.map((s)=>DropdownMenuItem(value: s, child: Text(s.isEmpty ? 'ALL' : s.replaceAll('_', ' ')))).toList(),
-    onChanged: (v){ if(v==null)return; setState(()=>_status=v); _loadBookings(); },
+  Widget _statusDropdown() => Container(
+    height: 48,
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    decoration: BoxDecoration(
+      color: AppPalette.surface,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFFD8E3FA)),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        isExpanded: true,
+        value: _status,
+        icon: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: AppPalette.textMuted,
+        ),
+        style: const TextStyle(
+          color: AppPalette.textStrongBlue,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        items: widget.availableStatuses
+            .map(
+              (s) => DropdownMenuItem(
+                value: s,
+                child: Text(s.isEmpty ? 'All Status' : s.replaceAll('_', ' ')),
+              ),
+            )
+            .toList(),
+        onChanged: (v) {
+          if (v == null) return;
+          setState(() => _status = v);
+          _loadBookings();
+        },
+      ),
+    ),
   );
 
-  Widget _dateBtn() => OutlinedButton.icon(onPressed: () async {
-    final picked = await showDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime(2100), initialDateRange: _dateRange);
-    if (picked != null) { setState(()=>_dateRange = picked); _loadBookings(); }
-  }, icon: const Icon(Icons.date_range), label: Text(_dateRange == null ? 'Select Date Range' : '${_dateRange!.start.toString().split(' ').first} - ${_dateRange!.end.toString().split(' ').first}'));
+  Widget _dateBtn() {
+    final label = _dateRange == null
+        ? 'Select Date Range'
+        : '${_apiDate(_dateRange!.start)} - ${_apiDate(_dateRange!.end)}';
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD8E3FA)),
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () async {
+              final now = DateTime.now();
+              final picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(now.year + 3, 12, 31),
+                initialDateRange: _dateRange,
+              );
+              if (picked == null) return;
+              setState(() => _dateRange = picked);
+              _loadBookings();
+            },
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.date_range_rounded,
+                  size: 18,
+                  color: AppPalette.textStrongBlue,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppPalette.textStrongBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          if (_dateRange != null)
+            InkWell(
+              onTap: () {
+                setState(() => _dateRange = null);
+                _loadBookings();
+              },
+              borderRadius: BorderRadius.circular(999),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: AppPalette.textMuted,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _table(List<_BookingItem> items) => StyledDataTableCard(columns: const [
     DataColumn(label: Text('Post ID')), DataColumn(label: Text('Booking ID')), DataColumn(label: Text('Service Type')), DataColumn(label: Text('Date')), DataColumn(label: Text('Customer Info')), DataColumn(label: Text('Package Price')), DataColumn(label: Text('Paid Amount')), DataColumn(label: Text('Status')), DataColumn(label: Text('Actions')),
