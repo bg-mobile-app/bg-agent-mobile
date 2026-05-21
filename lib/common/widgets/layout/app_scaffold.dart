@@ -19,6 +19,7 @@ import '../../../features/home/my_ads_screen.dart';
 import '../../../features/home/manage_user_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
+import '../../../features/home/receive_payment_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
 import '../../../features/home/commission_screen.dart';
 import '../../../features/reminder/medical_expiry_screen.dart';
@@ -167,6 +168,23 @@ class _DashboardHostScreen extends StatelessWidget {
         return const CheckStatusScreen();
       case '/dashboard/my-payments':
         return const PaymentsScreen();
+      case '/dashboard/receive-payment/all-request-payment':
+        return const ReceivePaymentScreen(
+          currentHref: '/dashboard/receive-payment/all-request-payment',
+          title: 'All Request Payment',
+        );
+      case '/dashboard/receive-payment/approve-payment':
+        return const ReceivePaymentScreen(
+          initialStatus: 'APPROVED',
+          currentHref: '/dashboard/receive-payment/approve-payment',
+          title: 'Approve Payment',
+        );
+      case '/dashboard/receive-payment/receive-payment':
+        return const ReceivePaymentScreen(
+          initialStatus: 'PAID',
+          currentHref: '/dashboard/receive-payment/receive-payment',
+          title: 'Receive Payment',
+        );
       case '/dashboard/commission':
         return const CommissionScreen();
       case '/dashboard/notifications':
