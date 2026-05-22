@@ -90,6 +90,7 @@ class HomeService {
 
       return rawList.map((json) {
         return WorkPermitItem(
+          id: int.tryParse((json['id'] ?? '').toString()),
           title: json['title'] ?? 'Unknown',
           slug: json['slug'] ?? '',
           image: json['image'] ?? 'assets/img/work-permit/1.jpg', // fallback image
@@ -150,6 +151,7 @@ class HomeService {
         final countryFlag = countryData is Map ? countryData['flag'] : (json['countryFlag'] ?? json['country_flag']);
         
         return WorkPermitItem(
+          id: int.tryParse((json['id'] ?? '').toString()),
           title: json['title'] ?? 'Unknown',
           slug: json['slug'] ?? '',
           image: json['image'] ?? 'assets/img/work-permit/1.jpg',

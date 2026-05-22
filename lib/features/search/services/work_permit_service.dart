@@ -30,6 +30,7 @@ class WorkPermitService {
 
       return rawList.map((json) {
         return WorkPermitItem(
+          id: int.tryParse((json['id'] ?? '').toString()),
           title: json['title'] ?? 'Unknown',
           slug: json['slug'] ?? '',
           image: json['image'] ?? 'assets/img/work-permit/1.jpg',

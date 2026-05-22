@@ -28,6 +28,7 @@ class CountryItem {
 
 class WorkPermitItem {
   const WorkPermitItem({
+    this.id,
     required this.title,
     required this.slug,
     required this.image,
@@ -56,6 +57,7 @@ class WorkPermitItem {
   }
 
   final String title;
+  final int? id;
   final String slug;
   final String image;
   final int customerPrice;

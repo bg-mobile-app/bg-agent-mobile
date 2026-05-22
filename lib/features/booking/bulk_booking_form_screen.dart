@@ -73,6 +73,16 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
   }
 
   Future<void> _submit() async {
+    final workPermitRef = widget.item.id != null && widget.item.id! > 0
+        ? widget.item.id
+        : widget.item.slug;
+    if (workPermitRef == null || (workPermitRef is String && workPermitRef.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid work permit data. Please try again from permit details.')),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
     if (!_agreedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,7 +94,7 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
     final payload = _rows
         .map(
           (row) => {
-            'workPermit': widget.item.slug,
+            'workPermit': workPermitRef,
             'name': row.name.text.trim(),
             'phone': row.phone.text.trim(),
             'email': row.email.text.trim(),
