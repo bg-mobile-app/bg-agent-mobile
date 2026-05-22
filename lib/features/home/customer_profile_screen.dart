@@ -19,7 +19,7 @@ class CustomerProfileScreen extends StatefulWidget {
 
 class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final ProfileService _profileService = ProfileService();
-  RecruitingAgencyMeDetailsProps? _agencyProfileData;
+  AgentProfileProps? _agentProfileData;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -35,11 +35,11 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       _errorMessage = null;
     });
     try {
-      final data = await _profileService.getAgencyProfile();
+      final data = await _profileService.getAgentProfile();
       if (!mounted) return;
       if (data != null) {
         setState(() {
-          _agencyProfileData = data;
+          _agentProfileData = data;
           _isLoading = false;
         });
       } else {
@@ -59,28 +59,21 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final placeholderAgencyProfile = RecruitingAgencyMeDetailsProps(
-      id: 0,
+    final placeholderAgencyProfile = AgentProfileProps(
+      user: AgentUser(userCode: 'AGENT-0000', fullName: 'Loading Name', email: 'loading@example.com', phone: '01XXXXXXXXX', status: 'Loading'),
       image: null,
+      gender: 'N/A',
+      dob: 'N/A',
       agencyName: 'Agency Name Loading',
-      status: 'Loading',
-      owner: Owner(id: 0, fullName: 'Owner Name', email: 'owner@example.com', phone: '01XXXXXXXXX'),
       agencyAddress: 'Agency address loading',
-      district: District(name: 'District'),
-      policeStation: PoliceStation(name: 'Police Station'),
-      documents: [Document(rlNo: 'RL-XXXX')],
-      bankInformation: [
-        BankInformation(
-          bankName: 'Bank Name',
-          branchName: 'Branch Name',
-          accountName: 'Account Name',
-          accountNo: '000000000',
-          routingNo: '000000000',
-        ),
-      ],
+      address: 'Address loading',
+      policeStation: 'Police Station',
+      district: 'District',
+      nidImage: 'https://example.com/nid.jpg',
+      tradeLicenseImage: 'https://example.com/trade.jpg',
     );
 
-    final profile = _agencyProfileData ?? placeholderAgencyProfile;
+    final profile = _agentProfileData ?? placeholderAgencyProfile;
 
     return DashboardPageScaffold(
       currentHref: '/dashboard/customer/profile',
@@ -118,15 +111,15 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           _ProfileHeaderCard(profile: profile),
                           const SizedBox(height: 18),
                           const _SectionTitle(
-                            title: 'Agency Details',
-                            subtitle: 'Information related to the recruiting agency',
+                            title: 'Agent Details',
+                            subtitle: 'Information related to your agent profile',
                           ),
                           const SizedBox(height: 12),
                           _BasicInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _ContactInfoCard(profile: profile),
+                          _AgencyInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _BankInfoCard(profile: profile),
+                          _ContactInfoCard(profile: profile),
                           const SizedBox(height: 12),
                           _DocumentsInfoCard(profile: profile),
                           const SizedBox(height: 24),
@@ -198,16 +191,16 @@ class _PageHeading extends StatelessWidget {
 }
 
 class _ProfileHeaderCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
+  final AgentProfileProps profile;
 
   const _ProfileHeaderCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
     final String? image = profile.image;
-    final String title = profile.agencyName.isNotEmpty ? profile.agencyName : 'N/A';
-    final String subtitle = profile.owner?.email ?? 'N/A';
-    final String status = profile.status.isNotEmpty ? profile.status : 'N/A';
+    final String title = profile.user.fullName ?? 'N/A';
+    final String subtitle = profile.user.email ?? 'N/A';
+    final String status = profile.user.status ?? 'N/A';
 
     return Container(
       width: double.infinity,
@@ -345,8 +338,26 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _BasicInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
+  final AgentProfileProps profile;
   const _BasicInfoCard({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      icon: Icons.badge_outlined,
+      title: 'Basic Info',
+      rows: [
+        _InfoRow(label: 'USER CODE', value: profile.user.userCode ?? 'N/A'),
+        _InfoRow(label: 'GENDER', value: profile.gender ?? 'N/A'),
+        _InfoRow(label: 'DATE OF BIRTH', value: profile.dob ?? 'N/A', isLast: true),
+      ],
+    );
+  }
+}
+
+class _AgencyInfoCard extends StatelessWidget {
+  final AgentProfileProps profile;
+  const _AgencyInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
@@ -354,16 +365,15 @@ class _BasicInfoCard extends StatelessWidget {
       icon: Icons.business_outlined,
       title: 'Agency Info',
       rows: [
-        _InfoRow(label: 'AGENCY NAME', value: profile.agencyName.isNotEmpty ? profile.agencyName : 'N/A'),
-        _InfoRow(label: 'OWNER NAME', value: profile.owner?.fullName ?? 'N/A'),
-        _InfoRow(label: 'STATUS', value: profile.status.isNotEmpty ? profile.status : 'N/A', isLast: true),
+        _InfoRow(label: 'AGENCY NAME', value: profile.agencyName ?? 'N/A'),
+        _InfoRow(label: 'AGENCY ADDRESS', value: profile.agencyAddress ?? 'N/A', isLast: true),
       ],
     );
   }
 }
 
 class _ContactInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
+  final AgentProfileProps profile;
   const _ContactInfoCard({required this.profile});
 
   @override
@@ -372,64 +382,28 @@ class _ContactInfoCard extends StatelessWidget {
       icon: Icons.contact_page_outlined,
       title: 'Contact Info',
       rows: [
-        _InfoRow(label: 'EMAIL', value: profile.owner?.email ?? 'N/A'),
-        _InfoRow(label: 'PHONE', value: profile.owner?.phone ?? 'N/A'),
-        _InfoRow(label: 'ADDRESS', value: profile.agencyAddress ?? 'N/A'),
-        _InfoRow(label: 'POLICE STATION', value: profile.policeStation?.name ?? 'N/A'),
-        _InfoRow(label: 'DISTRICT', value: profile.district?.name ?? 'N/A', isLast: true),
+        _InfoRow(label: 'PHONE', value: profile.user.phone ?? 'N/A'),
+        _InfoRow(label: 'RESIDENTIAL ADDRESS', value: profile.address ?? 'N/A'),
+        _InfoRow(label: 'POLICE STATION', value: profile.policeStation ?? 'N/A'),
+        _InfoRow(label: 'DISTRICT', value: profile.district ?? 'N/A', isLast: true),
       ],
     );
   }
 }
 
-class _BankInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
-  const _BankInfoCard({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    List<_InfoRow> bankRows = [];
-    if (profile.bankInformation.isNotEmpty) {
-      final bank = profile.bankInformation.first;
-      bankRows = [
-        _InfoRow(label: 'BANK NAME', value: bank.bankName.isNotEmpty ? bank.bankName : 'N/A'),
-        _InfoRow(label: 'BRANCH NAME', value: bank.branchName.isNotEmpty ? bank.branchName : 'N/A'),
-        _InfoRow(label: 'ACCOUNT NAME', value: bank.accountName.isNotEmpty ? bank.accountName : 'N/A'),
-        _InfoRow(label: 'ACCOUNT NUMBER', value: bank.accountNo.isNotEmpty ? bank.accountNo : 'N/A'),
-        _InfoRow(label: 'ROUTING NUMBER', value: bank.routingNo.isNotEmpty ? bank.routingNo : 'N/A', isLast: true),
-      ];
-    } else {
-      bankRows = [const _InfoRow(label: 'INFO', value: 'No bank information available.', isLast: true)];
-    }
-
-    return _InfoCard(
-      icon: Icons.account_balance_outlined,
-      title: 'Bank Info',
-      rows: bankRows,
-    );
-  }
-}
-
 class _DocumentsInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
+  final AgentProfileProps profile;
   const _DocumentsInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
-    List<_InfoRow> docRows = [];
-    if (profile.documents.isNotEmpty) {
-      final doc = profile.documents.first;
-      docRows = [
-        _InfoRow(label: 'RL NUMBER', value: doc.rlNo ?? 'N/A', isLast: true),
-      ];
-    } else {
-      docRows = [const _InfoRow(label: 'INFO', value: 'No document information available.', isLast: true)];
-    }
-
     return _InfoCard(
       icon: Icons.description_outlined,
       title: 'Documents Info',
-      rows: docRows,
+      rows: [
+        _InfoRow(label: 'NID IMAGE', value: profile.nidImage ?? 'N/A'),
+        _InfoRow(label: 'TRADE LICENSE IMAGE', value: profile.tradeLicenseImage ?? 'N/A', isLast: true),
+      ],
     );
   }
 }
