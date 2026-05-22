@@ -64,7 +64,7 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
             'phone': row.phone.text.trim(),
             'email': row.email.text.trim(),
             'passportNo': row.passportNo.text.trim(),
-            'gender': row.gender.text.trim(),
+            'gender': row.gender?.trim() ?? '',
             'fromCountry': 'BD',
             'toCountry': widget.item.countryName,
             'branch': int.tryParse(row.branch.text.trim()) ?? 0,
@@ -207,11 +207,57 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
             _input(row.phone, 'Phone Number', required: true),
             _input(row.email, 'Email Address (optional)'),
             _input(row.passportNo, 'Passport Number', required: true),
-            _input(row.gender, 'Gender', required: true),
+            _genderDropdown(row),
+            _readonlyInput('From Country', 'Bangladesh (BD)'),
+            _readonlyInput('To Country', widget.item.countryName),
             _input(row.branch, 'Application Center', required: true),
             _input(row.appointmentDate, 'Appointment Date (YYYY-MM-DD)', required: true),
           ],
         ),
+      ),
+    );
+  }
+
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _outline),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _outline),
+      ),
+      isDense: true,
+    );
+  }
+
+  Widget _genderDropdown(_BookingRowData row) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<String>(
+        value: row.gender,
+        validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+        decoration: _inputDecoration('Gender'),
+        items: const [
+          DropdownMenuItem(value: 'FEMALE', child: Text('Female')),
+          DropdownMenuItem(value: 'MALE', child: Text('Male')),
+        ],
+        onChanged: (v) => setState(() => row.gender = v),
+      ),
+    );
+  }
+
+  Widget _readonlyInput(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        initialValue: value,
+        readOnly: true,
+        decoration: _inputDecoration(label),
       ),
     );
   }
@@ -222,11 +268,7 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
       child: TextFormField(
         controller: controller,
         validator: (v) => required && (v == null || v.trim().isEmpty) ? 'Required' : null,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          isDense: true,
-        ),
+        decoration: _inputDecoration(label),
       ),
     );
   }
@@ -237,7 +279,7 @@ class _BookingRowData {
   final phone = TextEditingController();
   final email = TextEditingController();
   final passportNo = TextEditingController();
-  final gender = TextEditingController();
+  String? gender;
   final branch = TextEditingController();
   final appointmentDate = TextEditingController();
 
@@ -246,7 +288,6 @@ class _BookingRowData {
     phone.dispose();
     email.dispose();
     passportNo.dispose();
-    gender.dispose();
     branch.dispose();
     appointmentDate.dispose();
   }
