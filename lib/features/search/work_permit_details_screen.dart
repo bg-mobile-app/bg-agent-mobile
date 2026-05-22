@@ -62,6 +62,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       status: 'Active',
       customerPrice: 150000,
       agentPrice: 120000,
+      packagePrice: 115000,
       countryName: widget.item.countryName,
       countryFlag: '',
       image: widget.item.image,
@@ -630,6 +631,9 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
   }
 
   Widget _priceCard() {
+    final agentPrice = displayDetails.agentPrice;
+    final packagePrice = displayDetails.packagePrice;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -693,6 +697,22 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
             ],
           ),
           const SizedBox(height: 16),
+          if (agentPrice != null || packagePrice != null) ...[
+            Container(height: 1, color: Colors.white24),
+            const SizedBox(height: 14),
+            if (agentPrice != null)
+              _privatePriceRow(
+                title: 'Agent Price',
+                value: 'BDT ${_formatMoney(agentPrice)}',
+              ),
+            if (agentPrice != null && packagePrice != null) const SizedBox(height: 8),
+            if (packagePrice != null)
+              _privatePriceRow(
+                title: 'Package Price',
+                value: 'BDT ${_formatMoney(packagePrice)}',
+              ),
+            const SizedBox(height: 14),
+          ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
@@ -722,6 +742,31 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _privatePriceRow({required String title, required String value}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xCCFFFFFF),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
     );
   }
 

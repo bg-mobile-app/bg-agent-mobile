@@ -60,7 +60,8 @@ class WorkPermitDetails {
   final String slug;
   final String status;
   final int customerPrice;
-  final int agentPrice;
+  final int? agentPrice;
+  final int? packagePrice;
   final String countryName;
   final String countryFlag;
   final String image;
@@ -104,6 +105,7 @@ class WorkPermitDetails {
     required this.status,
     required this.customerPrice,
     required this.agentPrice,
+    required this.packagePrice,
     required this.countryName,
     required this.countryFlag,
     required this.image,
@@ -148,7 +150,8 @@ class WorkPermitDetails {
       slug: json['slug'] ?? '',
       status: json['status'] ?? '',
       customerPrice: _parseInt(json['customerPrice'] ?? json['customer_price']),
-      agentPrice: _parseInt(json['agentPrice'] ?? json['agent_price']),
+      agentPrice: _parseNullableInt(json['agentPrice'] ?? json['agent_price']),
+      packagePrice: _parseNullableInt(json['packagePrice'] ?? json['package_price']),
       countryName: json['countryName'] ?? json['country_name'] ?? 'Unknown',
       countryFlag: json['countryFlag'] ?? json['country_flag'] ?? '',
       image: json['image'] ?? '',
@@ -198,6 +201,14 @@ class WorkPermitDetails {
     if (value is double) return value.toInt();
     if (value is String) return double.tryParse(value)?.toInt() ?? 0;
     return 0;
+  }
+
+  static int? _parseNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return double.tryParse(value)?.toInt();
+    return null;
   }
 
   static String _parseSelfCompany(dynamic value) {
