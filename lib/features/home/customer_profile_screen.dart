@@ -399,19 +399,15 @@ class _DocumentsInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? nidImage = profile.documents.isNotEmpty ? profile.documents.first.nidImage : null;
+    final String? tradeLicenseImage = profile.documents.isNotEmpty ? profile.documents.first.tradeLicenseImage : null;
+
     return _InfoCard(
       icon: Icons.description_outlined,
       title: 'Documents Info',
       rows: [
-        _InfoRow(
-          label: 'NID IMAGE',
-          value: (profile.documents.isNotEmpty ? profile.documents.first.nidImage : null) ?? 'N/A',
-        ),
-        _InfoRow(
-          label: 'TRADE LICENSE IMAGE',
-          value: (profile.documents.isNotEmpty ? profile.documents.first.tradeLicenseImage : null) ?? 'N/A',
-          isLast: true,
-        ),
+        _DocumentImageRow(label: 'NID IMAGE', imageUrl: nidImage),
+        _DocumentImageRow(label: 'TRADE LICENSE IMAGE', imageUrl: tradeLicenseImage, isLast: true),
       ],
     );
   }
@@ -520,6 +516,86 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DocumentImageRow extends StatelessWidget {
+  const _DocumentImageRow({
+    required this.label,
+    required this.imageUrl,
+    this.isLast = false,
+  });
+
+  final String label;
+  final String? imageUrl;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: isLast ? Colors.transparent : AppPalette.borderNeutral,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppPalette.textMuted,
+                letterSpacing: 0.7,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _DocumentPreview(imageUrl: imageUrl),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DocumentPreview extends StatelessWidget {
+  const _DocumentPreview({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrl == null || imageUrl!.trim().isEmpty) {
+      return const Text('N/A', style: TextStyle(fontSize: 15, color: AppPalette.textPrimary, fontWeight: FontWeight.w600));
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        imageUrl!,
+        width: 88,
+        height: 60,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: 88,
+          height: 60,
+          color: const Color(0xFFE2E8F0),
+          alignment: Alignment.center,
+          child: const Icon(Icons.broken_image_outlined, color: AppPalette.textMuted),
+        ),
       ),
     );
   }
