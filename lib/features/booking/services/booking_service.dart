@@ -139,11 +139,39 @@ Future<MyAppointmentsResponse> getMyAppointments({
 
   Future<void> submitBulkWorkPermitBookings(List<Map<String, dynamic>> payload) async {
     try {
-      await _apiClient.post('/booking/wp/', data: payload);
+      final normalizedPayload = <Map<String, dynamic>>[];
+      for (final item in payload) {
+        final normalized = Map<String, dynamic>.from(item);
+        normalized['workPermit'] = await _resolveWorkPermitPk(item['workPermit']);
+        normalizedPayload.add(normalized);
+      }
+      await _apiClient.post('/booking/wp/', data: normalizedPayload);
     } catch (e, stacktrace) {
       debugPrint('Error submitting bulk work permit bookings: $e\n$stacktrace');
       rethrow;
     }
+  }
+
+  Future<int> _resolveWorkPermitPk(dynamic workPermitValue) async {
+    if (workPermitValue is int && workPermitValue > 0) return workPermitValue;
+    if (workPermitValue is String) {
+      final trimmed = workPermitValue.trim();
+      if (trimmed.isEmpty) {
+        throw const FormatException('Work permit reference cannot be empty.');
+      }
+
+      final parsed = int.tryParse(trimmed);
+      if (parsed != null && parsed > 0) return parsed;
+
+      final response = await _apiClient.get('/work-permits/$trimmed/');
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        final resolvedId = _toInt(data['id']);
+        if (resolvedId > 0) return resolvedId;
+      }
+      throw FormatException('Unable to resolve work permit slug: $trimmed');
+    }
+    throw FormatException('Unsupported work permit reference type: ${workPermitValue.runtimeType}');
   }
 
 
