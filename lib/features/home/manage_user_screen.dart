@@ -312,7 +312,7 @@ class _UserTableCard extends StatelessWidget {
             if (isAdmin)
               DataCell(
                 TextButton(
-                  onPressed: hasPermission ? () {} : null,
+                  onPressed: hasPermission ? () => context.go('/dashboard/user/manage-user/activity/${member.userId}') : null,
                   style: TextButton.styleFrom(
                     backgroundColor: const Color(0xFFE9EDFF),
                     elevation: 0,
@@ -567,7 +567,7 @@ class _CardGrid extends StatelessWidget {
                     children: [
                       if (isAdmin) ...[
                         TextButton(
-                          onPressed: hasPermission ? () {} : null,
+                          onPressed: hasPermission ? () => context.go('/dashboard/user/manage-user/activity/${m.userId}') : null,
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: const Size(50, 30),

@@ -21,6 +21,7 @@ import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/home/receive_payment_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
+import '../../../features/home/user_activity_screen.dart';
 import '../../../features/home/commission_screen.dart';
 import '../../../features/reminder/medical_expiry_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
@@ -194,6 +195,10 @@ class _DashboardHostScreen extends StatelessWidget {
       case '/dashboard/terms-and-conditions':
         return const TermsConditionsScreen();
       default:
+        if (route.startsWith('/dashboard/user/manage-user/activity/')) {
+          final userId = route.substring('/dashboard/user/manage-user/activity/'.length);
+          return UserActivityScreen(userId: userId);
+        }
         if (route.startsWith('/dashboard/user/create-user/')) {
           final userId = route.substring('/dashboard/user/create-user/'.length);
           return CreateUserScreen(userId: userId);
