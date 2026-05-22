@@ -1,9 +1,12 @@
 class RecruitingAgencyMeDetailsProps {
   final AgentUser? owner;
   final String? image;
+  final String? gender;
+  final String? dob;
   final String? agencyName;
   final String? agencyPhone;
   final String? agencyAddress;
+  final String? address;
   final RecruitingAgencyLocation? district;
   final RecruitingAgencyLocation? policeStation;
   final List<RecruitingAgencyBankInformation> bankInformation;
@@ -12,9 +15,12 @@ class RecruitingAgencyMeDetailsProps {
   RecruitingAgencyMeDetailsProps({
     this.owner,
     this.image,
+    this.gender,
+    this.dob,
     this.agencyName,
     this.agencyPhone,
     this.agencyAddress,
+    this.address,
     this.district,
     this.policeStation,
     this.bankInformation = const [],
@@ -29,23 +35,22 @@ class RecruitingAgencyMeDetailsProps {
               ? AgentUser.fromJson(json['user'] as Map<String, dynamic>)
               : null),
       image: _readNullableString(json, const ['image']),
+      gender: _readNullableString(json, const ['gender']),
+      dob: _readNullableString(json, const ['dob', 'date_of_birth']),
       agencyName: _readNullableString(json, const ['agencyName', 'agency_name']),
       agencyPhone: _readNullableString(json, const ['agencyPhone', 'agency_phone']),
       agencyAddress: _readNullableString(json, const ['agencyAddress', 'agency_address']),
-      district: json['district'] is Map<String, dynamic>
-          ? RecruitingAgencyLocation.fromJson(json['district'] as Map<String, dynamic>)
-          : null,
+      address: _readNullableString(json, const ['address']),
+      district: _locationFromJsonOrString(json, const ['district']),
       policeStation: json['policeStation'] is Map<String, dynamic>
           ? RecruitingAgencyLocation.fromJson(json['policeStation'] as Map<String, dynamic>)
           : (json['police_station'] is Map<String, dynamic>
               ? RecruitingAgencyLocation.fromJson(json['police_station'] as Map<String, dynamic>)
-              : null),
+              : _locationFromJsonOrString(json, const ['policeStation', 'police_station'])),
       bankInformation: _toList(json, const ['bankInformation', 'bank_information'])
           .map((e) => RecruitingAgencyBankInformation.fromJson(e))
           .toList(),
-      documents: _toList(json, const ['documents'])
-          .map((e) => RecruitingAgencyDocument.fromJson(e))
-          .toList(),
+      documents: _extractDocuments(json),
     );
   }
 }
@@ -179,6 +184,40 @@ List<Map<String, dynamic>> _toList(Map<String, dynamic> json, List<String> keys)
       return value.whereType<Map<String, dynamic>>().toList();
     }
   }
+  return const [];
+}
+
+RecruitingAgencyLocation? _locationFromJsonOrString(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is Map<String, dynamic>) {
+      return RecruitingAgencyLocation.fromJson(value);
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      return RecruitingAgencyLocation(name: value);
+    }
+  }
+  return null;
+}
+
+List<RecruitingAgencyDocument> _extractDocuments(Map<String, dynamic> json) {
+  final parsedDocuments = _toList(json, const ['documents']).map((e) => RecruitingAgencyDocument.fromJson(e)).toList();
+  final nidImage = _readNullableString(json, const ['nidImage', 'nid_image']);
+  final tradeLicenseImage = _readNullableString(json, const ['tradeLicenseImage', 'trade_license_image']);
+
+  if (parsedDocuments.isNotEmpty) {
+    return parsedDocuments;
+  }
+
+  if (nidImage != null || tradeLicenseImage != null) {
+    return [
+      RecruitingAgencyDocument(
+        nidImage: nidImage,
+        tradeLicenseImage: tradeLicenseImage,
+      ),
+    ];
+  }
+
   return const [];
 }
 
