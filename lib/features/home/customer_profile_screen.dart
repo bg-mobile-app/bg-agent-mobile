@@ -66,7 +66,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       agencyAddress: 'Agency address loading',
       policeStation: RecruitingAgencyLocation(name: 'Police Station'),
       district: RecruitingAgencyLocation(name: 'District'),
-      documents: const [
+      documents: [
         RecruitingAgencyDocument(
           nidImage: 'https://example.com/nid.jpg',
           tradeLicenseImage: 'https://example.com/trade.jpg',
