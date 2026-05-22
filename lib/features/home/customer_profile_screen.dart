@@ -19,7 +19,7 @@ class CustomerProfileScreen extends StatefulWidget {
 
 class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final ProfileService _profileService = ProfileService();
-  AgentProfileProps? _agentProfileData;
+  RecruitingAgencyMeDetailsProps? _agentProfileData;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -59,18 +59,19 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final placeholderAgencyProfile = AgentProfileProps(
-      user: AgentUser(userCode: 'AGENT-0000', fullName: 'Loading Name', email: 'loading@example.com', phone: '01XXXXXXXXX', status: 'Loading'),
+    final placeholderAgencyProfile = RecruitingAgencyMeDetailsProps(
+      owner: AgentUser(userCode: 'AGENT-0000', fullName: 'Loading Name', email: 'loading@example.com', phone: '01XXXXXXXXX', status: 'Loading'),
       image: null,
-      gender: 'N/A',
-      dob: 'N/A',
       agencyName: 'Agency Name Loading',
       agencyAddress: 'Agency address loading',
-      address: 'Address loading',
-      policeStation: 'Police Station',
-      district: 'District',
-      nidImage: 'https://example.com/nid.jpg',
-      tradeLicenseImage: 'https://example.com/trade.jpg',
+      policeStation: RecruitingAgencyLocation(name: 'Police Station'),
+      district: RecruitingAgencyLocation(name: 'District'),
+      documents: const [
+        RecruitingAgencyDocument(
+          nidImage: 'https://example.com/nid.jpg',
+          tradeLicenseImage: 'https://example.com/trade.jpg',
+        ),
+      ],
     );
 
     final profile = _agentProfileData ?? placeholderAgencyProfile;
@@ -191,16 +192,16 @@ class _PageHeading extends StatelessWidget {
 }
 
 class _ProfileHeaderCard extends StatelessWidget {
-  final AgentProfileProps profile;
+  final RecruitingAgencyMeDetailsProps profile;
 
   const _ProfileHeaderCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
     final String? image = profile.image;
-    final String title = profile.user.fullName ?? 'N/A';
-    final String subtitle = profile.user.email ?? 'N/A';
-    final String status = profile.user.status ?? 'N/A';
+    final String title = profile.owner?.fullName ?? 'N/A';
+    final String subtitle = profile.owner?.email ?? 'N/A';
+    final String status = profile.owner?.status ?? 'N/A';
 
     return Container(
       width: double.infinity,
@@ -338,7 +339,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _BasicInfoCard extends StatelessWidget {
-  final AgentProfileProps profile;
+  final RecruitingAgencyMeDetailsProps profile;
   const _BasicInfoCard({required this.profile});
 
   @override
@@ -347,16 +348,16 @@ class _BasicInfoCard extends StatelessWidget {
       icon: Icons.badge_outlined,
       title: 'Basic Info',
       rows: [
-        _InfoRow(label: 'USER CODE', value: profile.user.userCode ?? 'N/A'),
-        _InfoRow(label: 'GENDER', value: profile.gender ?? 'N/A'),
-        _InfoRow(label: 'DATE OF BIRTH', value: profile.dob ?? 'N/A', isLast: true),
+        _InfoRow(label: 'USER CODE', value: profile.owner?.userCode ?? 'N/A'),
+        _InfoRow(label: 'GENDER', value: 'N/A'),
+        _InfoRow(label: 'DATE OF BIRTH', value: 'N/A', isLast: true),
       ],
     );
   }
 }
 
 class _AgencyInfoCard extends StatelessWidget {
-  final AgentProfileProps profile;
+  final RecruitingAgencyMeDetailsProps profile;
   const _AgencyInfoCard({required this.profile});
 
   @override
@@ -373,7 +374,7 @@ class _AgencyInfoCard extends StatelessWidget {
 }
 
 class _ContactInfoCard extends StatelessWidget {
-  final AgentProfileProps profile;
+  final RecruitingAgencyMeDetailsProps profile;
   const _ContactInfoCard({required this.profile});
 
   @override
@@ -382,17 +383,17 @@ class _ContactInfoCard extends StatelessWidget {
       icon: Icons.contact_page_outlined,
       title: 'Contact Info',
       rows: [
-        _InfoRow(label: 'PHONE', value: profile.user.phone ?? 'N/A'),
-        _InfoRow(label: 'RESIDENTIAL ADDRESS', value: profile.address ?? 'N/A'),
-        _InfoRow(label: 'POLICE STATION', value: profile.policeStation ?? 'N/A'),
-        _InfoRow(label: 'DISTRICT', value: profile.district ?? 'N/A', isLast: true),
+        _InfoRow(label: 'PHONE', value: profile.owner?.phone ?? 'N/A'),
+        _InfoRow(label: 'RESIDENTIAL ADDRESS', value: profile.agencyAddress ?? 'N/A'),
+        _InfoRow(label: 'POLICE STATION', value: profile.policeStation?.name ?? 'N/A'),
+        _InfoRow(label: 'DISTRICT', value: profile.district?.name ?? 'N/A', isLast: true),
       ],
     );
   }
 }
 
 class _DocumentsInfoCard extends StatelessWidget {
-  final AgentProfileProps profile;
+  final RecruitingAgencyMeDetailsProps profile;
   const _DocumentsInfoCard({required this.profile});
 
   @override
@@ -401,8 +402,8 @@ class _DocumentsInfoCard extends StatelessWidget {
       icon: Icons.description_outlined,
       title: 'Documents Info',
       rows: [
-        _InfoRow(label: 'NID IMAGE', value: profile.nidImage ?? 'N/A'),
-        _InfoRow(label: 'TRADE LICENSE IMAGE', value: profile.tradeLicenseImage ?? 'N/A', isLast: true),
+        _InfoRow(label: 'NID IMAGE', value: (profile.documents.isNotEmpty ? profile.documents.first.nidImage : null) ?? 'N/A'),
+        _InfoRow(label: 'TRADE LICENSE IMAGE', value: (profile.documents.isNotEmpty ? profile.documents.first.tradeLicenseImage : null) ?? 'N/A', isLast: true),
       ],
     );
   }

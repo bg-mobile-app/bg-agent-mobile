@@ -90,7 +90,7 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         _existingRlLicenseUrl = doc?.rlLicenseImage;
         _existingCivilAviationLicenseUrl = doc?.civilAviationLicenseImage;
 
-        _agencyNameController.text = profile.agencyName;
+        _agencyNameController.text = profile.agencyName ?? '';
         _agencyPhoneController.text = profile.agencyPhone ?? profile.owner?.phone ?? '';
         _agencyAddressController.text = profile.agencyAddress ?? '';
         _bankNameController.text = bank?.bankName ?? '';
