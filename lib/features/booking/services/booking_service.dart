@@ -6,7 +6,7 @@ class BookingService {
 
   Future<List<BranchItem>> getBranches() async {
     try {
-      final response = await _apiClient.get('/main/branch');
+      final response = await _apiClient.get('/main/branch/');
       final data = response.data;
       if (data is List) {
         return data
@@ -139,7 +139,11 @@ Future<MyAppointmentsResponse> getMyAppointments({
 
   Future<void> submitBulkWorkPermitBookings(List<Map<String, dynamic>> payload) async {
     try {
-      await _apiClient.post('/booking/wp/', data: payload);
+      // The backend appears to reject the entire List payload with a generic validation error.
+      // We will loop through the applications and submit them one by one.
+      for (var data in payload) {
+        await _apiClient.post('/booking/wp/', data: data);
+      }
     } catch (e, stacktrace) {
       debugPrint('Error submitting bulk work permit bookings: $e\n$stacktrace');
       rethrow;

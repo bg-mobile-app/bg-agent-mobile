@@ -100,6 +100,7 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
         .toList();
 
     setState(() => _isSubmitting = true);
+    debugPrint('Submitting bulk booking payload: $payload');
     try {
       await _bookingService.submitBulkWorkPermitBookings(payload);
       if (!mounted) return;
@@ -108,6 +109,7 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
       );
       Navigator.of(context).pop();
     } on ApiException catch (e) {
+      debugPrint('Validation Error caught in submit: ${e.data}');
       if (!mounted) return;
       final message = _extractErrorMessage(e);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
