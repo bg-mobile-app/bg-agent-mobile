@@ -27,7 +27,15 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
   final List<_BookingRowData> _rows = [_BookingRowData()];
   bool _agreedTerms = false;
   bool _isSubmitting = false;
+  bool _isLoadingBranches = true;
   final BookingService _bookingService = BookingService();
+  List<BranchItem> _branches = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBranches();
+  }
 
   @override
   void dispose() {
@@ -39,6 +47,23 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
 
   void _addRow() => setState(() => _rows.add(_BookingRowData()));
 
+  Future<void> _loadBranches() async {
+    try {
+      final branches = await _bookingService.getBranches();
+      if (!mounted) return;
+      setState(() {
+        _branches = branches;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load application centers.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoadingBranches = false);
+    }
+  }
+
   void _removeRow(int index) {
     if (_rows.length <= 1) return;
     setState(() {
@@ -48,6 +73,14 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
   }
 
   Future<void> _submit() async {
+    final workPermitId = widget.item.id;
+    if (workPermitId == null || workPermitId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid work permit data. Please try again from permit details.')),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
     if (!_agreedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,15 +92,15 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
     final payload = _rows
         .map(
           (row) => {
-            'workPermit': widget.item.slug,
+            'workPermit': workPermitId,
             'name': row.name.text.trim(),
             'phone': row.phone.text.trim(),
             'email': row.email.text.trim(),
             'passportNo': row.passportNo.text.trim(),
-            'gender': row.gender.text.trim(),
+            'gender': row.gender?.trim() ?? '',
             'fromCountry': 'BD',
             'toCountry': widget.item.countryName,
-            'branch': int.tryParse(row.branch.text.trim()) ?? 0,
+            'branch': row.branchId ?? 0,
             'appointmentDate': row.appointmentDate.text.trim(),
             'isPrivacyTerms': _agreedTerms,
           },
@@ -207,11 +240,57 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
             _input(row.phone, 'Phone Number', required: true),
             _input(row.email, 'Email Address (optional)'),
             _input(row.passportNo, 'Passport Number', required: true),
-            _input(row.gender, 'Gender', required: true),
-            _input(row.branch, 'Application Center', required: true),
-            _input(row.appointmentDate, 'Appointment Date (YYYY-MM-DD)', required: true),
+            _genderDropdown(row),
+            _readonlyInput('From Country', 'Bangladesh (BD)'),
+            _readonlyInput('To Country', widget.item.countryName),
+            _branchDropdown(row),
+            _datePickerInput(row),
           ],
         ),
+      ),
+    );
+  }
+
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _outline),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _outline),
+      ),
+      isDense: true,
+    );
+  }
+
+  Widget _genderDropdown(_BookingRowData row) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<String>(
+        value: row.gender,
+        validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+        decoration: _inputDecoration('Gender'),
+        items: const [
+          DropdownMenuItem(value: 'FEMALE', child: Text('Female')),
+          DropdownMenuItem(value: 'MALE', child: Text('Male')),
+        ],
+        onChanged: (v) => setState(() => row.gender = v),
+      ),
+    );
+  }
+
+  Widget _readonlyInput(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        initialValue: value,
+        readOnly: true,
+        decoration: _inputDecoration(label),
       ),
     );
   }
@@ -222,11 +301,49 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
       child: TextFormField(
         controller: controller,
         validator: (v) => required && (v == null || v.trim().isEmpty) ? 'Required' : null,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          isDense: true,
+        decoration: _inputDecoration(label),
+      ),
+    );
+  }
+
+  Widget _branchDropdown(_BookingRowData row) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<int>(
+        value: row.branchId,
+        validator: (v) => v == null || v <= 0 ? 'Required' : null,
+        decoration: _inputDecoration('Application Center'),
+        items: _branches
+            .map((branch) => DropdownMenuItem<int>(value: branch.id, child: Text(branch.name)))
+            .toList(),
+        onChanged: _isLoadingBranches ? null : (v) => setState(() => row.branchId = v),
+      ),
+    );
+  }
+
+  Widget _datePickerInput(_BookingRowData row) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        controller: row.appointmentDate,
+        readOnly: true,
+        validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+        decoration: _inputDecoration('Appointment Date').copyWith(
+          suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
         ),
+        onTap: () async {
+          final now = DateTime.now();
+          final pickedDate = await showDatePicker(
+            context: context,
+            firstDate: DateTime(now.year - 1),
+            lastDate: DateTime(now.year + 5),
+            initialDate: now,
+          );
+          if (pickedDate == null) return;
+          final month = pickedDate.month.toString().padLeft(2, '0');
+          final day = pickedDate.day.toString().padLeft(2, '0');
+          row.appointmentDate.text = '${pickedDate.year}-$month-$day';
+        },
       ),
     );
   }
@@ -237,8 +354,8 @@ class _BookingRowData {
   final phone = TextEditingController();
   final email = TextEditingController();
   final passportNo = TextEditingController();
-  final gender = TextEditingController();
-  final branch = TextEditingController();
+  String? gender;
+  int? branchId;
   final appointmentDate = TextEditingController();
 
   void dispose() {
@@ -246,8 +363,6 @@ class _BookingRowData {
     phone.dispose();
     email.dispose();
     passportNo.dispose();
-    gender.dispose();
-    branch.dispose();
     appointmentDate.dispose();
   }
 }

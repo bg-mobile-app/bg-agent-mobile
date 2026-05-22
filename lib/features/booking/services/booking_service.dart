@@ -4,6 +4,23 @@ import '../../../common/services/api_client.dart';
 class BookingService {
   final ApiClient _apiClient = ApiClient();
 
+  Future<List<BranchItem>> getBranches() async {
+    try {
+      final response = await _apiClient.get('/main/branch');
+      final data = response.data;
+      if (data is List) {
+        return data
+            .whereType<Map>()
+            .map((item) => BranchItem.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+      throw Exception('Invalid response type: ${data.runtimeType}');
+    } catch (e, stacktrace) {
+      debugPrint('Error fetching branches: $e\n$stacktrace');
+      rethrow;
+    }
+  }
+
   Future<ReceiveBookingsResponse> getReceiveBookings({
     required String status,
     required int page,
@@ -130,6 +147,26 @@ Future<MyAppointmentsResponse> getMyAppointments({
   }
 
 
+}
+
+class BranchItem {
+  const BranchItem({
+    required this.id,
+    required this.name,
+    this.address,
+  });
+
+  factory BranchItem.fromJson(Map<String, dynamic> json) {
+    return BranchItem(
+      id: _toInt(json['id']),
+      name: _pickString(json, const ['name'], fallback: 'Unknown Branch'),
+      address: _pickNullableString(json, const ['address']),
+    );
+  }
+
+  final int id;
+  final String name;
+  final String? address;
 }
 
 class ReceiveBookingsResponse {
