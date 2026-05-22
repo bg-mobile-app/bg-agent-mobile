@@ -52,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'assets/img/ads/1.png',
   ];
   List<WorkPermitItem> _workPermits = [];
+  List<WorkPermitItem> _filteredWorkPermits = [];
 
   @override
   void initState() {
@@ -99,9 +100,49 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         _workPermits = results[3] as List<WorkPermitItem>;
+        _filteredWorkPermits = List<WorkPermitItem>.from(_workPermits);
         _isLoading = false;
       });
     }
+  }
+
+  bool get _hasActiveFilters {
+    return (_country?.isNotEmpty ?? false) ||
+        (_workType?.isNotEmpty ?? false) ||
+        _serviceType != 'WORK_PERMIT' ||
+        _selectionType != 'All' ||
+        _companyController.text.trim().isNotEmpty ||
+        _minAgeController.text.trim().isNotEmpty ||
+        _maxAgeController.text.trim().isNotEmpty ||
+        _fromDate != null ||
+        _toDate != null;
+  }
+
+  void _applyFilters() {
+    final company = _companyController.text.trim().toLowerCase();
+    final minAge = int.tryParse(_minAgeController.text.trim());
+    final maxAge = int.tryParse(_maxAgeController.text.trim());
+    final now = DateTime.now();
+
+    final filtered = _workPermits.where((item) {
+      if ((_country?.isNotEmpty ?? false) && item.countryName != _country) return false;
+      if ((_workType?.isNotEmpty ?? false) && item.workType != _workType) return false;
+      if (_selectionType != 'All' && item.selectionType.toLowerCase() != _selectionType.toLowerCase()) return false;
+      if (company.isNotEmpty && !item.title.toLowerCase().contains(company)) return false;
+      if (_fromDate != null && item.createdAt.isBefore(_fromDate!)) return false;
+      if (_toDate != null) {
+        final endOfDay = DateTime(_toDate!.year, _toDate!.month, _toDate!.day, 23, 59, 59);
+        if (item.createdAt.isAfter(endOfDay)) return false;
+      }
+      if (minAge != null || maxAge != null) {
+        final age = now.difference(item.createdAt).inDays ~/ 365;
+        if (minAge != null && age < minAge) return false;
+        if (maxAge != null && age > maxAge) return false;
+      }
+      return true;
+    }).toList();
+
+    setState(() => _filteredWorkPermits = filtered);
   }
 
   @override
@@ -172,8 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     value: _serviceType,
                     hint: 'Service Type',
                     items: const ['WORK_PERMIT'],
-                    onChanged: (v) =>
-                        setState(() => _serviceType = v ?? 'WORK_PERMIT'),
+                    onChanged: (v) => setState(() => _serviceType = v ?? 'WORK_PERMIT'),
                   ),
                   const SizedBox(height: AppSpacing.xs + 2),
                   Row(
@@ -221,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        _showComingSoon();
+                        _applyFilters();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _brandBlue,
@@ -263,8 +303,19 @@ class _HomeScreenState extends State<HomeScreen> {
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _buildHeroSection()),
-              SliverToBoxAdapter(child: _buildOfferBanner()),
-              SliverToBoxAdapter(child: _buildServices()),
+              SliverToBoxAdapter(
+                child: AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 300),
+                  crossFadeState: _hasActiveFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                  firstChild: Column(
+                    children: [
+                      _buildOfferBanner(),
+                      _buildServices(),
+                    ],
+                  ),
+                  secondChild: const SizedBox.shrink(),
+                ),
+              ),
               SliverToBoxAdapter(child: _buildWorkPermitSection()),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
@@ -291,7 +342,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 value: _country,
                 hint: 'Country Name',
                 items: _countries,
-                onChanged: (v) => setState(() => _country = v),
+                onChanged: (v) {
+                  setState(() => _country = v);
+                  _applyFilters();
+                },
               ),
             ),
             const SizedBox(width: 8),
@@ -300,7 +354,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 value: _workType,
                 hint: 'Type of Work',
                 items: _workTypes.map((e) => e.name).toList(),
-                onChanged: (v) => setState(() => _workType = v),
+                onChanged: (v) {
+                  setState(() => _workType = v);
+                  _applyFilters();
+                },
               ),
             ),
             const SizedBox(width: 10),
@@ -321,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.tune, color: AppPalette.appcolor, size: 20),
+                child: const Icon(Icons.tune, color: Colors.white, size: 20),
               ),
             ),
           ],
@@ -421,11 +478,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWorkPermitSection() {
-    if (_workPermits.isEmpty && !_isLoading) {
+    if (_filteredWorkPermits.isEmpty && !_isLoading) {
       return const SizedBox.shrink();
     }
-    
-    final displayItems = _isLoading ? List.generate(4, (_) => WorkPermitItem.getDummy()) : _workPermits;
+
+    final displayItems = _isLoading ? List.generate(4, (_) => WorkPermitItem.getDummy()) : _filteredWorkPermits;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -433,26 +490,39 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _sectionHeader('Work Permit', actionLabel: 'See More', onActionTap: () => context.push('/search')),
           const SizedBox(height: 14),
-          SizedBox(
-            height: 540,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: displayItems.length,
-              itemBuilder: (context, index) {
-                final double screenWidth = MediaQuery.of(context).size.width;
-                final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
-                return SizedBox(
-                  width: cardWidth,
-                  child: WorkPermitCard(
-                    item: displayItems[index],
-                    brandBlue: _brandBlue,
-                    onViewDetails: _showComingSoon,
-                    formatBdt: _formatBdt,
-                    timeAgo: _timeAgo,
-                  ),
-                );
-              },
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            transitionBuilder: (child, animation) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.08),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: SizedBox(
+              key: ValueKey<bool>(_hasActiveFilters),
+              height: _hasActiveFilters ? 680 : 540,
+              child: ListView.separated(
+                scrollDirection: _hasActiveFilters ? Axis.vertical : Axis.horizontal,
+                itemCount: displayItems.length,
+                itemBuilder: (context, index) {
+                  final double screenWidth = MediaQuery.of(context).size.width;
+                  final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
+                  return SizedBox(
+                    width: _hasActiveFilters ? double.infinity : cardWidth,
+                    child: WorkPermitCard(
+                      item: displayItems[index],
+                      brandBlue: _brandBlue,
+                      onViewDetails: _showComingSoon,
+                      formatBdt: _formatBdt,
+                      timeAgo: _timeAgo,
+                    ),
+                  );
+                },
+                separatorBuilder: (_, __) => SizedBox(height: _hasActiveFilters ? 14 : 0, width: _hasActiveFilters ? 0 : 14),
+              ),
             ),
           ),
         ],
