@@ -6,6 +6,7 @@ import '../home/models/home_models.dart';
 import '../home/widgets/work_permit_card.dart';
 import 'models/work_permit_details.dart';
 import 'services/work_permit_service.dart';
+import '../booking/bulk_booking_form_screen.dart';
 
 const Color _brandBlue = Color(0xFF2563EB);
 const Color _primary = Color(0xFF004AC6);
@@ -884,8 +885,13 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () =>
-                        _showMessage(context, 'Application process coming soon'),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => BulkBookingFormScreen(item: widget.item),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _brandBlue,
                       foregroundColor: Colors.white,

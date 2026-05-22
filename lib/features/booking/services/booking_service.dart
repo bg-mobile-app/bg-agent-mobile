@@ -120,6 +120,16 @@ Future<MyAppointmentsResponse> getMyAppointments({
     }
   }
 
+  Future<void> submitBulkWorkPermitBookings(List<Map<String, dynamic>> payload) async {
+    try {
+      await _apiClient.post('/booking/wp/', data: payload);
+    } catch (e, stacktrace) {
+      debugPrint('Error submitting bulk work permit bookings: $e\n$stacktrace');
+      rethrow;
+    }
+  }
+
+
 }
 
 class ReceiveBookingsResponse {
