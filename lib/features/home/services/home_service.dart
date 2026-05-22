@@ -130,9 +130,13 @@ class HomeService {
       if (fromDate != null && fromDate.isNotEmpty) queryParams['from_date'] = fromDate;
       if (toDate != null && toDate.isNotEmpty) queryParams['to_date'] = toDate;
 
+      debugPrint("FILTER API CALL: /filter/ with params: $queryParams");
+
       final response = await _apiClient.get('/filter/', queryParameters: queryParams);
       
       final data = response.data;
+      debugPrint("FILTER API RESPONSE DATA: $data");
+
       List rawList = [];
       if (data is List) {
         rawList = data;

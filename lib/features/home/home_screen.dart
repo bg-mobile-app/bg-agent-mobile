@@ -147,6 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
       toDate: toDateStr,
     );
 
+    debugPrint("HOME SCREEN: Received ${filtered.length} filtered items from API.");
+
     if (mounted) {
       setState(() {
         _filteredWorkPermits = filtered;
@@ -522,6 +524,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
                   return SizedBox(
                     width: _hasActiveFilters ? double.infinity : cardWidth,
+                    height: _hasActiveFilters ? 460 : null,
                     child: WorkPermitCard(
                       item: displayItems[index],
                       brandBlue: _brandBlue,

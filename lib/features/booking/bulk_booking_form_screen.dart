@@ -59,14 +59,14 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
     final payload = _rows
         .map(
           (row) => {
-            'workPermit': widget.item.id,
+            'workPermit': widget.item.slug,
             'name': row.name.text.trim(),
             'phone': row.phone.text.trim(),
             'email': row.email.text.trim(),
             'passportNo': row.passportNo.text.trim(),
             'gender': row.gender.text.trim(),
             'fromCountry': 'BD',
-            'toCountry': widget.item.country,
+            'toCountry': widget.item.countryName,
             'branch': int.tryParse(row.branch.text.trim()) ?? 0,
             'appointmentDate': row.appointmentDate.text.trim(),
             'isPrivacyTerms': _agreedTerms,
