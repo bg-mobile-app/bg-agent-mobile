@@ -12,6 +12,20 @@ class NavLinkItem {
   final dynamic icon;
 }
 
+class CountryItem {
+  const CountryItem({
+    required this.id,
+    required this.name,
+    required this.code,
+    required this.flag,
+  });
+
+  final int id;
+  final String name;
+  final String code;
+  final String flag;
+}
+
 class WorkPermitItem {
   const WorkPermitItem({
     required this.title,

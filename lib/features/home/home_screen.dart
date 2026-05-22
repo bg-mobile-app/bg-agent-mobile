@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ProfileService _profileService = ProfileService();
   bool _isLoading = true;
 
-  List<String> _countries = [];
+  List<CountryItem> _countries = [];
   List<WorkTypeItem> _workTypes = [];
   List<String> _banners = [
     'assets/img/ads/1.png',
@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       setState(() {
-        _countries = results[0] as List<String>;
+        _countries = results[0] as List<CountryItem>;
         _workTypes = results[1] as List<WorkTypeItem>;
 
         final fetchedBanners = results[2] as List<String>;
@@ -118,31 +118,41 @@ class _HomeScreenState extends State<HomeScreen> {
         _toDate != null;
   }
 
-  void _applyFilters() {
-    final company = _companyController.text.trim().toLowerCase();
-    final minAge = int.tryParse(_minAgeController.text.trim());
-    final maxAge = int.tryParse(_maxAgeController.text.trim());
-    final now = DateTime.now();
+  Future<void> _applyFilters() async {
+    if (!_hasActiveFilters) {
+      setState(() => _filteredWorkPermits = List.from(_workPermits));
+      return;
+    }
 
-    final filtered = _workPermits.where((item) {
-      if ((_country?.isNotEmpty ?? false) && item.countryName != _country) return false;
-      if ((_workType?.isNotEmpty ?? false) && item.workType != _workType) return false;
-      if (_selectionType != 'All' && item.selectionType.toLowerCase() != _selectionType.toLowerCase()) return false;
-      if (company.isNotEmpty && !item.title.toLowerCase().contains(company)) return false;
-      if (_fromDate != null && item.createdAt.isBefore(_fromDate!)) return false;
-      if (_toDate != null) {
-        final endOfDay = DateTime(_toDate!.year, _toDate!.month, _toDate!.day, 23, 59, 59);
-        if (item.createdAt.isAfter(endOfDay)) return false;
-      }
-      if (minAge != null || maxAge != null) {
-        final age = now.difference(item.createdAt).inDays ~/ 365;
-        if (minAge != null && age < minAge) return false;
-        if (maxAge != null && age > maxAge) return false;
-      }
-      return true;
-    }).toList();
+    setState(() => _isLoading = true);
 
-    setState(() => _filteredWorkPermits = filtered);
+    String? countryCode;
+    if (_country != null && _country!.isNotEmpty) {
+      try {
+        countryCode = _countries.firstWhere((c) => c.name == _country).code;
+      } catch (_) {}
+    }
+
+    final fromDateStr = _fromDate != null ? '${_fromDate!.year}-${_fromDate!.month.toString().padLeft(2, '0')}-${_fromDate!.day.toString().padLeft(2, '0')}' : null;
+    final toDateStr = _toDate != null ? '${_toDate!.year}-${_toDate!.month.toString().padLeft(2, '0')}-${_toDate!.day.toString().padLeft(2, '0')}' : null;
+
+    final filtered = await _homeService.filterWorkPermits(
+      countryCode: countryCode,
+      workType: _workType,
+      companyName: _companyController.text.trim(),
+      minAge: int.tryParse(_minAgeController.text.trim()),
+      maxAge: int.tryParse(_maxAgeController.text.trim()),
+      selectionType: _selectionType,
+      fromDate: fromDateStr,
+      toDate: toDateStr,
+    );
+
+    if (mounted) {
+      setState(() {
+        _filteredWorkPermits = filtered;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -341,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _dropdown(
                 value: _country,
                 hint: 'Country Name',
-                items: _countries,
+                items: _countries.map((e) => e.name).toList(),
                 onChanged: (v) {
                   setState(() => _country = v);
                   _applyFilters();
