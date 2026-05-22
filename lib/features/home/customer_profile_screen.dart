@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/services/profile_service.dart';
 import '../../common/services/api_client.dart';
 import 'models/agency_profile.dart';
-import 'customer_profile_edit_screen.dart';
 import 'dashboard_screen.dart';
 
 class CustomerProfileScreen extends StatefulWidget {
@@ -62,8 +62,11 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     final placeholderAgencyProfile = RecruitingAgencyMeDetailsProps(
       owner: AgentUser(userCode: 'AGENT-0000', fullName: 'Loading Name', email: 'loading@example.com', phone: '01XXXXXXXXX', status: 'Loading'),
       image: null,
+      gender: 'Loading',
+      dob: '1990-01-01',
       agencyName: 'Agency Name Loading',
       agencyAddress: 'Agency address loading',
+      address: 'Residential address loading',
       policeStation: RecruitingAgencyLocation(name: 'Police Station'),
       district: RecruitingAgencyLocation(name: 'District'),
       documents: [
@@ -277,15 +280,12 @@ class _ProfileHeaderCard extends StatelessWidget {
             width: 170,
             child: FilledButton.icon(
               onPressed: () {
-                final state = context.findAncestorStateOfType<_CustomerProfileScreenState>();
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const CustomerProfileEditScreen(),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Working on this page'),
+                    duration: Duration(seconds: 2),
                   ),
-                ).then((_) {
-                  // Trigger screen refresh when coming back from Edit Screen
-                  state?._fetchProfile();
-                });
+                );
               },
               icon: const Icon(Icons.edit_outlined, size: 18),
               label: const Text('Edit Profile'),
@@ -349,8 +349,9 @@ class _BasicInfoCard extends StatelessWidget {
       title: 'Basic Info',
       rows: [
         _InfoRow(label: 'USER CODE', value: profile.owner?.userCode ?? 'N/A'),
-        _InfoRow(label: 'GENDER', value: 'N/A'),
-        _InfoRow(label: 'DATE OF BIRTH', value: 'N/A', isLast: true),
+        _InfoRow(label: 'FULL NAME', value: profile.owner?.fullName ?? 'N/A'),
+        _InfoRow(label: 'GENDER', value: profile.gender ?? 'N/A'),
+        _InfoRow(label: 'DATE OF BIRTH', value: _formatDob(profile.dob), isLast: true),
       ],
     );
   }
@@ -384,7 +385,7 @@ class _ContactInfoCard extends StatelessWidget {
       title: 'Contact Info',
       rows: [
         _InfoRow(label: 'PHONE', value: profile.owner?.phone ?? 'N/A'),
-        _InfoRow(label: 'RESIDENTIAL ADDRESS', value: profile.agencyAddress ?? 'N/A'),
+        _InfoRow(label: 'RESIDENTIAL ADDRESS', value: profile.address ?? 'N/A'),
         _InfoRow(label: 'POLICE STATION', value: profile.policeStation?.name ?? 'N/A'),
         _InfoRow(label: 'DISTRICT', value: profile.district?.name ?? 'N/A', isLast: true),
       ],
@@ -402,8 +403,15 @@ class _DocumentsInfoCard extends StatelessWidget {
       icon: Icons.description_outlined,
       title: 'Documents Info',
       rows: [
-        _InfoRow(label: 'NID IMAGE', value: (profile.documents.isNotEmpty ? profile.documents.first.nidImage : null) ?? 'N/A'),
-        _InfoRow(label: 'TRADE LICENSE IMAGE', value: (profile.documents.isNotEmpty ? profile.documents.first.tradeLicenseImage : null) ?? 'N/A', isLast: true),
+        _InfoRow(
+          label: 'NID IMAGE',
+          value: (profile.documents.isNotEmpty ? profile.documents.first.nidImage : null) ?? 'N/A',
+        ),
+        _InfoRow(
+          label: 'TRADE LICENSE IMAGE',
+          value: (profile.documents.isNotEmpty ? profile.documents.first.tradeLicenseImage : null) ?? 'N/A',
+          isLast: true,
+        ),
       ],
     );
   }
@@ -595,4 +603,14 @@ BoxDecoration _cardDecoration() {
     border: Border.all(color: AppPalette.borderSoftBlue),
     boxShadow: AppPalette.cardShadow,
   );
+}
+
+String _formatDob(String? rawDob) {
+  if (rawDob == null || rawDob.trim().isEmpty) return 'N/A';
+  try {
+    final parsed = DateTime.parse(rawDob);
+    return DateFormat('dd MMM yyyy').format(parsed);
+  } catch (_) {
+    return rawDob;
+  }
 }
