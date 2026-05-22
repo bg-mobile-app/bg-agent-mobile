@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:fui_kit/fui_kit.dart';
@@ -27,6 +29,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   final _searchController = TextEditingController();
   bool _isLoggedIn = false;
   bool _isLoading = true;
+  Timer? _searchDebounce;
 
   final HomeService _homeService = HomeService();
   List<WorkPermitItem> _allItems = [];
@@ -59,6 +62,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -67,6 +71,47 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Working on this page')));
+  }
+
+  Future<void> _searchWorkPermits(String query) async {
+    final trimmedQuery = query.trim();
+
+    if (trimmedQuery.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _filteredItems = List.of(_allItems);
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    final results = await _homeService.filterWorkPermits(
+      q: trimmedQuery,
+      serviceType: 'WORK_PERMIT',
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _filteredItems = results;
+      _isLoading = false;
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      _searchWorkPermits(query);
+    });
+  }
+
+  void _onSearchTap() {
+    _searchDebounce?.cancel();
+    _searchWorkPermits(_searchController.text);
   }
 
   void _applyFilters(FilterValue value) {
@@ -154,8 +199,8 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
     return AppSearchBar(
       controller: _searchController,
       hintText: 'Search in bideshgami',
-      onChanged: (query) => _applyFilters(FilterValue(query: query.trim())),
-      onSearchTap: _showComingSoon,
+      onChanged: _onSearchChanged,
+      onSearchTap: _onSearchTap,
     );
   }
 
