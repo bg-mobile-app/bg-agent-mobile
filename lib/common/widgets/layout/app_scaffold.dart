@@ -16,7 +16,10 @@ import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
 import '../../../features/home/commission_screen.dart';
+import '../../../features/home/create_ad_screen.dart';
+import '../../../features/home/unauthenticated_profile_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
+import '../../../common/services/api_client.dart';
 import 'app_bottom_nav.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -60,15 +63,47 @@ class AppScaffold extends StatelessWidget {
   }
 }
 
-class _DashboardHostScreen extends StatelessWidget {
+class _DashboardHostScreen extends StatefulWidget {
   const _DashboardHostScreen({required this.route});
   final String route;
 
   @override
+  State<_DashboardHostScreen> createState() => _DashboardHostScreenState();
+}
+
+class _DashboardHostScreenState extends State<_DashboardHostScreen> {
+  bool? _isLoggedIn;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLogin();
+  }
+
+  Future<void> _checkLogin() async {
+    final cookies = await ApiClient().tokenStorage.getCookies();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = cookies != null && cookies.isNotEmpty;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    switch (route) {
+    if (_isLoggedIn == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_isLoggedIn! && (widget.route == '/profile' || widget.route.startsWith('/dashboard'))) {
+      return const UnauthenticatedProfileScreen();
+    }
+
+    switch (widget.route) {
       case '/dashboard/agency':
         return const DashboardScreen(currentHref: '/dashboard/agency');
+      case '/dashboard/agent':
+        return const DashboardScreen(currentHref: '/dashboard/agent');
       case '/dashboard/customer':
         return const DashboardScreen(currentHref: '/dashboard/customer');
       case '/dashboard/booking/my':
@@ -99,7 +134,7 @@ class _DashboardHostScreen extends StatelessWidget {
         return _buildLogoutScreen(context);
       default:
         return DashboardDummyScreen(
-          title: route.split('/').last.replaceAll('-', ' '),
+          title: widget.route.split('/').last.replaceAll('-', ' '),
         );
     }
   }
@@ -107,7 +142,7 @@ class _DashboardHostScreen extends StatelessWidget {
   Widget _buildLogoutScreen(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authService = AuthService();
-      await authService.logout();
+      await authService.getSingOut();
       if (context.mounted) {
         context.go('/login');
       }

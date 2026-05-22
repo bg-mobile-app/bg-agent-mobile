@@ -10,6 +10,7 @@ import '../features/auth/sign_in_screen.dart';
 import '../features/auth/sign_up_screen.dart';
 import '../features/auth/otp_verification_screen.dart';
 import '../features/onboarding/get_started_screen.dart';
+import '../features/onboarding/splash_screen.dart';
 import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -29,8 +30,9 @@ CustomTransitionPage _slideTransition(BuildContext context, GoRouterState state,
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
-  initialLocation: AppRoutes.getStarted,
+  initialLocation: AppRoutes.splash,
   routes: [
+    GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashScreen()),
     GoRoute(path: AppRoutes.getStarted, builder: (_, __) => const GetStartedScreen()),
     GoRoute(path: AppRoutes.login, builder: (_, __) => const SignInScreen()),
     GoRoute(path: AppRoutes.signUpCustomer, builder: (_, __) => const SignUpScreen()),

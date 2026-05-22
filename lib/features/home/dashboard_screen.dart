@@ -34,70 +34,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'Last 5 Years',
   ];
 
-  static final AgencyDashboardStats _mockStats = AgencyDashboardStats(
-    myBookings: const MyBookingStats(
-      total: 99,
-      successFlight: 99,
-      rejectFlight: 99,
-      processing: 99,
-      returnProcessing: 99,
-      totalAmount: 999999,
-      paidAmount: 999999,
-      dueAmount: 999999,
-      commissionAmount: 999999,
-    ),
-    agencyBookings: const AgencyBookingStats(
-      total: 99,
-      appliedCustomer: 99,
-      bgCollectPp: 99,
-      bgSentPp: 99,
-      aRecievePp: 99,
-      underProcessing: 99,
-      visaApproved: 99,
-      bmetDone: 99,
-      ticketDone: 99,
-      ppSentToBg: 99,
-      bgReceivedPp: 99,
-      readyForFlight: 99,
-      successFlight: 99,
-      returnRequest: 99,
-      returnAccepted: 99,
-      returnPpSentToBg: 99,
-      bgCollectReturnPp: 99,
-      bgHandoverPpToCustomer: 99,
-      rejectFlight: 99,
-      totalAmount: 999999,
-      paidAmount: 999999,
-      dueAmount: 999999,
-      commissionAmount: 999999,
-    ),
-    expiryReminders: const ExpiryReminderStats(
-      days3: ExpiryReminderGroup(medical: 9, police: 9, visa: 9, total: 9),
-      days10: ExpiryReminderGroup(medical: 9, police: 9, visa: 9, total: 9),
-    ),
+  static final AgentDashboardStats _mockStats = AgentDashboardStats(
+    total: 99,
+    successFlight: 99,
+    rejectFlight: 99,
+    processing: 99,
+    returnProcessing: 99,
+    totalAmount: 999999,
+    paidAmount: 999999,
+    dueAmount: 999999,
+    commissionAmount: 999999,
   );
 
   final DashboardService _dashboardService = DashboardService();
-  late Future<AgencyDashboardStats> _dashboardFuture;
+  late Future<AgentDashboardStats> _dashboardFuture;
   String _selectedPeriod = 'This Month';
 
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = _dashboardService.getAgencyDashboard(_selectedPeriod);
+    _dashboardFuture = _dashboardService.getAgentDashboard(_selectedPeriod);
   }
 
   void _changePeriod(String? period) {
     if (period == null || period == _selectedPeriod) return;
     setState(() {
       _selectedPeriod = period;
-      _dashboardFuture = _dashboardService.getAgencyDashboard(_selectedPeriod);
+      _dashboardFuture = _dashboardService.getAgentDashboard(_selectedPeriod);
     });
   }
 
   Future<void> _refreshDashboard() async {
     setState(() {
-      _dashboardFuture = _dashboardService.getAgencyDashboard(_selectedPeriod);
+      _dashboardFuture = _dashboardService.getAgentDashboard(_selectedPeriod);
     });
     await _dashboardFuture;
   }
@@ -111,11 +80,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: _refreshDashboard,
-            child: FutureBuilder<AgencyDashboardStats>(
+            child: FutureBuilder<AgentDashboardStats>(
               future: _dashboardFuture,
               builder: (context, snapshot) {
                 final isLoading = snapshot.connectionState == ConnectionState.waiting;
-                final stats = snapshot.data ?? (isLoading ? _mockStats : AgencyDashboardStats.empty());
+                final stats = snapshot.data ?? (isLoading ? _mockStats : AgentDashboardStats.empty());
                 final hasError = snapshot.hasError;
 
                 return SingleChildScrollView(
@@ -130,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const _DashboardBreadcrumbs(),
                           const SizedBox(height: 14),
                           Text(
-                            'Agency Dashboard Overview',
+                            'Agent Dashboard Overview',
                             style: AppTextStyles.headline1.copyWith(
                               fontSize: 25,
                               fontWeight: FontWeight.w800,
@@ -139,7 +108,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Live booking, payment, commission, and expiry data for your agency.',
+                            'Live booking, payment, and commission data for your account.',
                             style: AppTextStyles.body2.copyWith(
                               color: AppPalette.textMuted,
                             ),
@@ -162,29 +131,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _DashboardSection(
-                                  title: 'Agency Summary',
-                                  child: _DashboardCardGrid(
-                                    cards: _buildAgencySummaryCards(stats),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                _DashboardSection(
                                   title: 'My Bookings',
                                   child: _DashboardCardGrid(
-                                    cards: _buildMyBookingCards(stats.myBookings),
+                                    cards: _buildMyBookingCards(stats),
                                   ),
-                                ),
-                                const SizedBox(height: 18),
-                                _DashboardSection(
-                                  title: 'Agency Bookings',
-                                  child: _DashboardCardGrid(
-                                    cards: _buildAgencyBookingCards(stats.agencyBookings),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                _DashboardSection(
-                                  title: 'Expiry Reminders',
-                                  child: _ExpiryReminderPanel(stats: stats.expiryReminders),
                                 ),
                               ],
                             ),
@@ -202,37 +152,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  List<DashboardSmallCard> _buildAgencySummaryCards(AgencyDashboardStats stats) {
-    final agency = stats.agencyBookings;
+  List<DashboardSmallCard> _buildMyBookingCards(AgentDashboardStats stats) {
     return [
       DashboardSmallCard(
-        label: 'Total Agency Booking',
-        icon: Icons.fact_check_outlined,
-        value: '${agency.total}',
-      ),
-      DashboardSmallCard(
-        label: 'Ready For Flight',
-        icon: Icons.flight_takeoff_rounded,
-        value: '${agency.readyForFlight}',
-      ),
-      DashboardSmallCard(
-        label: 'Total Commission',
-        icon: Icons.account_balance_wallet_outlined,
-        value: _formatMoney(agency.commissionAmount),
-      ),
-      DashboardSmallCard(
-        label: 'Total Due',
-        icon: Icons.money_off_csred_outlined,
-        value: _formatMoney(agency.dueAmount),
-        red: true,
-      ),
-    ];
-  }
-
-  List<DashboardSmallCard> _buildMyBookingCards(MyBookingStats stats) {
-    return [
-      DashboardSmallCard(
-        label: 'Total Applied Job',
+        label: 'My Booking',
         icon: Icons.menu_book_outlined,
         value: '${stats.total}',
       ),
@@ -247,65 +170,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
         value: '${stats.successFlight}',
       ),
       DashboardSmallCard(
-        label: 'Reject Flight',
-        icon: Icons.flight_land_rounded,
-        value: '${stats.rejectFlight}',
-        red: true,
-      ),
-      DashboardSmallCard(
         label: 'Return Passport',
         icon: Icons.badge_outlined,
         value: '${stats.returnProcessing}',
       ),
       DashboardSmallCard(
-        label: 'Total Amount',
+        label: 'Total Payment',
         icon: Icons.payments_outlined,
         value: _formatMoney(stats.totalAmount),
       ),
       DashboardSmallCard(
-        label: 'Paid Amount',
+        label: 'Paid Payment',
         icon: Icons.account_balance_wallet_outlined,
         value: _formatMoney(stats.paidAmount),
       ),
       DashboardSmallCard(
-        label: 'Due Amount',
+        label: 'Due Payment',
         icon: Icons.money_off_csred_outlined,
         value: _formatMoney(stats.dueAmount),
         red: true,
       ),
       DashboardSmallCard(
-        label: 'Commission Amount',
+        label: 'Commission',
         icon: Icons.savings_outlined,
         value: _formatMoney(stats.commissionAmount),
       ),
-    ];
-  }
-
-  List<DashboardSmallCard> _buildAgencyBookingCards(AgencyBookingStats stats) {
-    return [
-      DashboardSmallCard(label: 'All Booking', icon: Icons.list_alt_outlined, value: '${stats.total}'),
-      DashboardSmallCard(label: 'Applied Customer', icon: Icons.person_add_alt, value: '${stats.appliedCustomer}'),
-      DashboardSmallCard(label: 'BG Collect PP', icon: Icons.assignment_ind_outlined, value: '${stats.bgCollectPp}'),
-      DashboardSmallCard(label: 'BG Sent PP', icon: Icons.outbox_outlined, value: '${stats.bgSentPp}'),
-      DashboardSmallCard(label: 'Agency Receive PP', icon: Icons.inventory_2_outlined, value: '${stats.aRecievePp}'),
-      DashboardSmallCard(label: 'Under Processing', icon: Icons.hourglass_top_rounded, value: '${stats.underProcessing}'),
-      DashboardSmallCard(label: 'Visa Approved', icon: Icons.verified_user_outlined, value: '${stats.visaApproved}'),
-      DashboardSmallCard(label: 'BMET Done', icon: Icons.task_alt_rounded, value: '${stats.bmetDone}'),
-      DashboardSmallCard(label: 'Ticket Done', icon: Icons.airplane_ticket_outlined, value: '${stats.ticketDone}'),
-      DashboardSmallCard(label: 'PP Sent To BG', icon: Icons.mark_email_read_outlined, value: '${stats.ppSentToBg}'),
-      DashboardSmallCard(label: 'BG Received PP', icon: Icons.move_to_inbox_outlined, value: '${stats.bgReceivedPp}'),
-      DashboardSmallCard(label: 'Ready For Flight', icon: Icons.flight_takeoff_rounded, value: '${stats.readyForFlight}'),
-      DashboardSmallCard(label: 'Success Flight', icon: Icons.flight_rounded, value: '${stats.successFlight}'),
-      DashboardSmallCard(label: 'Return Request', icon: Icons.assignment_return_outlined, value: '${stats.returnRequest}'),
-      DashboardSmallCard(label: 'Return Accepted', icon: Icons.assignment_turned_in_outlined, value: '${stats.returnAccepted}'),
-      DashboardSmallCard(label: 'Return PP Sent To BG', icon: Icons.reply_all_outlined, value: '${stats.returnPpSentToBg}'),
-      DashboardSmallCard(label: 'BG Collect Return PP', icon: Icons.badge_outlined, value: '${stats.bgCollectReturnPp}'),
-      DashboardSmallCard(label: 'BG Handover PP', icon: Icons.handshake_outlined, value: '${stats.bgHandoverPpToCustomer}'),
-      DashboardSmallCard(label: 'Reject Flight', icon: Icons.flight_land_rounded, value: '${stats.rejectFlight}', red: true),
-      DashboardSmallCard(label: 'Total Amount', icon: Icons.payments_outlined, value: _formatMoney(stats.totalAmount)),
-      DashboardSmallCard(label: 'Paid Amount', icon: Icons.account_balance_wallet_outlined, value: _formatMoney(stats.paidAmount)),
-      DashboardSmallCard(label: 'Due Amount', icon: Icons.money_off_csred_outlined, value: _formatMoney(stats.dueAmount), red: true),
-      DashboardSmallCard(label: 'Commission Amount', icon: Icons.savings_outlined, value: _formatMoney(stats.commissionAmount)),
     ];
   }
 
@@ -461,100 +350,11 @@ class _DashboardCardGrid extends StatelessWidget {
   }
 }
 
-class _ExpiryReminderPanel extends StatelessWidget {
-  const _ExpiryReminderPanel({required this.stats});
 
-  final ExpiryReminderStats stats;
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _ExpiryReminderCard(title: 'Expiring in 3 Days', group: stats.days3),
-        const SizedBox(height: 12),
-        _ExpiryReminderCard(title: 'Expiring in 10 Days', group: stats.days10),
-      ],
-    );
-  }
-}
 
-class _ExpiryReminderCard extends StatelessWidget {
-  const _ExpiryReminderCard({required this.title, required this.group});
 
-  final String title;
-  final ExpiryReminderGroup group;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppPalette.borderSoftBlue),
-        boxShadow: AppPalette.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.alarm_outlined, color: AppPalette.brandBlue),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: AppTextStyles.subtitle1.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              _ReminderPill(label: 'Total', value: group.total),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _ReminderPill(label: 'Medical', value: group.medical),
-              _ReminderPill(label: 'Police', value: group.police),
-              _ReminderPill(label: 'Visa', value: group.visa),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReminderPill extends StatelessWidget {
-  const _ReminderPill({required this.label, required this.value});
-
-  final String label;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppPalette.borderSoftBlue),
-      ),
-      child: Text(
-        '$label: $value',
-        style: const TextStyle(
-          color: AppPalette.brandBlue,
-          fontWeight: FontWeight.w800,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-}
 
 class _DashboardBreadcrumbs extends StatelessWidget {
   const _DashboardBreadcrumbs();

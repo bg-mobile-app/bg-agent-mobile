@@ -245,3 +245,53 @@ int _asInt(Object? value) {
   if (value is String) return int.tryParse(value.replaceAll(',', '')) ?? 0;
   return 0;
 }
+
+class AgentDashboardStats {
+  const AgentDashboardStats({
+    required this.total,
+    required this.successFlight,
+    required this.rejectFlight,
+    required this.processing,
+    required this.returnProcessing,
+    required this.totalAmount,
+    required this.paidAmount,
+    required this.dueAmount,
+    required this.commissionAmount,
+  });
+
+  factory AgentDashboardStats.fromJson(Map<String, dynamic> json) {
+    return AgentDashboardStats(
+      total: _asInt(json['total']),
+      successFlight: _asInt(json['successFlight']),
+      rejectFlight: _asInt(json['rejectFlight']),
+      processing: _asInt(json['processing']),
+      returnProcessing: _asInt(json['returnProcessing']),
+      totalAmount: _asInt(json['totalAmount']),
+      paidAmount: _asInt(json['paidAmount']),
+      dueAmount: _asInt(json['dueAmount']),
+      commissionAmount: _asInt(json['commissionAmount']),
+    );
+  }
+
+  factory AgentDashboardStats.empty() => const AgentDashboardStats(
+        total: 0,
+        successFlight: 0,
+        rejectFlight: 0,
+        processing: 0,
+        returnProcessing: 0,
+        totalAmount: 0,
+        paidAmount: 0,
+        dueAmount: 0,
+        commissionAmount: 0,
+      );
+
+  final int total;
+  final int successFlight;
+  final int rejectFlight;
+  final int processing;
+  final int returnProcessing;
+  final int totalAmount;
+  final int paidAmount;
+  final int dueAmount;
+  final int commissionAmount;
+}

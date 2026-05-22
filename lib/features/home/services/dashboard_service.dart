@@ -27,4 +27,24 @@ class DashboardService {
       rethrow;
     }
   }
+
+  Future<AgentDashboardStats> getAgentDashboard(String period) async {
+    try {
+      final response = await _apiClient.get(
+        '/filter/agent/stats/',
+        queryParameters: {'period': period},
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return AgentDashboardStats.fromJson(data);
+      }
+      if (data is Map) {
+        return AgentDashboardStats.fromJson(Map<String, dynamic>.from(data));
+      }
+      return AgentDashboardStats.empty();
+    } catch (e) {
+      debugPrint('Error fetching agent dashboard: $e');
+      rethrow;
+    }
+  }
 }

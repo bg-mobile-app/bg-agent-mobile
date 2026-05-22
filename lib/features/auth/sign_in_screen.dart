@@ -19,9 +19,26 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _showPassword = false;
   bool _isLoading = false;
 
+  void _showWarningDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: Text(message),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _login() async {
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter username and password')));
+      _showWarningDialog('Validation Error', 'Please enter username and password');
       return;
     }
 
@@ -37,15 +54,15 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
-        if (data != null && data['user'] != null) {
-          final role = data['user']['role'];
-          if (role != 'AGENCY_ADMIN') {
-            if (mounted) {
-              setState(() => _isLoading = false);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access denied. Only Agency accounts can log in here.')));
-            }
-            return;
+        
+        final role = data?['role'] ?? data?['user']?['role'];
+        if (role != 'AGENT') {
+          await ApiClient().tokenStorage.clearCookies(); // Clear any saved cookies just in case
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _showWarningDialog('Access Denied', 'You must be an Agent to log in here.');
           }
+          return;
         }
 
         await ApiClient().saveCookiesFromResponse(response);
@@ -55,11 +72,16 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } on DioException catch (e) {
       if (mounted) {
-        String errMsg = 'Login failed. Please try again.';
+        String errMsg = 'Invalid username or password.';
+        if (e.response?.statusCode == 401) {
+          errMsg = 'No active account found with the given credentials.';
+        }
         if (e.response?.data != null) {
           try {
             final data = e.response!.data;
-            if (data is Map && data['errors'] != null) {
+            if (data is Map && data['detail'] != null) {
+              errMsg = data['detail'].toString();
+            } else if (data is Map && data['errors'] != null) {
               if (data['errors']['detail'] is List) {
                 errMsg = (data['errors']['detail'] as List).join(', ');
               } else if (data['errors']['detail'] != null) {
@@ -67,18 +89,14 @@ class _SignInScreenState extends State<SignInScreen> {
               } else {
                 errMsg = data['errors'].toString();
               }
-            } else if (data is Map && data['detail'] != null) {
-              errMsg = data['detail'].toString();
-            } else {
-              errMsg = data.toString();
             }
           } catch (_) {}
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errMsg)));
+        _showWarningDialog('Login Failed', errMsg);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}')));
+        _showWarningDialog('Error', 'An unexpected error occurred: ${e.toString()}');
       }
     } finally {
       if (mounted) {

@@ -23,4 +23,8 @@ class AuthService {
   Future<void> getSingOut() async {
     await _apiClient.get('/auth/logout/');
   }
+
+  Future<Response> getCurrentUser() async {
+    return _apiClient.get('/auth/me/');
+  }
 }
