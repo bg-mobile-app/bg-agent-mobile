@@ -122,8 +122,8 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         titleSpacing: 0,
-        title: const Text(
-          'Urgent Recruitment in Jordan',
+        title: Text(
+          displayDetails.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -220,12 +220,14 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
   }
 
   Widget _heroImage(bool isDesktop) {
-    return SizedBox(
-      height: isDesktop ? 420 : 210,
-      width: double.infinity,
-      child: displayDetails.image.startsWith('http')
-          ? Image.network(displayDetails.image, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported))
-          : Image.asset(widget.item.image, fit: BoxFit.cover),
+    return AspectRatio(
+      aspectRatio: 1,
+      child: SizedBox(
+        width: double.infinity,
+        child: displayDetails.image.startsWith('http')
+            ? Image.network(displayDetails.image, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported))
+            : Image.asset(widget.item.image, fit: BoxFit.cover),
+      ),
     );
   }
 
@@ -526,113 +528,103 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
 
   Widget _safetyGuidelines() {
     const tips = [
-      'Do not quit your current job until the visa is stamped.',
-      'Do not trust 100% guarantees; recruitment is subject to embassy approval.',
-      'Always verify the agency\'s license number with the Ministry.',
-      'Never pay full amounts in cash without a proper receipt.',
-      'Verify your medical report status only through official GAMCA portal.',
-      'Avoid brokers and agents; deal directly with the office.',
-      'Keep a digital copy of all submitted documents.',
-      'Ensure your passport has at least 1 year of validity.',
-      'Do not sign blank papers or incomplete contracts.',
-      'Report any suspicious demands to our support team immediately.',
+      'ভিসা না হওয়া অব্দি কর্ম/চাকরী ছেড়ে দিবেন না।',
+      'বাংলাদেশ থেকে গেইম দিয়ে এশিয়ার দেশে গিয়ে ইউরোপের জন্য গেইম দিবেন না।',
+      'ভিসা ছাড়া বিদেশ যাওয়ার চেষ্টা করবেন না।',
+      "'১০০% গ্যারান্টি ভিসা' কথায় বিশ্বাস করবেন না।",
+      'না জেনে কোনো কাগজে সাইন করবেন না।',
+      'অতিরিক্ত ঋণ নিয়ে ঝুঁকি নেবেন না।',
+      'ভুয়া তথ্য দিয়ে ফাইল জমা দিবেন না।',
+      'শর্টকাট বা অবৈধ পথে বিদেশ যাওয়ার চেষ্টা করবেন না।',
+      'একাধিক এজেন্সিতে একসাথে ফাইল জমা দিবেন না।',
+      'পরিবারকে না জানিয়ে সিদ্ধান্ত নিবেন না।',
     ];
 
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: _errorContainer.withAlpha(107),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _error.withAlpha(56)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: _error,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: FaIcon(
-                    FontAwesomeIcons.gavel,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          collapsedIconColor: _error,
+          iconColor: _error,
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: _error,
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: FaIcon(
+                FontAwesomeIcons.gavel,
+                color: Colors.white,
+                size: 20,
               ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Critical Safety Guidelines',
-                      style: TextStyle(
-                        color: Color(0xFF93000A),
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Read carefully before proceeding with any recruitment process',
-                      style: TextStyle(color: Color(0xCC93000A), height: 1.4),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 20),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final twoColumns = constraints.maxWidth > 680;
-              return Wrap(
-                spacing: 18,
-                runSpacing: 14,
-                children: tips
-                    .map(
-                      (tip) => SizedBox(
-                        width: twoColumns
-                            ? (constraints.maxWidth - 18) / 2
-                            : constraints.maxWidth,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 3),
-                              child: FaIcon(
-                                FontAwesomeIcons.circleCheck,
-                                size: 16,
-                                color: _error,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                tip,
-                                style: const TextStyle(
-                                  color: _text,
-                                  fontSize: 14,
-                                  height: 1.42,
+          title: const Text(
+            'সতর্কতামূলক নিদর্শন: বিদেশ যাওয়ার আগে যা কখনো করবেন না।',
+            style: TextStyle(
+              color: Color(0xFF93000A),
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          subtitle: const Text(
+            'বিস্তারিত দেখতে ট্যাপ করুন',
+            style: TextStyle(color: Color(0xCC93000A), height: 1.4),
+          ),
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final twoColumns = constraints.maxWidth > 680;
+                return Wrap(
+                  spacing: 18,
+                  runSpacing: 14,
+                  children: tips
+                      .map(
+                        (tip) => SizedBox(
+                          width: twoColumns
+                              ? (constraints.maxWidth - 18) / 2
+                              : constraints.maxWidth,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 3),
+                                child: FaIcon(
+                                  FontAwesomeIcons.circleCheck,
+                                  size: 16,
+                                  color: _error,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  tip,
+                                  style: const TextStyle(
+                                    color: _text,
+                                    fontSize: 14,
+                                    height: 1.42,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          ),
-        ],
+                      )
+                      .toList(),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
