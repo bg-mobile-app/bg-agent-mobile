@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -28,6 +30,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   DateTimeRange? _selectedDateRange;
   int _currentPage = 1;
   int _totalPages = 1;
+  Timer? _searchDebounce;
 
   final List<AppointmentBookingItem> _dummyItems = const [
     AppointmentBookingItem(
@@ -93,6 +96,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -398,9 +402,21 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             child: TextField(
               controller: _searchController,
               style: const TextStyle(color: Colors.black),
+              onChanged: (value) {
+                _searchDebounce?.cancel();
+                _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+                  if (!mounted) return;
+                  setState(() {
+                    _searchQuery = value.trim();
+                    _currentPage = 1;
+                  });
+                  _fetchAppointments();
+                });
+              },
               onSubmitted: (value) {
+                _searchDebounce?.cancel();
                 setState(() {
-                  _searchQuery = value;
+                  _searchQuery = value.trim();
                   _currentPage = 1;
                 });
                 _fetchAppointments();
@@ -418,7 +434,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
           InkWell(
             onTap: () {
               setState(() {
-                _searchQuery = _searchController.text;
+                _searchQuery = _searchController.text.trim();
                 _currentPage = 1;
               });
               _fetchAppointments();
