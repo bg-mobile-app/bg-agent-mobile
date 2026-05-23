@@ -234,63 +234,89 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final isDesktop = constraints.maxWidth >= 980;
-                        return Flex(
-                          direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                        return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 8,
-                              child: Column(
-                                children: [
-                                  _sectionCard(
-                                    icon: Icons.badge_outlined,
-                                    title: 'Basic Information',
-                                    subtitle: 'Personal and agency details',
-                                    child: _grid(
-                                      children: [
-                                        _textField('Full Name', _fullNameController, hint: 'Enter your full name'),
-                                        _dropdownField(
-                                          label: 'Gender',
-                                          value: _gender,
-                                          items: _genderOptions,
-                                          hint: 'Select gender',
-                                          onChanged: (v) => setState(() => _gender = v),
-                                        ),
-                                        _textField('Agency Name', _agencyNameController, hint: 'Your registered business name', spanTwoColumns: true),
-                                        _textField('Agency Address', _agencyAddressController, hint: 'Business location details...', maxLines: 2, spanTwoColumns: true),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _sectionCard(
-                                    icon: Icons.location_on_outlined,
-                                    title: 'Permanent Address',
-                                    subtitle: 'Where you are permanently located',
-                                    child: _grid(children: [
-                                      _districtDropdown(),
-                                      _policeStationDropdown(),
-                                      _textField('Full Address', _addressController, hint: 'Street name, house number, etc.', maxLines: 3, spanTwoColumns: true),
-                                    ]),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _sectionCard(
-                                    icon: Icons.lock_open_outlined,
-                                    title: 'Login Information',
-                                    subtitle: 'Credentials for your agent portal',
-                                    child: _grid(children: [
-                                      _textField('Email Address', _emailController, hint: 'agent@company.com'),
-                                      _textField('Phone Number', _phoneController, hint: '+880 1XXX XXXXXX'),
-                                      _textField('Password', _passwordController, hint: '••••••••', obscure: true),
-                                      _textField('Confirm Password', _confirmPasswordController, hint: '••••••••', obscure: true),
-                                    ]),
-                                  ),
-                                ],
+                            const Center(
+                              child: Text(
+                                'Sign Up',
+                                style: TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w800,
+                                  color: _brandNavy,
+                                ),
                               ),
                             ),
-                            SizedBox(width: isDesktop ? 20 : 0, height: isDesktop ? 0 : 20),
-                            SizedBox(
-                              width: isDesktop ? 360 : double.infinity,
-                              child: _documentCard(),
+                            const SizedBox(height: 8),
+                            const Center(
+                              child: Text(
+                                'Create your agent account to continue.',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+                            Flex(
+                              direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 8,
+                                  child: Column(
+                                    children: [
+                                      _sectionCard(
+                                        icon: Icons.badge_outlined,
+                                        title: 'Basic Information',
+                                        subtitle: 'Personal and agency details',
+                                        child: _grid(
+                                          children: [
+                                            _textField('Full Name', _fullNameController, hint: 'Enter your full name'),
+                                            _dropdownField(
+                                              label: 'Gender',
+                                              value: _gender,
+                                              items: _genderOptions,
+                                              hint: 'Select gender',
+                                              onChanged: (v) => setState(() => _gender = v),
+                                            ),
+                                            _textField('Agency Name', _agencyNameController, hint: 'Your registered business name', spanTwoColumns: true),
+                                            _textField('Agency Address', _agencyAddressController, hint: 'Business location details...', maxLines: 2, spanTwoColumns: true),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      _sectionCard(
+                                        icon: Icons.location_on_outlined,
+                                        title: 'Permanent Address',
+                                        subtitle: 'Where you are permanently located',
+                                        child: _grid(children: [
+                                          _districtDropdown(),
+                                          _policeStationDropdown(),
+                                          _textField('Full Address', _addressController, hint: 'Street name, house number, etc.', maxLines: 3, spanTwoColumns: true),
+                                        ]),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      _sectionCard(
+                                        icon: Icons.lock_open_outlined,
+                                        title: 'Login Information',
+                                        subtitle: 'Credentials for your agent portal',
+                                        child: _grid(children: [
+                                          _textField('Email Address', _emailController, hint: 'agent@company.com'),
+                                          _textField('Phone Number', _phoneController, hint: '+880 1XXX XXXXXX'),
+                                          _textField('Password', _passwordController, hint: '••••••••', obscure: true),
+                                          _textField('Confirm Password', _confirmPasswordController, hint: '••••••••', obscure: true),
+                                        ]),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: isDesktop ? 20 : 0, height: isDesktop ? 0 : 20),
+                                SizedBox(
+                                  width: isDesktop ? 360 : double.infinity,
+                                  child: _documentCard(),
+                                ),
+                              ],
                             ),
                           ],
                         );
