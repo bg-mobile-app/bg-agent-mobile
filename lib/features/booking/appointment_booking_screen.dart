@@ -4,6 +4,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/theme/app_colors.dart';
 import '../../common/theme/app_palette.dart';
+import '../../common/widgets/styled_data_table_card.dart';
+import '../../common/widgets/view_toggle_button.dart';
 import '../home/dashboard_screen.dart';
 import 'appointment_ticket_screen.dart';
 import 'services/booking_service.dart';
@@ -229,15 +231,19 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                _searchBar(),
+                const SizedBox(height: 14),
                 Row(
                   children: [
-                    _viewSwitcher(),
+                    ViewToggleButton(
+                      isCardView: _isCardView,
+                      onChanged: (isCardView) =>
+                          setState(() => _isCardView = isCardView),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(child: _dateRangeButton()),
                   ],
                 ),
-                const SizedBox(height: 12),
-                _searchBar(),
                 const SizedBox(height: 14),
                 Expanded(
                   child: Skeletonizer(
@@ -295,35 +301,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         Icons.chevron_right_rounded,
         size: 16,
         color: Color(0xFF94A3B8),
-      ),
-    );
-  }
-
-  Widget _viewSwitcher() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD8E3FA)),
-      ),
-      child: ToggleButtons(
-        isSelected: [_isCardView, !_isCardView],
-        onPressed: (int index) {
-          setState(() {
-            _isCardView = index == 0;
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        borderColor: Colors.transparent,
-        selectedBorderColor: Colors.transparent,
-        fillColor: AppPalette.brandBlue,
-        selectedColor: Colors.white,
-        color: AppPalette.textMuted,
-        constraints: const BoxConstraints(minHeight: 46, minWidth: 50),
-        children: const [
-          Icon(Icons.grid_view_rounded, size: 20),
-          Icon(Icons.view_list_rounded, size: 20),
-        ],
       ),
     );
   }
@@ -512,63 +489,41 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
 
   Widget _buildListView() {
     final itemsToUse = _displayItems;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppPalette.borderSoftBlue),
-        boxShadow: AppPalette.cardShadow,
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.all(12),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFFEFF6FF)),
-          headingTextStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppPalette.textStrongBlue,
-            fontSize: 12.5,
-          ),
-          dataTextStyle: const TextStyle(
-            color: AppPalette.textPrimary,
-            fontSize: 13,
-          ),
-          columns: const [
-            DataColumn(label: Text('Post ID')),
-            DataColumn(label: Text('Booking ID')),
-            DataColumn(label: Text('Full Name')),
-            DataColumn(label: Text('Country')),
-            DataColumn(label: Text('Visa Category')),
-            DataColumn(label: Text('Meeting')),
-            DataColumn(label: Text('Date & Time')),
-            DataColumn(label: Text('Overview')),
-          ],
-          rows: itemsToUse
-              .map(
-                (item) => DataRow(
-                  cells: [
-                    DataCell(Text(item.postId)),
-                    DataCell(Text(item.bookingId.toString())),
-                    DataCell(Text(item.fullName)),
-                    DataCell(Text(item.country)),
-                    DataCell(Text(item.visaCategory)),
-                    DataCell(Text(item.meeting)),
-                    DataCell(Text('${item.date} ${item.time}')),
-                    DataCell(
-                      IconButton(
-                        icon: const Icon(
-                          Icons.remove_red_eye_outlined,
-                          color: AppPalette.brandBlue,
-                        ),
-                        onPressed: () => _openTicket(item),
-                      ),
+    return StyledDataTableCard(
+      columns: const [
+        DataColumn(label: Text('Post ID')),
+        DataColumn(label: Text('Booking ID')),
+        DataColumn(label: Text('Full Name')),
+        DataColumn(label: Text('Country')),
+        DataColumn(label: Text('Visa Category')),
+        DataColumn(label: Text('Meeting')),
+        DataColumn(label: Text('Date & Time')),
+        DataColumn(label: Text('Overview')),
+      ],
+      rows: itemsToUse
+          .map(
+            (item) => DataRow(
+              cells: [
+                DataCell(Text(item.postId)),
+                DataCell(Text(item.bookingId.toString())),
+                DataCell(Text(item.fullName)),
+                DataCell(Text(item.country)),
+                DataCell(Text(item.visaCategory)),
+                DataCell(Text(item.meeting)),
+                DataCell(Text('${item.date} ${item.time}')),
+                DataCell(
+                  IconButton(
+                    icon: const Icon(
+                      Icons.remove_red_eye_outlined,
+                      color: AppPalette.brandBlue,
                     ),
-                  ],
+                    onPressed: () => _openTicket(item),
+                  ),
                 ),
-              )
-              .toList(),
-        ),
-      ),
+              ],
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -696,30 +651,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                                   borderRadius: BorderRadius.circular(14))),
                         ),
                       ),
-                    ]),
-              ),
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: const BoxDecoration(
-                    color: Color(0xFFF1F3FF),
-                    borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16))),
-                child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.info_outline,
-                          color: Color(0xFF737687), size: 18),
-                      SizedBox(width: 8),
-                      Flexible(
-                          child: Text(
-                              'PLEASE ARRIVE 15 MINUTES BEFORE YOUR SCHEDULED TIME.',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF434655),
-                                  fontWeight: FontWeight.w600))),
                     ]),
               ),
             ],
