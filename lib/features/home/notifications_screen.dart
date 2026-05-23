@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../common/models/notification.dart';
 import '../../common/theme/app_palette.dart';
@@ -48,6 +50,52 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
       _loading = false;
     });
+  }
+
+  Future<void> _takeAction(AppNotificationItem notification) async {
+    if (notification.isRead) {
+      await _openNotificationLink(notification.linkUrl);
+      return;
+    }
+
+    if (_loading) return;
+    setState(() => _loading = true);
+
+    final previousNotifications = _notifications;
+    setState(() {
+      _notifications = _notifications.map((n) => n.id == notification.id ? n.copyWith(isRead: true) : n).toList();
+    });
+
+    final success = await _notificationsService.markRead(id: notification.id);
+    if (!mounted) return;
+
+    if (!success) {
+      setState(() {
+        _notifications = previousNotifications;
+        _loading = false;
+      });
+      return;
+    }
+
+    await _openNotificationLink(notification.linkUrl);
+    if (!mounted) return;
+    setState(() => _loading = false);
+  }
+
+  Future<void> _openNotificationLink(String? linkUrl) async {
+    if (linkUrl == null || linkUrl.trim().isEmpty) return;
+    final sanitizedUrl = linkUrl.trim();
+    if (sanitizedUrl.startsWith('/')) {
+      if (!mounted) return;
+      await context.push(sanitizedUrl);
+      return;
+    }
+
+    final uri = Uri.tryParse(sanitizedUrl);
+    if (uri == null) return;
+    final shouldOpenExternal = uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+    if (!shouldOpenExternal) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _markAllRead() async {
@@ -207,7 +255,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   children: [
                     if (n.linkUrl != null)
                       OutlinedButton.icon(
-                        onPressed: () => _markRead(n.id),
+                        onPressed: _loading ? null : () => _takeAction(n),
                         style: OutlinedButton.styleFrom(side: const BorderSide(color: AppPalette.borderSoftBlue)),
                         icon: const Icon(Icons.open_in_new, size: 16),
                         label: const Text('Take Action'),
