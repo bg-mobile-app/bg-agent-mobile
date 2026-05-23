@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,8 @@ class AppointmentTicketScreen extends StatelessWidget {
     required this.passportNo,
     required this.appointmentDate,
     required this.toCountry,
+    required this.meetingType,
+    this.qr,
   });
 
   final int id;
@@ -20,6 +23,22 @@ class AppointmentTicketScreen extends StatelessWidget {
   final String passportNo;
   final String appointmentDate;
   final String toCountry;
+  final String meetingType;
+  final String? qr;
+
+  ImageProvider? _qrImageProvider() {
+    final value = qr?.trim();
+    if (value == null || value.isEmpty) return null;
+    if (value.startsWith('data:image')) {
+      final comma = value.indexOf(',');
+      if (comma == -1) return null;
+      return MemoryImage(base64Decode(value.substring(comma + 1)));
+    }
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return NetworkImage(value);
+    }
+    return null;
+  }
 
   Future<Uint8List> _buildPdf() async {
     final doc = pw.Document();
@@ -85,16 +104,88 @@ class AppointmentTicketScreen extends StatelessWidget {
                     gradient: const LinearGradient(colors: [Color(0xFF1A56DB), Color(0xFF859BFF)]),
                   ),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('SL-BG-$id', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
-                    const SizedBox(height: 12),
-                    Text(name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 28)),
-                    const SizedBox(height: 8),
-                    _text('Passport Number: $passportNo'),
-                    _text('Country: $toCountry'),
-                    _text('Date: $appointmentDate'),
-                    _text('Time: 10:00 AM - 06:00 PM'),
-                    const Spacer(),
-                    _text('Office Address: House No-27 (3rd Floor), Road No-10, Block-E, Banani, Dhaka-1213'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Image.asset('assets/img/logo/logo_white.png', height: 28),
+                        Text('SL-BG-$id', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isMobile = constraints.maxWidth < 700;
+                          final qrImage = _qrImageProvider();
+                          final qrWidget = Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white38),
+                            ),
+                            child: qrImage != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image(
+                                      image: qrImage,
+                                      width: 170,
+                                      height: 170,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const SizedBox(
+                                    width: 170,
+                                    height: 170,
+                                    child: Center(
+                                      child: Text(
+                                        'QR preview unavailable',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                          );
+
+                          final details = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 28)),
+                              const SizedBox(height: 10),
+                              _text('Passport Number: $passportNo'),
+                              _text('Country: $toCountry'),
+                              _text('Date & Time: $appointmentDate'),
+                              _text('Service: Visa Consultancy'),
+                              _text('Meeting: $meetingType'),
+                              const SizedBox(height: 6),
+                              _text('Office Address: House No-27 (3rd Floor), Road No-10, Block-E, Banani, Dhaka-1213'),
+                            ],
+                          );
+
+                          if (isMobile) {
+                            return SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Center(child: qrWidget),
+                                  const SizedBox(height: 16),
+                                  details,
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              qrWidget,
+                              const SizedBox(width: 22),
+                              Expanded(child: details),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
                   ]),
                 ),
               ),
