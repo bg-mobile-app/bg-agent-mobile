@@ -646,8 +646,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           items: items
               .map(
-                (item) =>
-                    DropdownMenuItem<String>(value: item, child: Text(item)),
+                (item) => DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(
+                    item,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
               )
               .toList(),
         ),

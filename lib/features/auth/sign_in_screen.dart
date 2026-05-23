@@ -135,9 +135,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1180),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1180),
                     child: IntrinsicHeight(
                       child: Flex(
                         direction: isDesktop ? Axis.horizontal : Axis.vertical,
@@ -209,7 +211,8 @@ class _SignInScreenState extends State<SignInScreen> {
                               child: _buildLoginCard(),
                             ),
                           ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
