@@ -273,20 +273,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 : const Text('Login', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () => context.push(AppRoutes.agentSignUp),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _brandBlue,
-              side: const BorderSide(color: _brandBlue),
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Become a Partner', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ),
+
         const SizedBox(height: 10),
         Center(
           child: Wrap(

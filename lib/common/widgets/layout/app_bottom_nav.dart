@@ -15,26 +15,24 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x18000000),
-                  blurRadius: 24,
-                  offset: Offset(0, -10),
-                ),
-              ],
-            ),
-            child: Row(
-          children: List.generate(_items.length, (index) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x18000000),
+            blurRadius: 24,
+            offset: Offset(0, -10),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: List.generate(_items.length, (index) {
             final item = _items[index];
             final isSelected = index == currentIndex;
 
@@ -159,7 +157,6 @@ class AppBottomNav extends StatelessWidget {
           }),
         ),
       ),
-        ],
       ),
     );
   }

@@ -262,9 +262,8 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                               direction: isDesktop ? Axis.horizontal : Axis.vertical,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  flex: 8,
-                                  child: Column(
+                                Builder(builder: (_) {
+                                  final content = Column(
                                     children: [
                                       _sectionCard(
                                         icon: Icons.badge_outlined,
@@ -309,8 +308,9 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                                         ]),
                                       ),
                                     ],
-                                  ),
-                                ),
+                                  );
+                                  return isDesktop ? Expanded(flex: 8, child: content) : content;
+                                }),
                                 SizedBox(width: isDesktop ? 20 : 0, height: isDesktop ? 0 : 20),
                                 SizedBox(
                                   width: isDesktop ? 360 : double.infinity,

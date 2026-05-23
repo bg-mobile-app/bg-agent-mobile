@@ -516,8 +516,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: SizedBox(
               key: ValueKey<bool>(_hasActiveFilters),
-              height: _hasActiveFilters ? 680 : 540,
+              height: _hasActiveFilters ? null : 480,
               child: ListView.separated(
+                shrinkWrap: _hasActiveFilters,
+                physics: _hasActiveFilters ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
                 scrollDirection: _hasActiveFilters ? Axis.vertical : Axis.horizontal,
                 itemCount: displayItems.length,
                 itemBuilder: (context, index) {
@@ -525,13 +527,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
                   return SizedBox(
                     width: _hasActiveFilters ? double.infinity : cardWidth,
-                    height: _hasActiveFilters ? 460 : null,
-                    child: WorkPermitCard(
-                      item: displayItems[index],
-                      brandBlue: _brandBlue,
-                      onViewDetails: () => _openWorkPermitDetails(displayItems[index]),
-                      formatBdt: _formatBdt,
-                      timeAgo: _timeAgo,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: WorkPermitCard(
+                        item: displayItems[index],
+                        brandBlue: _brandBlue,
+                        onViewDetails: () => _openWorkPermitDetails(displayItems[index]),
+                        formatBdt: _formatBdt,
+                        timeAgo: _timeAgo,
+                      ),
                     ),
                   );
                 },
