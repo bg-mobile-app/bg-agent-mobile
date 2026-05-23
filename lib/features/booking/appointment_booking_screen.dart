@@ -4,6 +4,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/theme/app_colors.dart';
 import '../../common/theme/app_palette.dart';
+import '../../common/widgets/view_toggle_button.dart';
 import '../home/dashboard_screen.dart';
 import 'appointment_ticket_screen.dart';
 import 'services/booking_service.dart';
@@ -229,15 +230,19 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                _searchBar(),
+                const SizedBox(height: 14),
                 Row(
                   children: [
-                    _viewSwitcher(),
+                    ViewToggleButton(
+                      isCardView: _isCardView,
+                      onChanged: (isCardView) =>
+                          setState(() => _isCardView = isCardView),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(child: _dateRangeButton()),
                   ],
                 ),
-                const SizedBox(height: 12),
-                _searchBar(),
                 const SizedBox(height: 14),
                 Expanded(
                   child: Skeletonizer(
@@ -295,35 +300,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         Icons.chevron_right_rounded,
         size: 16,
         color: Color(0xFF94A3B8),
-      ),
-    );
-  }
-
-  Widget _viewSwitcher() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD8E3FA)),
-      ),
-      child: ToggleButtons(
-        isSelected: [_isCardView, !_isCardView],
-        onPressed: (int index) {
-          setState(() {
-            _isCardView = index == 0;
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        borderColor: Colors.transparent,
-        selectedBorderColor: Colors.transparent,
-        fillColor: AppPalette.brandBlue,
-        selectedColor: Colors.white,
-        color: AppPalette.textMuted,
-        constraints: const BoxConstraints(minHeight: 46, minWidth: 50),
-        children: const [
-          Icon(Icons.grid_view_rounded, size: 20),
-          Icon(Icons.view_list_rounded, size: 20),
-        ],
       ),
     );
   }
