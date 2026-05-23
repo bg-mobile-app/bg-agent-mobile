@@ -104,14 +104,14 @@ class BookingService {
         'page': page,
       };
       if (fromDate != null && fromDate.isNotEmpty) {
-        queryParameters['from_date'] = fromDate;
+        queryParameters['apt_from_date'] = fromDate;
       }
       if (toDate != null && toDate.isNotEmpty) {
-        queryParameters['to_date'] = toDate;
+        queryParameters['apt_to_date'] = toDate;
       }
 
       final response = await _apiClient.get(
-        '/booking/wp/',
+        '/booking/wp/my-bookings/',
         queryParameters: queryParameters,
       );
 
