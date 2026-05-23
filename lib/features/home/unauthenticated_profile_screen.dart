@@ -80,7 +80,7 @@ class UnauthenticatedProfileScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.signUpCustomer),
+                    onPressed: () => context.push(AppRoutes.agentSignUp),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppPalette.brandBlue,
                       side: const BorderSide(color: AppPalette.borderSoftBlue, width: 1.5),

@@ -274,7 +274,7 @@ class _SignInScreenState extends State<SignInScreen> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: () => context.push(AppRoutes.signUpPartner),
+            onPressed: () => context.push(AppRoutes.agentSignUp),
             style: OutlinedButton.styleFrom(
               foregroundColor: _brandBlue,
               side: const BorderSide(color: _brandBlue),
@@ -291,7 +291,7 @@ class _SignInScreenState extends State<SignInScreen> {
             children: [
               const Text('New here? ', style: TextStyle(color: Color(0xFF64748B))),
               TextButton(
-                onPressed: () => context.push(AppRoutes.signUpCustomer),
+                onPressed: () => context.push(AppRoutes.agentSignUp),
                 child: const Text('Create an account', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],

@@ -11,6 +11,7 @@ class AppRoutes {
   static const String agencySignUp = '/sign-up/agency';
   static const String recruitingSignUp = '/sign-up/agency/recruiting';
   static const String otpVerify = '/auth/otp-verify';
+  static const String agentSignUpThankYou = '/sign-up/agent/thank-you';
 
   static const String tabHome = '/home';
   static const String tabSearch = '/search';

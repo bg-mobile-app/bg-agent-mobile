@@ -32,7 +32,7 @@ class AppScaffold extends StatelessWidget {
     final screens = [
       const HomeScreen(),
       const WorkPermitListScreen(),
-      const MyBookingScreen(),
+      const _BookingAuthHostScreen(),
       const ChatListScreen(),
       _DashboardHostScreen(route: dashboardPath ?? '/dashboard/agency'),
     ];
@@ -59,6 +59,43 @@ class AppScaffold extends StatelessWidget {
       default:
         return '/home';
     }
+  }
+}
+
+class _BookingAuthHostScreen extends StatefulWidget {
+  const _BookingAuthHostScreen();
+
+  @override
+  State<_BookingAuthHostScreen> createState() => _BookingAuthHostScreenState();
+}
+
+class _BookingAuthHostScreenState extends State<_BookingAuthHostScreen> {
+  bool? _isLoggedIn;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLogin();
+  }
+
+  Future<void> _checkLogin() async {
+    final cookies = await ApiClient().tokenStorage.getCookies();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = cookies != null && cookies.isNotEmpty;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoggedIn == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!_isLoggedIn!) {
+      return const UnauthenticatedProfileScreen();
+    }
+    return const MyBookingScreen();
   }
 }
 

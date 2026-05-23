@@ -125,7 +125,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
           final result = await context.push('/login');
           if (result == true && mounted) setState(() => _isLoggedIn = true);
         },
-        onSignUp: () => context.push('/sign-up/customer'),
+        onSignUp: () => context.push('/sign-up/agent'),
         onNotifications: _showComingSoon,
         onProfile: _showComingSoon,
       ),

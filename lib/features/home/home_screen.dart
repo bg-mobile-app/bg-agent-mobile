@@ -304,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() => _isLoggedIn = true);
           }
         },
-        onSignUp: () => context.push('/sign-up/customer'),
+        onSignUp: () => context.push('/sign-up/agent'),
         onNotifications: () => context.push('/dashboard/notifications'),
         onProfile: () => context.push('/dashboard/customer/profile'),
         profileImageUrl: _profileImageUrl,

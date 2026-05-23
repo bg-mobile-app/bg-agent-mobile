@@ -31,40 +31,100 @@ class LocationService {
 
   Future<List<DistrictOption>> getDistricts() async {
     try {
-      final response = await _apiClient.get('/locations/district/');
+      final response = await _apiClient.get('/main/district');
       final raw = response.data;
       if (raw is List) {
-        return raw.whereType<Map<String, dynamic>>().map(DistrictOption.fromJson).toList();
+        return raw
+            .whereType<Map<String, dynamic>>()
+            .map(DistrictOption.fromJson)
+            .toList();
       }
       if (raw is String) {
         final decoded = jsonDecode(raw);
         if (decoded is List) {
-          return decoded.whereType<Map<String, dynamic>>().map(DistrictOption.fromJson).toList();
+          return decoded
+              .whereType<Map<String, dynamic>>()
+              .map(DistrictOption.fromJson)
+              .toList();
         }
       }
       return [];
     } catch (e) {
-      debugPrint('Error fetching districts: $e');
+      debugPrint('Primary district endpoint failed, trying fallback: $e');
+      try {
+        final response = await _apiClient.get('/locations/district/');
+        final raw = response.data;
+        if (raw is List) {
+          return raw
+              .whereType<Map<String, dynamic>>()
+              .map(DistrictOption.fromJson)
+              .toList();
+        }
+        if (raw is String) {
+          final decoded = jsonDecode(raw);
+          if (decoded is List) {
+            return decoded
+                .whereType<Map<String, dynamic>>()
+                .map(DistrictOption.fromJson)
+                .toList();
+          }
+        }
+      } catch (fallbackError) {
+        debugPrint('Error fetching districts: $fallbackError');
+      }
       return [];
     }
   }
 
   Future<List<PoliceStationOption>> getPoliceStations(int districtId) async {
     try {
-      final response = await _apiClient.get('/locations/police-station/', queryParameters: {'district__id': districtId});
+      final response = await _apiClient.get(
+        '/main/police-station/',
+        queryParameters: {'district': districtId},
+      );
       final raw = response.data;
       if (raw is List) {
-        return raw.whereType<Map<String, dynamic>>().map(PoliceStationOption.fromJson).toList();
+        return raw
+            .whereType<Map<String, dynamic>>()
+            .map(PoliceStationOption.fromJson)
+            .toList();
       }
       if (raw is String) {
         final decoded = jsonDecode(raw);
         if (decoded is List) {
-          return decoded.whereType<Map<String, dynamic>>().map(PoliceStationOption.fromJson).toList();
+          return decoded
+              .whereType<Map<String, dynamic>>()
+              .map(PoliceStationOption.fromJson)
+              .toList();
         }
       }
       return [];
     } catch (e) {
-      debugPrint('Error fetching police stations: $e');
+      debugPrint('Primary police-station endpoint failed, trying fallback: $e');
+      try {
+        final response = await _apiClient.get(
+          '/locations/police-station/',
+          queryParameters: {'district__id': districtId},
+        );
+        final raw = response.data;
+        if (raw is List) {
+          return raw
+              .whereType<Map<String, dynamic>>()
+              .map(PoliceStationOption.fromJson)
+              .toList();
+        }
+        if (raw is String) {
+          final decoded = jsonDecode(raw);
+          if (decoded is List) {
+            return decoded
+                .whereType<Map<String, dynamic>>()
+                .map(PoliceStationOption.fromJson)
+                .toList();
+          }
+        }
+      } catch (fallbackError) {
+        debugPrint('Error fetching police stations: $fallbackError');
+      }
       return [];
     }
   }
