@@ -8,6 +8,7 @@ import '../../common/widgets/styled_data_table_card.dart';
 import '../../common/widgets/view_toggle_button.dart';
 import '../home/dashboard_screen.dart';
 import 'services/booking_service.dart';
+import 'widgets/my_booking_card.dart';
 
 class MyBookingScreen extends StatefulWidget {
   const MyBookingScreen({
@@ -269,16 +270,36 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     DataCell(Text(e.postId)), DataCell(Text(e.bookingId.toString())), DataCell(Text(e.serviceType)), DataCell(Text(e.date.split('T').first)), DataCell(Text(e.customerInfo)), DataCell(Text('৳ ${e.packagePrice}')), DataCell(Text('৳ ${e.paidAmount}')), DataCell(Text(e.statusLabel)), const DataCell(Icon(Icons.more_horiz)),
   ])).toList());
 
-  Widget _card(List<_BookingItem> items) => Column(children: items.map((e)=>Card(child: ListTile(
-    title: Text('${e.postId} • ${e.bookingId}'), subtitle: Text('${e.serviceType}\n${e.customerInfo}\nPackage: ৳ ${e.packagePrice} | Paid: ৳ ${e.paidAmount}\nStatus: ${e.statusLabel}'), isThreeLine: true, trailing: const Icon(Icons.more_vert),
-  ))).toList());
+  Widget _card(List<_BookingItem> items) => Column(
+    children: items.map((e) => MyBookingCard(
+      postId: e.postId,
+      bookingId: e.bookingId,
+      serviceType: e.serviceType,
+      statusLabel: e.statusLabel,
+      customerName: e.customerName,
+      passportNo: e.passportNo,
+      packagePrice: e.packagePrice,
+      paidAmount: e.paidAmount,
+      dateText: _prettyDate(e.date),
+    )).toList(),
+  );
+
+  String _prettyDate(String raw) {
+    final dt = DateTime.tryParse(raw);
+    if (dt == null) return raw;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final min = dt.minute.toString().padLeft(2, '0');
+    final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} • $hour:$min $amPm';
+  }
 
   String _apiDate(DateTime date) => '${date.year}-${date.month.toString().padLeft(2,'0')}-${date.day.toString().padLeft(2,'0')}';
 }
 
 class _BookingItem {
-  const _BookingItem({required this.postId, required this.bookingId, required this.serviceType, required this.date, required this.customerInfo, required this.packagePrice, required this.paidAmount, required this.statusLabel});
-  final String postId; final int bookingId; final String serviceType; final String date; final String customerInfo; final int packagePrice; final int paidAmount; final String statusLabel;
-  factory _BookingItem.fromDto(ReceiveBookingItemDto dto) => _BookingItem(postId: dto.workPermitId, bookingId: dto.id, serviceType: dto.serviceType, date: dto.createdAt, customerInfo: '${dto.name} (${dto.passportNo ?? '-'})', packagePrice: dto.agencyTotalCost ?? 0, paidAmount: dto.paidAmount ?? 0, statusLabel: dto.statusLabel);
-  factory _BookingItem.skeleton(int i, String status) => _BookingItem(postId: 'WP-XXXX', bookingId: 1000+i, serviceType: 'Work Permit', date: '2026-01-01', customerInfo: 'Loading (P000)', packagePrice: 0, paidAmount: 0, statusLabel: status.isEmpty ? 'Loading' : status);
+  const _BookingItem({required this.postId, required this.bookingId, required this.serviceType, required this.date, required this.customerInfo, required this.customerName, required this.passportNo, required this.packagePrice, required this.paidAmount, required this.statusLabel});
+  final String postId; final int bookingId; final String serviceType; final String date; final String customerInfo; final String customerName; final String passportNo; final int packagePrice; final int paidAmount; final String statusLabel;
+  factory _BookingItem.fromDto(ReceiveBookingItemDto dto) => _BookingItem(postId: dto.workPermitId, bookingId: dto.id, serviceType: dto.serviceType, date: dto.createdAt, customerInfo: '${dto.name} (${dto.passportNo ?? '-'})', customerName: dto.name, passportNo: dto.passportNo ?? '-', packagePrice: dto.agencyTotalCost ?? 0, paidAmount: dto.paidAmount ?? 0, statusLabel: dto.statusLabel);
+  factory _BookingItem.skeleton(int i, String status) => _BookingItem(postId: 'WP-XXXX', bookingId: 1000+i, serviceType: 'Work Permit', date: '2026-01-01', customerInfo: 'Loading (P000)', customerName: 'Loading', passportNo: 'P000', packagePrice: 0, paidAmount: 0, statusLabel: status.isEmpty ? 'Loading' : status);
 }
