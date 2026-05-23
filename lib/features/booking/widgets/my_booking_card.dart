@@ -14,6 +14,7 @@ class MyBookingCard extends StatelessWidget {
     required this.packagePrice,
     required this.paidAmount,
     required this.dateText,
+    this.onLongPress,
   });
 
   final String postId;
@@ -25,122 +26,126 @@ class MyBookingCard extends StatelessWidget {
   final int packagePrice;
   final int paidAmount;
   final String dateText;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFDCE6F5)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Post #$postId • Booking #$bookingId',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppPalette.textMuted,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.more_vert, color: AppPalette.textMuted, size: 20),
-              ],
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppPalette.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFDCE6F5)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    serviceType,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppPalette.textStrongBlue,
-                    ),
-                  ),
-                ),
-                _statusChip(statusLabel),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FBFF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5ECF8)),
-              ),
-              child: Column(
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.person, size: 18, color: AppPalette.textMuted),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          customerName,
-                          style: const TextStyle(fontSize: 13, color: AppPalette.textPrimary),
-                        ),
+                  Expanded(
+                    child: Text(
+                      'Post #$postId • Booking #$bookingId',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppPalette.textMuted,
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.badge_outlined, size: 18, color: AppPalette.textMuted),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          passportNo,
-                          style: const TextStyle(fontSize: 13, color: AppPalette.textPrimary),
-                        ),
+                  const Icon(Icons.more_vert, color: AppPalette.textMuted, size: 20),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      serviceType,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.textStrongBlue,
                       ),
-                    ],
+                    ),
+                  ),
+                  _statusChip(statusLabel),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FBFF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5ECF8)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.person, size: 18, color: AppPalette.textMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            customerName,
+                            style: const TextStyle(fontSize: 13, color: AppPalette.textPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.badge_outlined, size: 18, color: AppPalette.textMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            passportNo,
+                            style: const TextStyle(fontSize: 13, color: AppPalette.textPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: Color(0xFFDCE6F5)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(child: _moneyCell(label: 'Package', amount: packagePrice)),
+                  _moneyCell(label: 'Paid', amount: paidAmount, alignEnd: true),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: Color(0xFFDCE6F5)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today_rounded, size: 15, color: AppPalette.textMuted),
+                  const SizedBox(width: 8),
+                  Text(
+                    dateText,
+                    style: const TextStyle(fontSize: 12, color: AppPalette.textMuted),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFDCE6F5)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(child: _moneyCell(label: 'Package', amount: packagePrice)),
-                _moneyCell(label: 'Paid', amount: paidAmount, alignEnd: true),
-              ],
-            ),
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFDCE6F5)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today_rounded, size: 15, color: AppPalette.textMuted),
-                const SizedBox(width: 8),
-                Text(
-                  dateText,
-                  style: const TextStyle(fontSize: 12, color: AppPalette.textMuted),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

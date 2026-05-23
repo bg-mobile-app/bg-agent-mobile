@@ -55,6 +55,11 @@ class MyBookingScreen extends StatefulWidget {
 
 class _MyBookingScreenState extends State<MyBookingScreen> {
   final BookingService _bookingService = BookingService();
+  static const Set<String> _hiddenReturnStatuses = {
+    'BG_HANDOVER_PP_TO_CUSTOMER',
+    'REJECT_FILE',
+    'SUCCESS_FLIGHT',
+  };
   bool _isCardView = false;
   bool _isLoading = false;
   String? _error;
@@ -265,10 +270,61 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
   }
 
   Widget _table(List<_BookingItem> items) => StyledDataTableCard(columns: const [
-    DataColumn(label: Text('Post ID')), DataColumn(label: Text('Booking ID')), DataColumn(label: Text('Service Type')), DataColumn(label: Text('Date')), DataColumn(label: Text('Customer Info')), DataColumn(label: Text('Package Price')), DataColumn(label: Text('Paid Amount')), DataColumn(label: Text('Status')), DataColumn(label: Text('Actions')),
+    DataColumn(label: Text('Post ID')), DataColumn(label: Text('Booking ID')), DataColumn(label: Text('Service Type')), DataColumn(label: Text('Date')), DataColumn(label: Text('Customer Info')), DataColumn(label: Text('Package Price')), DataColumn(label: Text('Paid Amount')), DataColumn(label: Text('Status')),
   ], rows: items.map((e)=>DataRow(cells: [
-    DataCell(Text(e.postId)), DataCell(Text(e.bookingId.toString())), DataCell(Text(e.serviceType)), DataCell(Text(e.date.split('T').first)), DataCell(Text(e.customerInfo)), DataCell(Text('৳ ${e.packagePrice}')), DataCell(Text('৳ ${e.paidAmount}')), DataCell(Text(e.statusLabel)), const DataCell(Icon(Icons.more_horiz)),
-  ])).toList());
+    DataCell(Text(e.postId)), DataCell(Text(e.bookingId.toString())), DataCell(Text(e.serviceType)), DataCell(Text(e.date.split('T').first)), DataCell(Text(e.customerInfo)), DataCell(Text('৳ ${e.packagePrice}')), DataCell(Text('৳ ${e.paidAmount}')), DataCell(Text(e.statusLabel)),
+  ], onLongPress: ()=>_showActions(e))).toList());
+
+  Future<void> _showActions(_BookingItem item) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('Booking #${item.bookingId}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            const SizedBox(height: 12),
+            if (item.status == 'APPLIED_FILE')
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _bookingService.updateBookingStatus(bookingId: item.bookingId, status: 'REJECT_FILE');
+                  await _loadBookings();
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Reject File', style: TextStyle(color: Colors.white)),
+              ),
+            if (!_hiddenReturnStatuses.contains(item.status))
+              OutlinedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  final reason = await _askReturnReason();
+                  if (reason == null || reason.trim().isEmpty) return;
+                  await _bookingService.submitReturnRequest(bookingId: item.bookingId, reason: reason.trim());
+                  await _loadBookings();
+                },
+                child: const Text('Request Return Passport'),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _askReturnReason() async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Return Passport Request'),
+        content: TextField(controller: controller, maxLines: 3, decoration: const InputDecoration(hintText: 'Enter reason')),
+        actions: [
+          TextButton(onPressed: ()=>Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: ()=>Navigator.pop(context, controller.text), child: const Text('Submit')),
+        ],
+      ),
+    );
+  }
 
   Widget _card(List<_BookingItem> items) => Column(
     children: items.map((e) => MyBookingCard(
@@ -281,6 +337,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
       packagePrice: e.packagePrice,
       paidAmount: e.paidAmount,
       dateText: _prettyDate(e.date),
+      onLongPress: () => _showActions(e),
     )).toList(),
   );
 
@@ -298,8 +355,8 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
 }
 
 class _BookingItem {
-  const _BookingItem({required this.postId, required this.bookingId, required this.serviceType, required this.date, required this.customerInfo, required this.customerName, required this.passportNo, required this.packagePrice, required this.paidAmount, required this.statusLabel});
-  final String postId; final int bookingId; final String serviceType; final String date; final String customerInfo; final String customerName; final String passportNo; final int packagePrice; final int paidAmount; final String statusLabel;
-  factory _BookingItem.fromDto(ReceiveBookingItemDto dto) => _BookingItem(postId: dto.workPermitId, bookingId: dto.id, serviceType: dto.serviceType, date: dto.createdAt, customerInfo: '${dto.name} (${dto.passportNo ?? '-'})', customerName: dto.name, passportNo: dto.passportNo ?? '-', packagePrice: dto.agencyTotalCost ?? 0, paidAmount: dto.paidAmount ?? 0, statusLabel: dto.statusLabel);
-  factory _BookingItem.skeleton(int i, String status) => _BookingItem(postId: 'WP-XXXX', bookingId: 1000+i, serviceType: 'Work Permit', date: '2026-01-01', customerInfo: 'Loading (P000)', customerName: 'Loading', passportNo: 'P000', packagePrice: 0, paidAmount: 0, statusLabel: status.isEmpty ? 'Loading' : status);
+  const _BookingItem({required this.postId, required this.bookingId, required this.serviceType, required this.date, required this.customerInfo, required this.customerName, required this.passportNo, required this.packagePrice, required this.paidAmount, required this.statusLabel, required this.status});
+  final String postId; final int bookingId; final String serviceType; final String date; final String customerInfo; final String customerName; final String passportNo; final int packagePrice; final int paidAmount; final String statusLabel; final String status;
+  factory _BookingItem.fromDto(ReceiveBookingItemDto dto) => _BookingItem(postId: dto.workPermitId, bookingId: dto.id, serviceType: dto.serviceType, date: dto.createdAt, customerInfo: '${dto.name} (${dto.passportNo ?? '-'})', customerName: dto.name, passportNo: dto.passportNo ?? '-', packagePrice: dto.agencyTotalCost ?? 0, paidAmount: dto.paidAmount ?? 0, statusLabel: dto.statusLabel, status: dto.status);
+  factory _BookingItem.skeleton(int i, String status) => _BookingItem(postId: 'WP-XXXX', bookingId: 1000+i, serviceType: 'Work Permit', date: '2026-01-01', customerInfo: 'Loading (P000)', customerName: 'Loading', passportNo: 'P000', packagePrice: 0, paidAmount: 0, statusLabel: status.isEmpty ? 'Loading' : status, status: status);
 }

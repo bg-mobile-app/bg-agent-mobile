@@ -92,6 +92,35 @@ class BookingService {
     }
   }
 
+  Future<void> updateBookingStatus({
+    required int bookingId,
+    required String status,
+  }) async {
+    await _apiClient.patch(
+      '/booking/wp/status/$bookingId/set/',
+      data: {'status': status},
+    );
+  }
+
+  Future<void> submitReturnRequest({
+    required int bookingId,
+    required String reason,
+    num? costAmount,
+    num? requestAmount,
+    String? costDetails,
+  }) async {
+    final payload = <String, dynamic>{
+      'bookingId': bookingId,
+      'reason': reason,
+    };
+    if (costAmount != null) payload['costAmount'] = costAmount;
+    if (requestAmount != null) payload['requestAmount'] = requestAmount;
+    if (costDetails != null && costDetails.trim().isNotEmpty) {
+      payload['costDetails'] = costDetails.trim();
+    }
+    await _apiClient.post('/booking/wp/return/file-request/', data: payload);
+  }
+
   Future<MyAppointmentsResponse> getMyAppointments({
     required int page,
     String search = '',
