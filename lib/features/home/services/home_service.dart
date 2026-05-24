@@ -111,6 +111,8 @@ class HomeService {
     }
   }
   Future<List<WorkPermitItem>> filterWorkPermits({
+    String? q,
+    String serviceType = 'WORK_PERMIT',
     String? countryCode,
     String? workType,
     String? companyName,
@@ -122,6 +124,8 @@ class HomeService {
   }) async {
     try {
       final Map<String, dynamic> queryParams = {};
+      if (q != null && q.isNotEmpty) queryParams['q'] = q;
+      queryParams['service_type'] = serviceType;
       if (countryCode != null && countryCode.isNotEmpty) queryParams['country'] = countryCode;
       if (workType != null && workType.isNotEmpty) queryParams['work_type'] = workType;
       if (companyName != null && companyName.isNotEmpty) queryParams['company_name'] = companyName;
