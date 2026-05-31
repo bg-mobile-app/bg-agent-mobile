@@ -79,7 +79,7 @@ class WorkPermitCard extends StatelessWidget {
                     SizedBox(height: responsive.size(14, min: 10, max: 14)),
                     Row(
                       children: [
-                        _buildMetaCell('Industry', item.workType, responsive),
+                        _buildMetaCell('Job Type', item.workType, responsive),
                         Container(
                           width: 1,
                           height: responsive.size(34, min: 28, max: 34),

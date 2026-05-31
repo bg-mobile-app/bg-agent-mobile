@@ -551,8 +551,13 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, constraints) {
         final responsive = HomeResponsive.fromWidth(constraints.maxWidth);
         final horizontalPadding = responsive.size(16, min: 12, max: 16);
-        final bannerHeight =
-            (constraints.maxWidth * 0.72).clamp(210.0, 294.0).toDouble();
+        final mediaQuery = MediaQuery.of(context);
+        final physicalWidth =
+            mediaQuery.size.width * mediaQuery.devicePixelRatio;
+        final isSmallPhone = responsive.isTightPhone || physicalWidth <= 720;
+        final bannerHeight = isSmallPhone
+            ? (constraints.maxWidth * 0.52).clamp(150.0, 190.0).toDouble()
+            : (constraints.maxWidth * 0.72).clamp(210.0, 294.0).toDouble();
 
         return SizedBox(
           height: bannerHeight + responsive.size(22, min: 16, max: 22),
