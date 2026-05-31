@@ -387,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final filterButtonSize = responsive.size(48, min: 42, max: 48);
         final dropdownHeight = responsive.size(56, min: 46, max: 56);
         final dropdownPadding = responsive.size(10, min: 7, max: 10);
-        final dropdownFontSize = responsive.font(11, min: 9.5, max: 11);
+        final dropdownFontSize = responsive.font(13, min: 12, max: 13);
 
         return Row(
           children: [
@@ -457,9 +457,24 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, constraints) {
         final responsive = HomeResponsive.fromWidth(constraints.maxWidth);
         final horizontalPadding = responsive.size(16, min: 12, max: 16);
-        final iconBoxSize = responsive.size(62, min: 46, max: 62);
-        final iconSize = responsive.size(24, min: 18, max: 24);
-        final itemGap = responsive.size(14, min: 8, max: 14);
+        final isCompactMobile = constraints.maxWidth <= 380;
+        final iconBoxSize = isCompactMobile
+            ? responsive.size(52, min: 48, max: 52)
+            : responsive.size(62, min: 46, max: 62);
+        final iconSize = isCompactMobile
+            ? responsive.size(22, min: 19, max: 22)
+            : responsive.size(24, min: 18, max: 24);
+        final itemGap = isCompactMobile
+            ? responsive.size(8, min: 6, max: 8)
+            : responsive.size(14, min: 8, max: 14);
+        final itemPadding = EdgeInsets.symmetric(
+          horizontal: responsive.size(isCompactMobile ? 4 : 6, min: 3, max: 6),
+          vertical: responsive.size(isCompactMobile ? 5 : 8, min: 4, max: 8),
+        );
+        final serviceTextFontSize = isCompactMobile
+            ? responsive.font(10, min: 9.5, max: 10)
+            : responsive.font(10, min: 8.5, max: 10);
+        final serviceTextHeight = isCompactMobile ? 1.12 : 1.18;
 
         return Container(
           width: double.infinity,
@@ -473,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisCount: 4,
               mainAxisSpacing: responsive.size(10, min: 6, max: 10),
               crossAxisSpacing: responsive.size(10, min: 6, max: 10),
-              childAspectRatio: responsive.isTightPhone ? .72 : .78,
+              childAspectRatio: isCompactMobile ? .62 : .78,
             ),
             itemBuilder: (context, index) {
               final item = navLinkData[index];
@@ -483,10 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   responsive.size(12, min: 10, max: 12),
                 ),
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: responsive.size(6, min: 4, max: 6),
-                    vertical: responsive.size(8, min: 5, max: 8),
-                  ),
+                  padding: itemPadding,
                   decoration: const BoxDecoration(color: Colors.transparent),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -531,7 +543,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: responsive.font(10, min: 8.5, max: 10),
+                          fontSize: serviceTextFontSize,
+                          height: serviceTextHeight,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
