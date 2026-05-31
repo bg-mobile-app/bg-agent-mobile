@@ -226,68 +226,69 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Widget _buildLoginCard() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Center(
-          child: Image.asset(
-            'assets/img/logo/logo_black.png',
-            width: 120,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => const Icon(Icons.language, size: 56, color: _brandBlue),
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Welcome back',
-          style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: _brandNavy),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Login to continue to your Bideshgami dashboard.',
-          style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-        ),
-        const SizedBox(height: 24),
-        _buildInputField(controller: _usernameController, hintText: 'Username or phone', autofocus: true, icon: Icons.person_outline),
-        const SizedBox(height: 14),
-        _buildPasswordField(),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(onPressed: () {}, child: const Text('Forgot Password?')),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _login,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _brandBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Image.asset(
+              'assets/img/logo/logo_black.png',
+              width: 120,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.language, size: 56, color: _brandBlue),
             ),
-            child: _isLoading 
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Login', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
-        ),
-
-        const SizedBox(height: 10),
-        Center(
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              const Text('New here? ', style: TextStyle(color: Color(0xFF64748B))),
-              TextButton(
-                onPressed: () => context.push(AppRoutes.agentSignUp),
-                child: const Text('Create an account', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 16),
+          const Text(
+            'Welcome back',
+            style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: _brandNavy),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Login to continue to your Bideshgami dashboard.',
+            style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 24),
+          _buildInputField(controller: _usernameController, hintText: 'Username or phone', autofocus: true, icon: Icons.person_outline),
+          const SizedBox(height: 14),
+          _buildPasswordField(),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: () {}, child: const Text('Forgot Password?')),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _login,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _brandBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-            ],
+              child: _isLoading 
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Login', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
           ),
-        ),
-      ],
+
+          const SizedBox(height: 10),
+          Center(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Text('New here? ', style: TextStyle(color: Color(0xFF64748B))),
+                TextButton(
+                  onPressed: () => context.push(AppRoutes.agentSignUp),
+                  child: const Text('Create an account', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
