@@ -8,6 +8,7 @@ import 'package:fui_kit/fui_kit.dart';
 import 'models/home_models.dart';
 import 'services/home_service.dart';
 import 'widgets/home_common_widgets.dart';
+import 'widgets/home_responsive.dart';
 import 'widgets/work_permit_card.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
@@ -198,18 +199,27 @@ class _HomeScreenState extends State<HomeScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       builder: (context) {
+        final responsive = HomeResponsive.of(context);
+        final sheetGap = responsive.size(10, min: 8, max: 12);
+
         return Padding(
           padding: EdgeInsets.only(
-            left: AppSpacing.md,
-            right: AppSpacing.md,
-            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
+            left: responsive.size(AppSpacing.md, min: 12, max: AppSpacing.md),
+            right: responsive.size(AppSpacing.md, min: 12, max: AppSpacing.md),
+            bottom: MediaQuery.of(context).viewInsets.bottom +
+                responsive.size(AppSpacing.md, min: 12, max: AppSpacing.md),
           ),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2, vertical: AppSpacing.md),
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.size(AppSpacing.sm + 2, min: 10, max: 14),
+              vertical: responsive.size(AppSpacing.md, min: 12, max: AppSpacing.md),
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(
+                responsive.size(16, min: 12, max: 16),
+              ),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x26000000),
@@ -226,27 +236,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     value: _serviceType,
                     hint: 'Service Type',
                     items: const ['WORK_PERMIT'],
+                    height: responsive.size(56, min: 48, max: 56),
+                    horizontalPadding: responsive.size(10, min: 8, max: 10),
+                    fontSize: responsive.font(11, min: 10, max: 11),
                     onChanged: (v) => setState(() => _serviceType = v ?? 'WORK_PERMIT'),
                   ),
-                  const SizedBox(height: AppSpacing.xs + 2),
+                  SizedBox(height: sheetGap),
                   Row(
                     children: [
                       Expanded(child: _textField(_minAgeController, 'Min Age')),
-                      const SizedBox(width: 8),
+                      SizedBox(width: responsive.size(8, min: 6, max: 8)),
                       Expanded(child: _textField(_maxAgeController, 'Max Age')),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xs + 2),
+                  SizedBox(height: sheetGap),
                   _textField(_companyController, 'Company Name'),
-                  const SizedBox(height: AppSpacing.xs + 2),
+                  SizedBox(height: sheetGap),
                   _dropdown(
                     value: _selectionType,
                     hint: 'Selection Type',
                     items: const ['All', 'Direct', 'Lottery'],
+                    height: responsive.size(56, min: 48, max: 56),
+                    horizontalPadding: responsive.size(10, min: 8, max: 10),
+                    fontSize: responsive.font(11, min: 10, max: 11),
                     onChanged: (v) =>
                         setState(() => _selectionType = v ?? 'All'),
                   ),
-                  const SizedBox(height: AppSpacing.xs + 2),
+                  SizedBox(height: sheetGap),
                   Row(
                     children: [
                       Expanded(
@@ -257,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () => _pickDate(isFrom: true),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: responsive.size(8, min: 6, max: 8)),
                       Expanded(
                         child: _dateButton(
                           label: _toDate == null
@@ -268,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: responsive.size(12, min: 10, max: 12)),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -280,7 +296,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         backgroundColor: _brandBlue,
                         foregroundColor: Colors.white,
                       ),
-                      child: const Text('Search'),
+                      child: Text(
+                        'Search',
+                        style: TextStyle(
+                          fontSize: responsive.font(14, min: 12, max: 14),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -330,7 +352,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               SliverToBoxAdapter(child: _buildWorkPermitSection()),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: HomeResponsive.of(context).size(24, min: 18, max: 24),
+                ),
+              ),
             ],
           ),
         ),
@@ -339,47 +365,69 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeroSection() {
+    final responsive = HomeResponsive.of(context);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: EdgeInsets.fromLTRB(
+        responsive.size(16, min: 12, max: 16),
+        responsive.size(8, min: 6, max: 8),
+        responsive.size(16, min: 12, max: 16),
+        0,
+      ),
       child: _buildSearchFilters(),
     );
   }
 
   Widget _buildSearchFilters() {
-    return Column(
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final responsive = HomeResponsive.fromWidth(constraints.maxWidth);
+        final isTightPhone = responsive.isTightPhone;
+        final gap = responsive.size(isTightPhone ? 6 : 8, min: 5, max: 8);
+        final filterButtonSize = responsive.size(48, min: 42, max: 48);
+        final dropdownHeight = responsive.size(56, min: 46, max: 56);
+        final dropdownPadding = responsive.size(10, min: 7, max: 10);
+        final dropdownFontSize = responsive.font(11, min: 9.5, max: 11);
+
+        return Row(
           children: [
             Expanded(
               child: _dropdown(
                 value: _country,
                 hint: 'Country Name',
                 items: _countries.map((e) => e.name).toList(),
+                height: dropdownHeight,
+                horizontalPadding: dropdownPadding,
+                fontSize: dropdownFontSize,
+                leadingBuilder: _countryOptionLeading,
                 onChanged: (v) {
                   setState(() => _country = v);
                   _applyFilters();
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: gap),
             Expanded(
               child: _dropdown(
                 value: _workType,
                 hint: 'Type of Work',
                 items: _workTypes.map((e) => e.name).toList(),
+                height: dropdownHeight,
+                horizontalPadding: dropdownPadding,
+                fontSize: dropdownFontSize,
                 onChanged: (v) {
                   setState(() => _workType = v);
                   _applyFilters();
                 },
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: gap),
             InkWell(
               onTap: _showAdvancedFilterSheet,
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                height: 48,
-                width: 48,
+                height: filterButtonSize,
+                width: filterButtonSize,
                 decoration: BoxDecoration(
                   color: _brandBlue,
                   borderRadius: BorderRadius.circular(12),
@@ -391,102 +439,157 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                child: Icon(
+                  Icons.tune,
+                  color: Colors.white,
+                  size: responsive.size(20, min: 17, max: 20),
+                ),
               ),
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildServices() {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        itemCount: navLinkData.length,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: .78,
-        ),
-        itemBuilder: (context, index) {
-          final item = navLinkData[index];
-          return InkWell(
-            onTap: item.href.isEmpty ? _showComingSoon : _showComingSoon,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              decoration: const BoxDecoration(color: Colors.transparent),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                    Container(
-                      width: 62,
-                      height: 62,
-                      decoration: BoxDecoration(
-                        color: index == 0 ? _brandBlue : Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: index == 0 ? const [BoxShadow(color: Color(0x332563EB), blurRadius: 16, offset: Offset(0, 8))] : const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4))],
-                      ),
-                      child: Center(
-                        child: FUI(
-                          item.icon,
-                          color: index == 0 ? Colors.white : _brandBlue,
-                          width: 24,
-                          height: 24,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final responsive = HomeResponsive.fromWidth(constraints.maxWidth);
+        final horizontalPadding = responsive.size(16, min: 12, max: 16);
+        final iconBoxSize = responsive.size(62, min: 46, max: 62);
+        final iconSize = responsive.size(24, min: 18, max: 24);
+        final itemGap = responsive.size(14, min: 8, max: 14);
+
+        return Container(
+          width: double.infinity,
+          margin: EdgeInsets.only(top: responsive.size(16, min: 10, max: 16)),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: GridView.builder(
+            itemCount: navLinkData.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: responsive.size(10, min: 6, max: 10),
+              crossAxisSpacing: responsive.size(10, min: 6, max: 10),
+              childAspectRatio: responsive.isTightPhone ? .72 : .78,
+            ),
+            itemBuilder: (context, index) {
+              final item = navLinkData[index];
+              return InkWell(
+                onTap: item.href.isEmpty ? _showComingSoon : _showComingSoon,
+                borderRadius: BorderRadius.circular(
+                  responsive.size(12, min: 10, max: 12),
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: responsive.size(6, min: 4, max: 6),
+                    vertical: responsive.size(8, min: 5, max: 8),
+                  ),
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: iconBoxSize,
+                        height: iconBoxSize,
+                        decoration: BoxDecoration(
+                          color: index == 0 ? _brandBlue : Colors.white,
+                          borderRadius: BorderRadius.circular(
+                            responsive.size(18, min: 14, max: 18),
+                          ),
+                          boxShadow: index == 0
+                              ? const [
+                                  BoxShadow(
+                                    color: Color(0x332563EB),
+                                    blurRadius: 16,
+                                    offset: Offset(0, 8),
+                                  ),
+                                ]
+                              : const [
+                                  BoxShadow(
+                                    color: Color(0x14000000),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                        ),
+                        child: Center(
+                          child: FUI(
+                            item.icon,
+                            color: index == 0 ? Colors.white : _brandBlue,
+                            width: iconSize,
+                            height: iconSize,
+                          ),
                         ),
                       ),
-                    ),
-                  const SizedBox(height: 14),
-                  Text(
-                    item.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
+                      SizedBox(height: itemGap),
+                      Text(
+                        item.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: responsive.font(10, min: 8.5, max: 10),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
   Widget _buildOfferBanner() {
-    return SizedBox(
-      height: 294,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: PageView.builder(
-            controller: _bannerController,
-            itemCount: _banners.length,
-            itemBuilder: (context, index) {
-              final banner = _banners[index];
-              if (banner.startsWith('http')) {
-                return Image.network(banner, fit: BoxFit.cover, width: double.infinity);
-              }
-              return Image.asset(
-                banner,
-                fit: BoxFit.cover,
-                width: double.infinity,
-              );
-            },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final responsive = HomeResponsive.fromWidth(constraints.maxWidth);
+        final horizontalPadding = responsive.size(16, min: 12, max: 16);
+        final bannerHeight =
+            (constraints.maxWidth * 0.72).clamp(210.0, 294.0).toDouble();
+
+        return SizedBox(
+          height: bannerHeight + responsive.size(22, min: 16, max: 22),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              responsive.size(16, min: 10, max: 16),
+              horizontalPadding,
+              responsive.size(6, min: 4, max: 6),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                responsive.size(28, min: 18, max: 28),
+              ),
+              child: PageView.builder(
+                controller: _bannerController,
+                itemCount: _banners.length,
+                itemBuilder: (context, index) {
+                  final banner = _banners[index];
+                  if (banner.startsWith('http')) {
+                    return Image.network(
+                      banner,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    );
+                  }
+                  return Image.asset(
+                    banner,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  );
+                },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -495,14 +598,27 @@ class _HomeScreenState extends State<HomeScreen> {
       return const SizedBox.shrink();
     }
 
-    final displayItems = _isLoading ? List.generate(4, (_) => WorkPermitItem.getDummy()) : _filteredWorkPermits;
+    final responsive = HomeResponsive.of(context);
+    final displayItems = _isLoading
+        ? List.generate(4, (_) => WorkPermitItem.getDummy())
+        : _filteredWorkPermits;
+    final horizontalPadding = responsive.size(16, min: 12, max: 16);
+    final listHeight = responsive.size(480, min: 390, max: 480);
+    final separator = responsive.size(14, min: 10, max: 14);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: responsive.size(10, min: 8, max: 10),
+      ),
       child: Column(
         children: [
-          _sectionHeader('Work Permit', actionLabel: 'See More', onActionTap: () => context.push('/search')),
-          const SizedBox(height: 14),
+          _sectionHeader(
+            'Work Permit',
+            actionLabel: 'See More',
+            onActionTap: () => context.push('/search'),
+          ),
+          SizedBox(height: responsive.size(14, min: 10, max: 14)),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 350),
             transitionBuilder: (child, animation) {
@@ -510,21 +626,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 position: Tween<Offset>(
                   begin: const Offset(0, 0.08),
                   end: Offset.zero,
-                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+                ).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                ),
                 child: FadeTransition(opacity: animation, child: child),
               );
             },
             child: SizedBox(
               key: ValueKey<bool>(_hasActiveFilters),
-              height: _hasActiveFilters ? null : 480,
+              height: _hasActiveFilters ? null : listHeight,
               child: ListView.separated(
                 shrinkWrap: _hasActiveFilters,
-                physics: _hasActiveFilters ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
-                scrollDirection: _hasActiveFilters ? Axis.vertical : Axis.horizontal,
+                physics: _hasActiveFilters
+                    ? const NeverScrollableScrollPhysics()
+                    : const AlwaysScrollableScrollPhysics(),
+                scrollDirection:
+                    _hasActiveFilters ? Axis.vertical : Axis.horizontal,
                 itemCount: displayItems.length,
                 itemBuilder: (context, index) {
-                  final double screenWidth = MediaQuery.of(context).size.width;
-                  final double cardWidth = screenWidth * .84 > 340 ? 340 : screenWidth * .84;
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final availableWidth = screenWidth - (horizontalPadding * 2);
+                  final cardWidth =
+                      (availableWidth * .94).clamp(220.0, 340.0).toDouble();
                   return SizedBox(
                     width: _hasActiveFilters ? double.infinity : cardWidth,
                     child: Align(
@@ -532,14 +655,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: WorkPermitCard(
                         item: displayItems[index],
                         brandBlue: _brandBlue,
-                        onViewDetails: () => _openWorkPermitDetails(displayItems[index]),
+                        onViewDetails: () => _openWorkPermitDetails(
+                          displayItems[index],
+                        ),
                         formatBdt: _formatBdt,
                         timeAgo: _timeAgo,
                       ),
                     ),
                   );
                 },
-                separatorBuilder: (_, __) => SizedBox(height: _hasActiveFilters ? 14 : 0, width: _hasActiveFilters ? 0 : 14),
+                separatorBuilder: (_, __) => SizedBox(
+                  height: _hasActiveFilters ? separator : 0,
+                  width: _hasActiveFilters ? 0 : separator,
+                ),
               ),
             ),
           ),
@@ -548,24 +676,53 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _sectionHeader(String title, {required String actionLabel, VoidCallback? onActionTap}) {
+  Widget _sectionHeader(
+    String title, {
+    required String actionLabel,
+    VoidCallback? onActionTap,
+  }) {
+    final responsive = HomeResponsive.of(context);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 50/2, color: Color(0xFF111827)),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: responsive.font(25, min: 19, max: 25),
+              color: const Color(0xFF111827),
+            ),
+          ),
         ),
         TextButton.icon(
           onPressed: onActionTap ?? _showComingSoon,
           style: TextButton.styleFrom(
             foregroundColor: _brandBlue,
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.size(10, min: 6, max: 10),
+              vertical: responsive.size(8, min: 5, max: 8),
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(999),
             ),
+            textStyle: TextStyle(
+              fontSize: responsive.font(14, min: 11, max: 14),
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-          label: Text(actionLabel),
+          icon: Icon(
+            Icons.arrow_forward_rounded,
+            size: responsive.size(18, min: 14, max: 18),
+          ),
+          label: Text(
+            actionLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );
@@ -607,111 +764,360 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${(diff.inDays / 7).floor()}w ago';
   }
 
+  Widget _countryOptionLeading(String countryName, double size) {
+    CountryItem? country;
+    for (final item in _countries) {
+      if (item.name == countryName) {
+        country = item;
+        break;
+      }
+    }
+    if (country == null) {
+      return Icon(
+        Icons.flag_outlined,
+        size: size,
+        color: const Color(0xFF64748B),
+      );
+    }
+
+    if (country.unicodeFlag.isNotEmpty) {
+      return Text(country.unicodeFlag, style: TextStyle(fontSize: size * 0.86));
+    }
+
+    final emoji = _countryCodeToEmoji(country.code);
+    if (emoji.isNotEmpty) {
+      return Text(emoji, style: TextStyle(fontSize: size * 0.86));
+    }
+
+    if (country.flag.isNotEmpty &&
+        !country.flag.toLowerCase().endsWith('.svg')) {
+      final image = country.flag.startsWith('http')
+          ? Image.network(country.flag, fit: BoxFit.cover)
+          : Image.asset(country.flag, fit: BoxFit.cover);
+      return ClipOval(
+        child: SizedBox(width: size, height: size, child: image),
+      );
+    }
+
+    return Icon(
+      Icons.flag_outlined,
+      size: size,
+      color: const Color(0xFF64748B),
+    );
+  }
+
+  String _countryCodeToEmoji(String code) {
+    final normalized = code.trim().toUpperCase();
+    if (normalized.length != 2) return '';
+
+    final first = normalized.codeUnitAt(0);
+    final second = normalized.codeUnitAt(1);
+    if (first < 65 || first > 90 || second < 65 || second > 90) return '';
+
+    const regionalIndicatorOffset = 0x1F1E6 - 65;
+    return String.fromCharCodes([
+      first + regionalIndicatorOffset,
+      second + regionalIndicatorOffset,
+    ]);
+  }
+
   Widget _dropdown({
     required String? value,
     required String hint,
     required List<String> items,
     required ValueChanged<String?> onChanged,
+    double height = 56,
+    double horizontalPadding = 10,
+    double fontSize = 11,
+    Widget Function(String, double)? leadingBuilder,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFDBEAFE)),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x120F172A),
-            blurRadius: 8,
-            offset: Offset(0, 3),
+    final radius = (height * 0.32).clamp(14.0, 18.0).toDouble();
+    final hasValue = value != null && value.isNotEmpty;
+    final displayText = hasValue ? value! : hint;
+    final leading =
+        hasValue ? leadingBuilder?.call(value!, fontSize + 12) : null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          final selected = await _showDropdownBottomSheet(
+            title: hint,
+            items: items,
+            selectedValue: value,
+            leadingBuilder: leadingBuilder,
+          );
+          if (selected != null) {
+            onChanged(selected);
+          }
+        },
+        borderRadius: BorderRadius.circular(radius),
+        child: Container(
+          height: height,
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFDBEAFE)),
+            borderRadius: BorderRadius.circular(radius),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x120F172A),
+                blurRadius: 8,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: DropdownButtonFormField<String>(
-          initialValue: value,
-          onChanged: onChanged,
-          isExpanded: true,
-          style: const TextStyle(color: Colors.black),
-          dropdownColor: Colors.white,
-          iconEnabledColor: Colors.black87,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF64748B)),
-            constraints: const BoxConstraints(minHeight: 56),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 18,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide.none,
-            ),
-          ),
-          items: items
-              .map(
-                (item) => DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(
-                    item,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13),
+          child: Row(
+            children: [
+              if (leading != null) ...[
+                leading,
+                SizedBox(
+                  width: (horizontalPadding * 0.6).clamp(4.0, 8.0).toDouble(),
+                ),
+              ],
+              Expanded(
+                child: Text(
+                  displayText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: hasValue ? Colors.black : const Color(0xFF64748B),
+                    fontSize: fontSize,
                   ),
                 ),
-              )
-              .toList(),
+              ),
+              SizedBox(
+                width: (horizontalPadding * 0.6).clamp(4.0, 8.0).toDouble(),
+              ),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.black87,
+                size: (fontSize + 8).clamp(17.0, 20.0).toDouble(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Future<String?> _showDropdownBottomSheet({
+    required String title,
+    required List<String> items,
+    required String? selectedValue,
+    Widget Function(String, double)? leadingBuilder,
+  }) {
+    final responsive = HomeResponsive.of(context);
+    final radius = responsive.size(24, min: 18, max: 24);
+
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.72,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: responsive.size(10, min: 8, max: 10)),
+                Container(
+                  width: responsive.size(42, min: 34, max: 42),
+                  height: responsive.size(4, min: 3, max: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    responsive.size(18, min: 14, max: 18),
+                    responsive.size(16, min: 12, max: 16),
+                    responsive.size(8, min: 6, max: 8),
+                    responsive.size(8, min: 6, max: 8),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: responsive.font(18, min: 15, max: 18),
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: responsive.size(22, min: 18, max: 22),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                Flexible(
+                  child: items.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(
+                              responsive.size(24, min: 18, max: 24),
+                            ),
+                            child: Text(
+                              'No options available',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: responsive.font(14, min: 12, max: 14),
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.symmetric(
+                            vertical: responsive.size(8, min: 6, max: 8),
+                          ),
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const Divider(
+                            height: 1,
+                            indent: 18,
+                            endIndent: 18,
+                            color: Color(0xFFF1F5F9),
+                          ),
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            final isSelected = item == selectedValue;
+
+                            final leading = leadingBuilder?.call(
+                              item,
+                              responsive.size(24, min: 20, max: 24),
+                            );
+
+                            return ListTile(
+                              dense: responsive.isTightPhone,
+                              leading: leading,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal:
+                                    responsive.size(18, min: 14, max: 18),
+                                vertical: responsive.size(4, min: 2, max: 4),
+                              ),
+                              title: Text(
+                                item,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: false,
+                                style: TextStyle(
+                                  fontSize:
+                                      responsive.font(15, min: 12, max: 15),
+                                  fontWeight: isSelected
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                              trailing: isSelected
+                                  ? Icon(
+                                      Icons.check_circle_rounded,
+                                      color: _brandBlue,
+                                      size: responsive.size(
+                                        22,
+                                        min: 18,
+                                        max: 22,
+                                      ),
+                                    )
+                                  : null,
+                              onTap: () => Navigator.pop(context, item),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
   Widget _textField(TextEditingController controller, String hint) {
+    final responsive = HomeResponsive.of(context);
+    final radius = responsive.size(8, min: 7, max: 8);
+
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.black),
+      style: TextStyle(
+        color: Colors.black,
+        fontSize: responsive.font(14, min: 12, max: 14),
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.black54),
+        hintStyle: TextStyle(
+          color: Colors.black54,
+          fontSize: responsive.font(14, min: 12, max: 14),
+        ),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 10,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: responsive.size(10, min: 8, max: 10),
+          vertical: responsive.size(10, min: 8, max: 10),
         ),
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(radius)),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(radius),
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(radius),
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
       ),
     );
   }
 
+
   Widget _dateButton({required String label, required VoidCallback onTap}) {
+    final responsive = HomeResponsive.of(context);
+
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: EdgeInsets.symmetric(
+          horizontal: responsive.size(10, min: 8, max: 10),
+          vertical: responsive.size(12, min: 9, max: 12),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(responsive.size(8, min: 7, max: 8)),
+        ),
+        textStyle: TextStyle(
+          fontSize: responsive.font(14, min: 11, max: 14),
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      child: Text(label),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
+
 }

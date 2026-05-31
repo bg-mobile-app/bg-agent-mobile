@@ -22,7 +22,10 @@ class HomeService {
           id: json['id'] ?? 0,
           name: json['name'] ?? 'Unknown',
           code: json['code'] ?? '',
-          flag: json['flag'] ?? '',
+          flag: json['flag']?.toString() ?? '',
+          unicodeFlag: json['unicodeFlag']?.toString() ??
+              json['unicode_flag']?.toString() ??
+              '',
         );
       }).toList();
     } catch (e) {

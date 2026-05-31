@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'home_responsive.dart';
+
 class HeaderActionButton extends StatelessWidget {
   const HeaderActionButton({
     super.key,
@@ -14,18 +16,32 @@ class HeaderActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = HomeResponsive.of(context);
+
     return SizedBox(
-      height: 36,
+      height: responsive.size(36, min: 32, max: 38),
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: brandBlue,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: EdgeInsets.symmetric(
+            horizontal: responsive.size(12, min: 8, max: 14),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.size(8, min: 7)),
+          ),
+          textStyle: TextStyle(
+            fontSize: responsive.font(14, min: 12, max: 14),
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        child: Text(label),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }
@@ -59,17 +75,26 @@ class AppBrandHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = HomeResponsive.of(context);
+    final headerHeight = responsive.size(74, min: 62, max: 74);
+    final logoHeight = responsive.size(48, min: 38, max: 48);
+    final leadingWidth = responsive.size(88, min: 68, max: 88);
+    final actionHeight = responsive.size(48, min: 40, max: 48);
+    final actionWidth = responsive.size(96, min: 76, max: 96);
+    final actionFontSize = responsive.font(15, min: 12, max: 15);
+    final actionRadius = responsive.size(20, min: 16, max: 20);
+
     return AppBar(
       backgroundColor: backgroundColor,
       elevation: 0,
-      toolbarHeight: 74,
+      toolbarHeight: headerHeight,
       automaticallyImplyLeading: false,
-      leadingWidth: 88,
+      leadingWidth: leadingWidth,
       leading: Padding(
-        padding: const EdgeInsets.only(left: 12),
+        padding: EdgeInsets.only(left: responsive.size(12, min: 8, max: 12)),
         child: Image.asset(
           'assets/img/logo/logo_black.png',
-          height: 48,
+          height: logoHeight,
           fit: BoxFit.contain,
         ),
       ),
@@ -78,25 +103,39 @@ class AppBrandHeader extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         if (isLoggedIn) ...[
           IconButton(
-            onPressed: onNotifications, 
-            icon: const Badge(
+            onPressed: onNotifications,
+            iconSize: responsive.size(28, min: 22, max: 28),
+            padding: EdgeInsets.all(responsive.size(8, min: 5, max: 8)),
+            constraints: BoxConstraints.tightFor(
+              width: responsive.size(48, min: 38, max: 48),
+              height: responsive.size(48, min: 38, max: 48),
+            ),
+            icon: Badge(
               backgroundColor: Colors.red,
-              smallSize: 8,
-              child: Icon(Icons.notifications_none, color: Colors.black87, size: 28),
-            ), 
-            tooltip: 'Notifications'
+              smallSize: responsive.size(8, min: 6, max: 8),
+              child: Icon(
+                Icons.notifications_none,
+                color: Colors.black87,
+                size: responsive.size(28, min: 22, max: 28),
+              ),
+            ),
+            tooltip: 'Notifications',
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: responsive.size(8, min: 4, max: 8)),
           GestureDetector(
             onTap: onProfile,
             child: CircleAvatar(
-              radius: 18,
+              radius: responsive.size(18, min: 15, max: 18),
               backgroundColor: const Color(0xFFD7E3FF),
               backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
                   ? NetworkImage(profileImageUrl!)
                   : null,
               child: (profileImageUrl == null || profileImageUrl!.isEmpty)
-                  ? const Icon(Icons.person, color: Color(0xFF2563EB))
+                  ? Icon(
+                      Icons.person,
+                      color: const Color(0xFF2563EB),
+                      size: responsive.size(22, min: 18, max: 22),
+                    )
                   : null,
             ),
           ),
@@ -107,28 +146,44 @@ class AppBrandHeader extends StatelessWidget implements PreferredSizeWidget {
               foregroundColor: brandBlue,
               side: const BorderSide(color: Color(0xFFD7E3FF)),
               backgroundColor: Colors.white,
-              minimumSize: const Size(96, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              minimumSize: Size(actionWidth, actionHeight),
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.size(12, min: 8, max: 12),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(actionRadius),
+              ),
+              textStyle: TextStyle(
+                fontSize: actionFontSize,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            child: const Text('Sign In'),
+            child: const Text('Sign In', maxLines: 1),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: responsive.size(10, min: 6, max: 10)),
           ElevatedButton(
             onPressed: onSignUp,
             style: ElevatedButton.styleFrom(
               backgroundColor: brandBlue,
               foregroundColor: Colors.white,
-              minimumSize: const Size(96, 48),
+              minimumSize: Size(actionWidth, actionHeight),
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.size(12, min: 8, max: 12),
+              ),
               elevation: 6,
               shadowColor: const Color(0x552563EB),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(actionRadius),
+              ),
+              textStyle: TextStyle(
+                fontSize: actionFontSize,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            child: const Text('Sign Up'),
+            child: const Text('Sign Up', maxLines: 1),
           ),
         ],
-        const SizedBox(width: 16),
+        SizedBox(width: responsive.size(16, min: 8, max: 16)),
       ],
     );
   }
