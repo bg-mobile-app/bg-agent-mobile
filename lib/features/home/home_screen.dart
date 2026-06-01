@@ -475,6 +475,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ? responsive.font(10, min: 9.5, max: 10)
             : responsive.font(10, min: 8.5, max: 10);
         final serviceTextHeight = isCompactMobile ? 1.12 : 1.18;
+        final rowSpacing = isCompactMobile
+            ? responsive.size(4, min: 2, max: 4)
+            : responsive.size(10, min: 6, max: 10);
 
         return Container(
           width: double.infinity,
@@ -486,9 +489,9 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
-              mainAxisSpacing: responsive.size(10, min: 6, max: 10),
+              mainAxisSpacing: rowSpacing,
               crossAxisSpacing: responsive.size(10, min: 6, max: 10),
-              childAspectRatio: isCompactMobile ? .62 : .78,
+              childAspectRatio: .78,
             ),
             itemBuilder: (context, index) {
               final item = navLinkData[index];
