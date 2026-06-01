@@ -164,7 +164,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                 bottom: false,
                 child: CustomScrollView(
                   slivers: [
-                    SliverToBoxAdapter(child: _heroImage(isDesktop)),
+                    SliverToBoxAdapter(child: _heroImage()),
                     SliverToBoxAdapter(
                       child: Center(
                         child: ConstrainedBox(
@@ -173,43 +173,59 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                         ),
                       ),
                     ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                24,
-                horizontalPadding,
-                displaySimilar.isNotEmpty ? 24 : 128,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1344),
-                    child: isDesktop ? _desktopBody() : _mobileBody(),
-                  ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        16,
+                        horizontalPadding,
+                        0,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1344),
+                            child: _safetyGuidelines(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        24,
+                        horizontalPadding,
+                        displaySimilar.isNotEmpty ? 24 : 128,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1344),
+                            child: isDesktop ? _desktopBody() : _mobileBody(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (displaySimilar.isNotEmpty)
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          16,
+                          horizontalPadding,
+                          128,
+                        ),
+                        sliver: SliverToBoxAdapter(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1344),
+                              child: _buildSimilarPermitsSection(),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
-            if (displaySimilar.isNotEmpty)
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  horizontalPadding,
-                  16,
-                  horizontalPadding,
-                  128,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1344),
-                      child: _buildSimilarPermitsSection(),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-      ), // Close Skeletonizer
       bottomNavigationBar: _bottomActions(context),
     );
   }
@@ -232,66 +248,128 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     );
   }
 
-  Widget _heroImage(bool isDesktop) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: SizedBox(
-        width: double.infinity,
-        child: displayDetails.image.startsWith('http')
-            ? Image.network(displayDetails.image, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported))
-            : Image.asset(widget.item.image, fit: BoxFit.cover),
-      ),
+  Widget _heroImage() {
+    final imagePath = displayDetails.image.isNotEmpty
+        ? displayDetails.image
+        : widget.item.image;
+
+    if (imagePath.isEmpty) {
+      return const ColoredBox(
+        color: _surface,
+        child: SizedBox(
+          height: 220,
+          child: Center(child: Icon(Icons.image_not_supported)),
+        ),
+      );
+    }
+
+    final image = imagePath.startsWith('http')
+        ? Image.network(
+            imagePath,
+            width: double.infinity,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox(
+              height: 220,
+              child: Center(child: Icon(Icons.image_not_supported)),
+            ),
+          )
+        : Image.asset(
+            imagePath,
+            width: double.infinity,
+            fit: BoxFit.contain,
+          );
+
+    return ColoredBox(
+      color: _surface,
+      child: Center(child: image),
     );
   }
 
   Widget _headlineSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: const [
-            _Pill(label: 'Recruitment Open'),
-            _IconText(
-              icon: FaIcon(
-                FontAwesomeIcons.circleCheck,
+    final width = MediaQuery.sizeOf(context).width;
+    final isSmallPhone = width <= 720;
+    final isMediumPhone = width > 720 && width <= 1080;
+    final horizontalPadding = width >= 980 ? 48.0 : 16.0;
+    final topPadding = isSmallPhone ? 18.0 : 22.0;
+    final titleFontSize = isSmallPhone
+        ? 21.0
+        : isMediumPhone
+            ? 24.0
+            : 30.0;
+    final badgeFontSize = isSmallPhone
+        ? 10.0
+        : isMediumPhone
+            ? 11.0
+            : 12.0;
+    final metaFontSize = isSmallPhone
+        ? 11.0
+        : isMediumPhone
+            ? 12.0
+            : 13.0;
+    final iconSize = isSmallPhone
+        ? 11.0
+        : isMediumPhone
+            ? 13.0
+            : 14.0;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        topPadding,
+        horizontalPadding,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: isSmallPhone ? 6 : 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _Pill(label: 'Recruitment Open', fontSize: badgeFontSize),
+              _IconText(
+                icon: FaIcon(
+                  FontAwesomeIcons.circleCheck,
+                  color: _brandBlue,
+                  size: iconSize,
+                ),
+                label: 'Agency Verified',
                 color: _brandBlue,
-                size: 14,
+                bold: true,
+                fontSize: metaFontSize,
               ),
-              label: 'Agency Verified',
-              color: _brandBlue,
-              bold: true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(
-          displayDetails.title,
-          style: const TextStyle(
-            color: _text,
-            fontSize: 30,
-            height: 1.15,
-            fontWeight: FontWeight.w800,
+            ],
           ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 18,
-          runSpacing: 8,
-          children: [
-            _IconText(
-              icon: const FaIcon(FontAwesomeIcons.calendarDays, size: 14),
-              label: 'Posted: ${displayDetails.createdAt.toString().split(' ')[0]}',
+          const SizedBox(height: 10),
+          Text(
+            displayDetails.title,
+            style: TextStyle(
+              color: _text,
+              fontSize: titleFontSize,
+              height: 1.15,
+              fontWeight: FontWeight.w800,
             ),
-            _IconText(
-              icon: const FaIcon(FontAwesomeIcons.fingerprint, size: 14),
-              label: 'Post ID: ${displayDetails.id}',
-            ),
-          ],
-        ),
-      ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: isSmallPhone ? 12 : 18,
+            runSpacing: 8,
+            children: [
+              _IconText(
+                icon: FaIcon(FontAwesomeIcons.calendarDays, size: iconSize),
+                label: 'Posted: ${displayDetails.createdAt.toString().split(' ')[0]}',
+                fontSize: metaFontSize,
+              ),
+              _IconText(
+                icon: FaIcon(FontAwesomeIcons.fingerprint, size: iconSize),
+                label: 'Post ID: ${displayDetails.id}',
+                fontSize: metaFontSize,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -417,8 +495,6 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
         ),
         const SizedBox(height: 24),
         _packageInclusions(),
-        const SizedBox(height: 24),
-        _safetyGuidelines(),
       ],
     );
   }
@@ -553,78 +629,104 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       'পরিবারকে না জানিয়ে সিদ্ধান্ত নিবেন না।',
     ];
 
+    final width = MediaQuery.sizeOf(context).width;
+    final compactGuidelines = width <= 1080;
+    final borderRadius = compactGuidelines ? 14.0 : 20.0;
+    final leadingSize = compactGuidelines ? 32.0 : 48.0;
+    final leadingIconSize = compactGuidelines ? 14.0 : 20.0;
+    final titleFontSize = compactGuidelines ? 12.0 : 18.0;
+    final subtitleFontSize = compactGuidelines ? 9.0 : 14.0;
+    final tipFontSize = compactGuidelines ? 6.0 : 14.0;
+    final tipIconSize = compactGuidelines ? 8.0 : 16.0;
+    final itemSpacing = compactGuidelines ? 8.0 : 18.0;
+    final itemRunSpacing = compactGuidelines ? 8.0 : 14.0;
+
     return Container(
       decoration: BoxDecoration(
         color: _errorContainer.withAlpha(107),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: _error.withAlpha(56)),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          tilePadding: EdgeInsets.symmetric(
+            horizontal: compactGuidelines ? 12 : 24,
+            vertical: compactGuidelines ? 8 : 14,
+          ),
+          childrenPadding: EdgeInsets.fromLTRB(
+            compactGuidelines ? 12 : 24,
+            0,
+            compactGuidelines ? 12 : 24,
+            compactGuidelines ? 12 : 24,
+          ),
           collapsedIconColor: _error,
           iconColor: _error,
           leading: Container(
-            width: 48,
-            height: 48,
+            width: leadingSize,
+            height: leadingSize,
             decoration: const BoxDecoration(
               color: _error,
               shape: BoxShape.circle,
             ),
-            child: const Center(
+            child: Center(
               child: FaIcon(
                 FontAwesomeIcons.gavel,
                 color: Colors.white,
-                size: 20,
+                size: leadingIconSize,
               ),
             ),
           ),
-          title: const Text(
+          title: Text(
             'সতর্কতামূলক নিদর্শন: বিদেশ যাওয়ার আগে যা কখনো করবেন না।',
             style: TextStyle(
-              color: Color(0xFF93000A),
-              fontSize: 18,
+              color: const Color(0xFF93000A),
+              fontSize: titleFontSize,
               fontWeight: FontWeight.w800,
             ),
           ),
-          subtitle: const Text(
+          subtitle: Text(
             'বিস্তারিত দেখতে ট্যাপ করুন',
-            style: TextStyle(color: Color(0xCC93000A), height: 1.4),
+            style: TextStyle(
+              color: const Color(0xCC93000A),
+              fontSize: subtitleFontSize,
+              height: compactGuidelines ? 1.2 : 1.4,
+            ),
           ),
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumns = constraints.maxWidth > 680;
                 return Wrap(
-                  spacing: 18,
-                  runSpacing: 14,
+                  spacing: itemSpacing,
+                  runSpacing: itemRunSpacing,
                   children: tips
                       .map(
                         (tip) => SizedBox(
                           width: twoColumns
-                              ? (constraints.maxWidth - 18) / 2
+                              ? (constraints.maxWidth - itemSpacing) / 2
                               : constraints.maxWidth,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Padding(
-                                padding: EdgeInsets.only(top: 3),
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: compactGuidelines ? 1 : 3,
+                                ),
                                 child: FaIcon(
                                   FontAwesomeIcons.circleCheck,
-                                  size: 16,
+                                  size: tipIconSize,
                                   color: _error,
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: compactGuidelines ? 6 : 12),
                               Expanded(
                                 child: Text(
                                   tip,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: _text,
-                                    fontSize: 14,
-                                    height: 1.42,
+                                    fontSize: tipFontSize,
+                                    height: compactGuidelines ? 1.25 : 1.42,
                                   ),
                                 ),
                               ),
@@ -1098,9 +1200,10 @@ class _CardShell extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label});
+  const _Pill({required this.label, this.fontSize = 12});
 
   final String label;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -1112,9 +1215,9 @@ class _Pill extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
-          color: Color(0xFF00174B),
-          fontSize: 12,
+        style: TextStyle(
+          color: const Color(0xFF00174B),
+          fontSize: fontSize,
           letterSpacing: 0.7,
           fontWeight: FontWeight.w800,
         ),
@@ -1129,12 +1232,14 @@ class _IconText extends StatelessWidget {
     required this.label,
     this.color = _mutedText,
     this.bold = false,
+    this.fontSize = 13,
   });
 
   final Widget icon;
   final String label;
   final Color color;
   final bool bold;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -1147,7 +1252,7 @@ class _IconText extends StatelessWidget {
           label,
           style: TextStyle(
             color: color,
-            fontSize: 13,
+            fontSize: fontSize,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
