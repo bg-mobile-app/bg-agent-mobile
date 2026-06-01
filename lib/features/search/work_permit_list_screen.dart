@@ -218,17 +218,15 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: displayItems.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) => SizedBox(
-                        height: 460,
-                        child: WorkPermitCard(
-                          item: displayItems[index],
-                          brandBlue: _brandBlue,
-                          onViewDetails: () =>
-                              _openDetailsBySlug(displayItems[index]),
-                          formatBdt: _formatBdt,
-                          timeAgo: _timeAgo,
-                        ),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 16),
+                      itemBuilder: (context, index) => WorkPermitCard(
+                        item: displayItems[index],
+                        brandBlue: _brandBlue,
+                        onViewDetails: () =>
+                            _openDetailsBySlug(displayItems[index]),
+                        formatBdt: _formatBdt,
+                        timeAgo: _timeAgo,
                       ),
                     ),
                   ),
