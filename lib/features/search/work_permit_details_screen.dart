@@ -926,7 +926,8 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
   }
 
   Widget _priceCard() {
-    final agentPrice = _isLoggedIn ? displayDetails.agentPrice : null;
+    final agentSpending = _isLoggedIn ? displayDetails.agentPrice : null;
+    final ownSpending = _isLoggedIn ? displayDetails.packagePrice : null;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1008,14 +1009,23 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          if (agentPrice != null) ...[
+          if (agentSpending != null || ownSpending != null) ...[
             Container(height: 1, color: Colors.white24),
             const SizedBox(height: 14),
-            _privatePriceRow(
-              title: _tr('Agent Price', 'এজেন্ট মূল্য'),
-              value: 'BDT ${_formatMoney(agentPrice)}',
-            ),
-            const SizedBox(height: 14),
+            if (agentSpending != null) ...[
+              _privatePriceRow(
+                title: _tr('Agent Spending', 'এজেন্ট খরচ'),
+                value: 'BDT ${_formatMoney(agentSpending)}',
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (ownSpending != null) ...[
+              _privatePriceRow(
+                title: _tr('Own Spending', 'নিজস্ব খরচ'),
+                value: 'BDT ${_formatMoney(ownSpending)}',
+              ),
+              const SizedBox(height: 12),
+            ],
           ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
