@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -490,21 +492,21 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
           const SizedBox(height: 22),
           _UploadBox(
             label: 'Profile Photo',
-            fileName: _profileImage?.name,
+            file: _profileImage,
             icon: Icons.add_a_photo_outlined,
             onTap: () => _pickFile((f) => _profileImage = f),
           ),
           const SizedBox(height: 14),
           _UploadBox(
             label: 'NID (Both Sides)',
-            fileName: _nidImage?.name,
+            file: _nidImage,
             icon: Icons.badge_outlined,
             onTap: () => _pickFile((f) => _nidImage = f),
           ),
           const SizedBox(height: 14),
           _UploadBox(
             label: 'Trade License',
-            fileName: _tradeLicenseImage?.name,
+            file: _tradeLicenseImage,
             icon: Icons.verified_user_outlined,
             onTap: () => _pickFile((f) => _tradeLicenseImage = f),
           ),
@@ -737,15 +739,17 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
 class _UploadBox extends StatelessWidget {
   const _UploadBox({
     required this.label,
-    required this.fileName,
+    required this.file,
     required this.icon,
     required this.onTap,
   });
 
   final String label;
-  final String? fileName;
+  final XFile? file;
   final IconData icon;
   final VoidCallback onTap;
+
+  bool get _hasFile => file != null;
 
   @override
   Widget build(BuildContext context) {
@@ -765,37 +769,110 @@ class _UploadBox extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               border: Border.all(
-                color: const Color(0xFFCBD5E1),
+                color: _hasFile
+                    ? _AgentSignUpScreenState._brandBlue
+                    : const Color(0xFFCBD5E1),
                 style: BorderStyle.solid,
                 width: 1.4,
               ),
               borderRadius: BorderRadius.circular(14),
               color: const Color(0xFFF8FAFC),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 18, color: const Color(0xFF64748B)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    fileName ?? 'Tap to upload',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: fileName == null
-                          ? const Color(0xFF64748B)
-                          : const Color(0xFF0F172A),
+                Row(
+                  children: [
+                    Icon(
+                      _hasFile ? Icons.check_circle : icon,
+                      size: 18,
+                      color: _hasFile
+                          ? _AgentSignUpScreenState._brandBlue
+                          : const Color(0xFF64748B),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        file?.name ?? 'Tap to upload',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _hasFile
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFF64748B),
+                          fontWeight: _hasFile ? FontWeight.w600 : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _hasFile ? 'Change' : 'Browse',
+                      style: TextStyle(
+                        color: _hasFile
+                            ? _AgentSignUpScreenState._brandBlue
+                            : const Color(0xFF64748B),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
+                if (_hasFile) ...[
+                  const SizedBox(height: 12),
+                  _SelectedImagePreview(file: file!),
+                ],
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SelectedImagePreview extends StatelessWidget {
+  const _SelectedImagePreview({required this.file});
+
+  final XFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox(
+            height: 120,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+
+        final bytes = snapshot.data;
+        if (bytes == null || bytes.isEmpty) {
+          return const SizedBox(
+            height: 120,
+            child: Center(
+              child: Text(
+                'Preview unavailable',
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+              ),
+            ),
+          );
+        }
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            height: 140,
+            color: const Color(0xFFE2E8F0),
+            child: Image.memory(bytes, fit: BoxFit.cover),
+          ),
+        );
+      },
     );
   }
 }
