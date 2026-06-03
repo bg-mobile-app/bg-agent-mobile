@@ -26,6 +26,7 @@ import '../../../features/home/payments_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
 import '../../../features/home/unauthenticated_profile_screen.dart';
 import '../../../features/home/user_activity_screen.dart';
+import '../../../features/reminder/medical_expiry_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
 import '../../../common/services/api_client.dart';
 import 'app_bottom_nav.dart';
@@ -159,6 +160,12 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return const ReturnPassportScreen();
       case '/dashboard/booking/appointment':
         return const AppointmentBookingScreen();
+      case '/dashboard/reminder/medical-expiry':
+        return const MedicalExpiryScreen();
+      case '/dashboard/reminder/police-clearance-expiry':
+        return const PoliceClearanceExpiryScreen();
+      case '/dashboard/reminder/visa-expiry':
+        return const VisaExpiryScreen();
       case '/dashboard/receive-booking/all-booking':
         return const ReceivedAllBookingScreen();
       case '/dashboard/receive-booking/applied-booking':
