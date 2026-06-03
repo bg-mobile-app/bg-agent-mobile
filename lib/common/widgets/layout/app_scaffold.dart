@@ -16,11 +16,14 @@ import '../../../features/chat/chat_list_screen.dart';
 import '../../../features/home/change_password_screen.dart';
 import '../../../features/home/check_status_screen.dart';
 import '../../../features/home/commission_screen.dart';
+import '../../../features/home/create_ad_form_screen.dart';
+import '../../../features/home/create_ad_screen.dart';
 import '../../../features/home/create_user_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
 import '../../../features/home/home_screen.dart';
 import '../../../features/home/manage_user_screen.dart';
+import '../../../features/home/my_ads_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/home/receive_payment_screen.dart';
@@ -166,6 +169,14 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return const ReturnPassportScreen();
       case '/dashboard/booking/appointment':
         return const AppointmentBookingScreen();
+      case '/dashboard/ads/create':
+        return const CreateAdScreen();
+      case '/dashboard/ads/my':
+        return const MyAdsScreen();
+      case '/dashboard/ads/create/form/bn':
+        return const CreateAdFormScreen(isBangla: true);
+      case '/dashboard/ads/create/form/en':
+        return const CreateAdFormScreen(isBangla: false);
       case '/dashboard/reminder/medical-expiry':
         return const MedicalExpiryScreen();
       case '/dashboard/reminder/police-clearance-expiry':
