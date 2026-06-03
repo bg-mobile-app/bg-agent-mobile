@@ -1147,6 +1147,29 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
   final AuthService _authService = AuthService();
   String? _openKey;
 
+  @override
+  void initState() {
+    super.initState();
+    _openKey = _activeParentKey(widget.currentHref);
+  }
+
+  @override
+  void didUpdateWidget(CustomerSidebarDrawer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentHref != widget.currentHref) {
+      _openKey = _activeParentKey(widget.currentHref);
+    }
+  }
+
+  String? _activeParentKey(String currentHref) {
+    for (final link in widget.links) {
+      if (link.children.any((child) => child.href == currentHref)) {
+        return link.name;
+      }
+    }
+    return null;
+  }
+
   void _handleNavigation(SidebarLink link) {
     Navigator.pop(context);
     final href = link.href;
@@ -1176,6 +1199,7 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
                     final link = widget.links[index];
                     return _SidebarNavTile(
                       link: link,
+                      currentHref: widget.currentHref,
                       isOpen: _openKey == link.name,
                       onExpandToggle: () {
                         setState(() {
@@ -1298,48 +1322,137 @@ class _SidebarUserInfo extends StatelessWidget {
 class _SidebarNavTile extends StatelessWidget {
   const _SidebarNavTile({
     required this.link,
+    required this.currentHref,
     required this.isOpen,
     required this.onExpandToggle,
     required this.onTap,
   });
 
   final SidebarLink link;
+  final String currentHref;
   final bool isOpen;
   final VoidCallback onExpandToggle;
   final ValueChanged<SidebarLink> onTap;
 
+  bool get _isDirectlyActive => link.href == currentHref;
+
+  bool get _hasActiveChild =>
+      link.children.any((child) => child.href == currentHref);
+
   @override
   Widget build(BuildContext context) {
+    final isActive = _isDirectlyActive || _hasActiveChild;
+    final activeColor = AppPalette.brandBlue;
+    final activeBackground = activeColor.withOpacity(0.1);
+
     if (link.children.isNotEmpty) {
-      return ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        initiallyExpanded: isOpen,
-        onExpansionChanged: (_) => onExpandToggle(),
-        leading: Icon(link.icon ?? Icons.circle, size: 20),
-        title: Text(
-          link.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+      return Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          color: isActive ? activeBackground : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
         ),
-        children: link.children
-            .map(
-              (child) => ListTile(
-                contentPadding: const EdgeInsets.only(left: 40, right: 0),
-                title: Text(child.name),
-                onTap: () => onTap(child),
-              ),
-            )
-            .toList(),
+        child: ExpansionTile(
+          key: ValueKey('${link.name}-$isOpen'),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+          childrenPadding: const EdgeInsets.only(bottom: 4),
+          initiallyExpanded: isOpen,
+          onExpansionChanged: (_) => onExpandToggle(),
+          leading: Icon(
+            link.icon ?? Icons.circle,
+            size: 20,
+            color: isActive ? activeColor : const Color(0xFF475569),
+          ),
+          title: Text(
+            link.name,
+            style: TextStyle(
+              color: isActive ? activeColor : const Color(0xFF334155),
+              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+          iconColor: activeColor,
+          collapsedIconColor:
+              isActive ? activeColor : const Color(0xFF64748B),
+          children: link.children
+              .map(
+                (child) => _SidebarChildLink(
+                  child: child,
+                  isActive: child.href == currentHref,
+                  onTap: () => onTap(child),
+                ),
+              )
+              .toList(),
+        ),
       );
     }
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(link.icon ?? Icons.circle, size: 20),
-      title: Text(
-        link.name,
-        style: const TextStyle(fontWeight: FontWeight.w500),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: isActive ? activeBackground : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
       ),
-      onTap: () => onTap(link),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        leading: Icon(
+          link.icon ?? Icons.circle,
+          size: 20,
+          color: isActive ? activeColor : const Color(0xFF475569),
+        ),
+        title: Text(
+          link.name,
+          style: TextStyle(
+            color: isActive ? activeColor : const Color(0xFF334155),
+            fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+          ),
+        ),
+        onTap: () => onTap(link),
+      ),
+    );
+  }
+}
+
+class _SidebarChildLink extends StatelessWidget {
+  const _SidebarChildLink({
+    required this.child,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final SidebarLink child;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = AppPalette.brandBlue;
+    return Container(
+      margin: const EdgeInsets.only(left: 32, right: 8, bottom: 4),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isActive ? const Color(0xFFBFDBFE) : Colors.transparent,
+        ),
+      ),
+      child: ListTile(
+        dense: true,
+        minLeadingWidth: 0,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        leading: Icon(
+          Icons.circle,
+          size: 7,
+          color: isActive ? activeColor : const Color(0xFF94A3B8),
+        ),
+        title: Text(
+          child.name,
+          style: TextStyle(
+            color: isActive ? activeColor : const Color(0xFF475569),
+            fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+          ),
+        ),
+        onTap: onTap,
+      ),
     );
   }
 }
