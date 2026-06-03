@@ -206,13 +206,30 @@ class _HomeScreenState extends State<HomeScreen> {
         final responsive = HomeResponsive.of(context);
         final sheetGap = responsive.size(10, min: 8, max: 12);
 
-        return Padding(
+        final mediaQuery = MediaQuery.of(context);
+        final horizontalInset = responsive.size(
+          AppSpacing.md,
+          min: 12,
+          max: AppSpacing.md,
+        );
+        final bottomInset = responsive.size(
+          AppSpacing.md,
+          min: 12,
+          max: AppSpacing.md,
+        );
+
+        void submitAdvancedFilters() {
+          Navigator.pop(context);
+          _applyFilters();
+        }
+
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
           padding: EdgeInsets.only(
-            left: responsive.size(AppSpacing.md, min: 12, max: AppSpacing.md),
-            right: responsive.size(AppSpacing.md, min: 12, max: AppSpacing.md),
-            bottom:
-                MediaQuery.of(context).viewInsets.bottom +
-                responsive.size(AppSpacing.md, min: 12, max: AppSpacing.md),
+            left: horizontalInset,
+            right: horizontalInset,
+            bottom: mediaQuery.viewInsets.bottom + bottomInset,
           ),
           child: Container(
             width: double.infinity,
@@ -254,13 +271,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: sheetGap),
                   Row(
                     children: [
-                      Expanded(child: _textField(_minAgeController, 'Min Age')),
+                      Expanded(
+                        child: _textField(
+                          _minAgeController,
+                          'Min Age',
+                          onSubmitted: submitAdvancedFilters,
+                        ),
+                      ),
                       SizedBox(width: responsive.size(8, min: 6, max: 8)),
-                      Expanded(child: _textField(_maxAgeController, 'Max Age')),
+                      Expanded(
+                        child: _textField(
+                          _maxAgeController,
+                          'Max Age',
+                          onSubmitted: submitAdvancedFilters,
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: sheetGap),
-                  _textField(_companyController, 'Company Name'),
+                  _textField(
+                    _companyController,
+                    'Company Name',
+                    onSubmitted: submitAdvancedFilters,
+                  ),
                   SizedBox(height: sheetGap),
                   _dropdown(
                     value: _selectionType,
@@ -298,10 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _applyFilters();
-                      },
+                      onPressed: submitAdvancedFilters,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _brandBlue,
                         foregroundColor: Colors.white,
@@ -965,6 +995,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final mediaQuery = MediaQuery.of(context);
+            final keyboardInset = mediaQuery.viewInsets.bottom;
+            final safeAvailableHeight =
+                mediaQuery.size.height - keyboardInset - mediaQuery.padding.top;
+            final sheetMaxHeight = (safeAvailableHeight * 0.9)
+                .clamp(280.0, mediaQuery.size.height * 0.72)
+                .toDouble();
             final filteredItems = query.trim().isEmpty
                 ? items
                 : items
@@ -975,195 +1012,227 @@ class _HomeScreenState extends State<HomeScreen> {
                       )
                       .toList();
 
-            return SafeArea(
-              child: Container(
-                width: double.infinity,
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.72,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(radius),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(height: responsive.size(10, min: 8, max: 10)),
-                    Container(
-                      width: responsive.size(42, min: 34, max: 42),
-                      height: responsive.size(4, min: 3, max: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFCBD5E1),
-                        borderRadius: BorderRadius.circular(999),
+            void submitSearch(String value) {
+              final normalizedValue = value.trim().toLowerCase();
+              if (normalizedValue.isEmpty || filteredItems.isEmpty) return;
+
+              final matchedItem = filteredItems.firstWhere(
+                (item) => item.toLowerCase() == normalizedValue,
+                orElse: () => filteredItems.first,
+              );
+
+              Navigator.pop(context, matchedItem);
+            }
+
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: keyboardInset),
+              child: SafeArea(
+                top: false,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(maxHeight: sheetMaxHeight),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(radius),
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        responsive.size(18, min: 14, max: 18),
-                        responsive.size(16, min: 12, max: 16),
-                        responsive.size(8, min: 6, max: 8),
-                        responsive.size(8, min: 6, max: 8),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: responsive.font(18, min: 15, max: 18),
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(height: responsive.size(10, min: 8, max: 10)),
+                        Container(
+                          width: responsive.size(42, min: 34, max: 42),
+                          height: responsive.size(4, min: 3, max: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFCBD5E1),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            responsive.size(18, min: 14, max: 18),
+                            responsive.size(16, min: 12, max: 16),
+                            responsive.size(8, min: 6, max: 8),
+                            responsive.size(8, min: 6, max: 8),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: responsive.font(
+                                      18,
+                                      min: 15,
+                                      max: 18,
+                                    ),
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF0F172A),
+                                  ),
+                                ),
                               ),
-                            ),
+                              IconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: Icon(
+                                  Icons.close_rounded,
+                                  size: responsive.size(22, min: 18, max: 22),
+                                ),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(
-                              Icons.close_rounded,
-                              size: responsive.size(22, min: 18, max: 22),
-                            ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            responsive.size(18, min: 14, max: 18),
+                            0,
+                            responsive.size(18, min: 14, max: 18),
+                            responsive.size(10, min: 8, max: 10),
                           ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        responsive.size(18, min: 14, max: 18),
-                        0,
-                        responsive.size(18, min: 14, max: 18),
-                        responsive.size(10, min: 8, max: 10),
-                      ),
-                      child: TextField(
-                        autofocus: true,
-                        onChanged: (value) {
-                          setSheetState(() => query = value);
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Search $title',
-                          prefixIcon: const Icon(
-                            Icons.search_rounded,
-                            color: _brandBlue,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: responsive.size(12, min: 10, max: 12),
-                            vertical: responsive.size(12, min: 10, max: 12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFDBEAFE),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(
-                              color: _brandBlue,
-                              width: 1.4,
+                          child: TextField(
+                            autofocus: true,
+                            textInputAction: TextInputAction.search,
+                            onChanged: (value) {
+                              setSheetState(() => query = value);
+                            },
+                            onSubmitted: submitSearch,
+                            decoration: InputDecoration(
+                              hintText: 'Search $title',
+                              prefixIcon: const Icon(
+                                Icons.search_rounded,
+                                color: _brandBlue,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: responsive.size(
+                                  12,
+                                  min: 10,
+                                  max: 12,
+                                ),
+                                vertical: responsive.size(12, min: 10, max: 12),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFDBEAFE),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: _brandBlue,
+                                  width: 1.4,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                    Flexible(
-                      child: filteredItems.isEmpty
-                          ? Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(
-                                  responsive.size(24, min: 18, max: 24),
-                                ),
-                                child: Text(
-                                  'No options available',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: responsive.font(
-                                      14,
-                                      min: 12,
-                                      max: 14,
+                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        Flexible(
+                          child: filteredItems.isEmpty
+                              ? Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(
+                                      responsive.size(24, min: 18, max: 24),
                                     ),
-                                    color: const Color(0xFF64748B),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : ListView.separated(
-                              shrinkWrap: true,
-                              padding: EdgeInsets.symmetric(
-                                vertical: responsive.size(8, min: 6, max: 8),
-                              ),
-                              itemCount: filteredItems.length,
-                              separatorBuilder: (context, index) =>
-                                  const Divider(
-                                    height: 1,
-                                    indent: 18,
-                                    endIndent: 18,
-                                    color: Color(0xFFF1F5F9),
-                                  ),
-                              itemBuilder: (context, index) {
-                                final item = filteredItems[index];
-                                final isSelected = item == selectedValue;
-
-                                final leading = leadingBuilder?.call(
-                                  item,
-                                  responsive.size(24, min: 20, max: 24),
-                                );
-
-                                return ListTile(
-                                  dense: responsive.isTightPhone,
-                                  leading: leading,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: responsive.size(
-                                      18,
-                                      min: 14,
-                                      max: 18,
-                                    ),
-                                    vertical: responsive.size(
-                                      4,
-                                      min: 2,
-                                      max: 4,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    item,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    softWrap: false,
-                                    style: TextStyle(
-                                      fontSize: responsive.font(
-                                        15,
-                                        min: 12,
-                                        max: 15,
+                                    child: Text(
+                                      'No options available',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: responsive.font(
+                                          14,
+                                          min: 12,
+                                          max: 14,
+                                        ),
+                                        color: const Color(0xFF64748B),
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                      fontWeight: isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                      color: const Color(0xFF0F172A),
                                     ),
                                   ),
-                                  trailing: isSelected
-                                      ? Icon(
-                                          Icons.check_circle_rounded,
-                                          color: _brandBlue,
-                                          size: responsive.size(
-                                            22,
-                                            min: 18,
-                                            max: 22,
+                                )
+                              : ListView.separated(
+                                  shrinkWrap: true,
+                                  keyboardDismissBehavior:
+                                      ScrollViewKeyboardDismissBehavior.onDrag,
+                                  padding: EdgeInsets.only(
+                                    top: responsive.size(8, min: 6, max: 8),
+                                    bottom: responsive.size(8, min: 6, max: 8),
+                                  ),
+                                  itemCount: filteredItems.length,
+                                  separatorBuilder: (context, index) =>
+                                      const Divider(
+                                        height: 1,
+                                        indent: 18,
+                                        endIndent: 18,
+                                        color: Color(0xFFF1F5F9),
+                                      ),
+                                  itemBuilder: (context, index) {
+                                    final item = filteredItems[index];
+                                    final isSelected = item == selectedValue;
+
+                                    final leading = leadingBuilder?.call(
+                                      item,
+                                      responsive.size(24, min: 20, max: 24),
+                                    );
+
+                                    return ListTile(
+                                      dense: responsive.isTightPhone,
+                                      leading: leading,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: responsive.size(
+                                          18,
+                                          min: 14,
+                                          max: 18,
+                                        ),
+                                        vertical: responsive.size(
+                                          4,
+                                          min: 2,
+                                          max: 4,
+                                        ),
+                                      ),
+                                      title: Text(
+                                        item,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: false,
+                                        style: TextStyle(
+                                          fontSize: responsive.font(
+                                            15,
+                                            min: 12,
+                                            max: 15,
                                           ),
-                                        )
-                                      : null,
-                                  onTap: () => Navigator.pop(context, item),
-                                );
-                              },
-                            ),
+                                          fontWeight: isSelected
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      trailing: isSelected
+                                          ? Icon(
+                                              Icons.check_circle_rounded,
+                                              color: _brandBlue,
+                                              size: responsive.size(
+                                                22,
+                                                min: 18,
+                                                max: 22,
+                                              ),
+                                            )
+                                          : null,
+                                      onTap: () => Navigator.pop(context, item),
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -1173,12 +1242,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _textField(TextEditingController controller, String hint) {
+  Widget _textField(
+    TextEditingController controller,
+    String hint, {
+    VoidCallback? onSubmitted,
+  }) {
     final responsive = HomeResponsive.of(context);
     final radius = responsive.size(8, min: 7, max: 8);
 
     return TextField(
       controller: controller,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) {
+        if (onSubmitted != null) {
+          onSubmitted();
+        } else {
+          _applyFilters();
+        }
+      },
       style: TextStyle(
         color: Colors.black,
         fontSize: responsive.font(14, min: 12, max: 14),
