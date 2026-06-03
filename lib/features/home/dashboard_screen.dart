@@ -1472,14 +1472,19 @@ class SidebarLink {
 }
 
 class DashboardDummyScreen extends StatelessWidget {
-  const DashboardDummyScreen({super.key, required this.title});
+  const DashboardDummyScreen({
+    super.key,
+    required this.title,
+    this.currentHref,
+  });
 
   final String title;
+  final String? currentHref;
 
   @override
   Widget build(BuildContext context) {
     return DashboardPageScaffold(
-      currentHref: '/dashboard/dummy/$title',
+      currentHref: currentHref ?? '/dashboard/dummy/$title',
       child: Center(child: Text('$title screen (Coming Soon)')),
     );
   }

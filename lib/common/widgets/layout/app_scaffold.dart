@@ -23,6 +23,7 @@ import '../../../features/home/home_screen.dart';
 import '../../../features/home/manage_user_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
+import '../../../features/home/receive_payment_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
 import '../../../features/home/unauthenticated_profile_screen.dart';
 import '../../../features/home/user_activity_screen.dart';
@@ -268,6 +269,33 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return const CheckStatusScreen();
       case '/dashboard/my-payments':
         return const PaymentsScreen();
+      case '/dashboard/receive-payment/all-request-payment':
+        return const ReceivePaymentScreen(
+          currentHref: '/dashboard/receive-payment/all-request-payment',
+          title: 'All Request Payment',
+        );
+      case '/dashboard/receive-payment/approve-payment':
+        return const ReceivePaymentScreen(
+          initialStatus: 'APPROVED',
+          currentHref: '/dashboard/receive-payment/approve-payment',
+          title: 'Approve Payment',
+        );
+      case '/dashboard/receive-payment/receive-payment':
+        return const ReceivePaymentScreen(
+          initialStatus: 'PAID',
+          currentHref: '/dashboard/receive-payment/receive-payment',
+          title: 'Receive Payment',
+        );
+      case '/dashboard/refund-payment/request-list':
+        return const DashboardDummyScreen(
+          currentHref: '/dashboard/refund-payment/request-list',
+          title: 'Request List',
+        );
+      case '/dashboard/refund-payment/manage-bill':
+        return const DashboardDummyScreen(
+          currentHref: '/dashboard/refund-payment/manage-bill',
+          title: 'Manage Bill',
+        );
       case '/dashboard/commission':
         return const CommissionScreen();
       case '/dashboard/notifications':
@@ -294,6 +322,7 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
           return UserActivityScreen(userId: segments[4]);
         }
         return DashboardDummyScreen(
+          currentHref: widget.route,
           title: widget.route.split('/').last.replaceAll('-', ' '),
         );
     }
