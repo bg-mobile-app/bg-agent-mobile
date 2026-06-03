@@ -46,7 +46,7 @@ class AppScaffold extends StatelessWidget {
       const _BookingAuthHostScreen(),
       const ChatListScreen(),
       tabIndex == 4
-          ? _DashboardHostScreen(route: dashboardPath ?? '/dashboard/agency')
+          ? _DashboardHostScreen(route: dashboardPath ?? '/profile')
           : const SizedBox.shrink(),
     ];
 
@@ -150,6 +150,8 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
     }
 
     switch (widget.route) {
+      case '/profile':
+        return const CustomerProfileScreen();
       case '/dashboard/agency':
         return const DashboardScreen(currentHref: '/dashboard/agency');
       case '/dashboard/agent':
