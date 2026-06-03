@@ -15,7 +15,6 @@ const Color _primary = Color(0xFF004AC6);
 const Color _background = Color(0xFFF8F9FF);
 const Color _surface = Color(0xFFFFFFFF);
 const Color _surfaceLow = Color(0xFFEFF4FF);
-const Color _surfaceHigh = Color(0xFFDCE9FF);
 const Color _outline = Color(0xFFC3C6D7);
 const Color _text = Color(0xFF0B1C30);
 const Color _mutedText = Color(0xFF434655);
@@ -95,10 +94,12 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       title: widget.item.title,
       companyName: 'Dummy Company Name Ltd.',
       companyAddress: 'Dummy Address',
+      visaSponsorName: 'Dummy Sponsor',
       selectionType: 'Direct',
       visaOccupation: 'Worker',
       salary: 1000,
       currency: 'USD',
+      currencyFlag: '',
       minAge: 18,
       maxAge: 45,
       iqama: 'Provided',
@@ -114,6 +115,12 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       experienceRequired: '2 Years Experience',
       processingTime: '45 Days',
       applicationDeadline: DateTime.now(),
+      startDate: DateTime.now(),
+      endDate: DateTime.now().add(const Duration(days: 60)),
+      customerPercentage: 30,
+      agentPercentage: 20,
+      paymentSystem: 'Step Payment',
+      isBn: false,
       description: 'Dummy description...',
       paymentSteps: [
         PaymentStepProps(
@@ -253,6 +260,22 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 1344),
                             child: _safetyGuidelines(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        16,
+                        horizontalPadding,
+                        0,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1344),
+                            child: _priceCard(),
                           ),
                         ),
                       ),
@@ -500,91 +523,17 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                 ),
                 _StatCard(
                   icon: const FaIcon(
-                    FontAwesomeIcons.locationDot,
+                    FontAwesomeIcons.userClock,
                     color: _brandBlue,
                     size: 20,
                   ),
                   label: _tr('Age Range', 'বয়সসীমা'),
-                  value: _tr(
-                    '${displayDetails.minAge}-${displayDetails.maxAge} Years',
-                    '${displayDetails.minAge}-${displayDetails.maxAge} বছর',
-                  ),
+                  value: _ageRangeValue(),
                 ),
               ],
             );
           },
         ),
-        const SizedBox(height: 24),
-        _specificationsCard(),
-        const SizedBox(height: 24),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth > 650;
-            final cards = [
-              _InfoCard(
-                icon: const FaIcon(
-                  FontAwesomeIcons.hourglassHalf,
-                  size: 15,
-                  color: _primary,
-                ),
-                label: _tr('Processing Time', 'প্রসেসিং সময়'),
-                value: displayDetails.processingTime,
-                color: _primary,
-              ),
-              _InfoCard(
-                icon: const FaIcon(
-                  FontAwesomeIcons.calendarXmark,
-                  size: 15,
-                  color: _error,
-                ),
-                label: _tr('Deadline', 'শেষ তারিখ'),
-                value: displayDetails.applicationDeadline != null
-                    ? displayDetails.applicationDeadline.toString().split(
-                        ' ',
-                      )[0]
-                    : _tr('N/A', 'প্রযোজ্য নয়'),
-                color: _error,
-              ),
-              _InfoCard(
-                icon: const FaIcon(
-                  FontAwesomeIcons.idBadge,
-                  size: 15,
-                  color: _mutedText,
-                ),
-                label: _tr('Selection', 'নির্বাচন'),
-                value: displayDetails.selectionType,
-                color: _mutedText,
-              ),
-            ];
-            if (!wide) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: cards
-                    .map(
-                      (card) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: card,
-                      ),
-                    )
-                    .toList(),
-              );
-            }
-            return Row(
-              children: cards
-                  .map(
-                    (card) => Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: card,
-                      ),
-                    ),
-                  )
-                  .toList(),
-            );
-          },
-        ),
-        const SizedBox(height: 24),
-        _packageInclusions(),
       ],
     );
   }
@@ -593,16 +542,28 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _priceCard(),
-        const SizedBox(height: 16),
-        _paymentBreakdown(),
-        const SizedBox(height: 16),
-        _agencyInfo(),
+        _specificationDetails(),
+        if (displayDetails.packageIncludes.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _packageInclusions(),
+        ],
+        if (displayDetails.documentsRequired.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _documentsRequired(),
+        ],
+        if (displayDetails.paymentSteps.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _paymentBreakdown(),
+        ],
+        if (_isLoggedIn && displayDetails.agency != null) ...[
+          const SizedBox(height: 16),
+          _agencyInfo(),
+        ],
       ],
     );
   }
 
-  Widget _specificationsCard() {
+  Widget _specificationDetails() {
     final rows = [
       _SpecItem(
         _tr('Country', 'দেশ'),
@@ -617,14 +578,146 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
         _tr('Company Name', 'কোম্পানির নাম'),
         displayDetails.companyName,
       ),
-      _SpecItem(_tr('Accommodation', 'আবাসন'), displayDetails.accommodation),
-      _SpecItem(_tr('Food Allowance', 'খাবার সুবিধা'), displayDetails.food),
+      if (displayDetails.companyAddress.isNotEmpty)
+        _SpecItem(
+          _tr('Company Address', 'কোম্পানির ঠিকানা'),
+          displayDetails.companyAddress,
+          FontAwesomeIcons.locationDot,
+        ),
+      if (displayDetails.visaSponsorName.isNotEmpty)
+        _SpecItem(
+          _tr('Visa Sponsor', 'ভিসা স্পন্সর'),
+          displayDetails.visaSponsorName,
+          FontAwesomeIcons.userTie,
+        ),
+      if (displayDetails.visaOccupation.isNotEmpty)
+        _SpecItem(
+          _tr('Visa Occupation', 'ভিসা পেশা'),
+          displayDetails.visaOccupation,
+          FontAwesomeIcons.passport,
+        ),
+      _SpecItem(
+        _tr('Salary', 'বেতন'),
+        '${displayDetails.salary} ${displayDetails.currency}',
+        FontAwesomeIcons.moneyBillWave,
+      ),
+      _SpecItem(
+        _tr('Age Range', 'বয়সসীমা'),
+        _ageRangeInline(),
+        FontAwesomeIcons.userClock,
+      ),
+      _SpecItem(
+        _tr('Gender', 'লিঙ্গ'),
+        _formatEnum(displayDetails.gender),
+        FontAwesomeIcons.venusMars,
+      ),
+      _SpecItem(
+        _tr('Processing Time', 'প্রসেসিং সময়'),
+        displayDetails.processingTime,
+        FontAwesomeIcons.hourglassHalf,
+      ),
+      _SpecItem(
+        _tr('Deadline', 'শেষ তারিখ'),
+        _formatDate(displayDetails.applicationDeadline),
+        FontAwesomeIcons.calendarXmark,
+      ),
+      _SpecItem(
+        _tr('Selection', 'নির্বাচন'),
+        _formatEnum(displayDetails.selectionType),
+        FontAwesomeIcons.idBadge,
+      ),
+      if (displayDetails.startDate != null)
+        _SpecItem(
+          _tr('Start Date', 'শুরুর তারিখ'),
+          _formatDate(displayDetails.startDate),
+          FontAwesomeIcons.calendarPlus,
+        ),
+      if (displayDetails.endDate != null)
+        _SpecItem(
+          _tr('End Date', 'শেষের তারিখ'),
+          _formatDate(displayDetails.endDate),
+          FontAwesomeIcons.calendarMinus,
+        ),
+      _SpecItem(
+        _tr('Working Hours', 'কর্মঘণ্টা'),
+        _tr(
+          '${displayDetails.workingHours}h / Day',
+          'দিনে ${displayDetails.workingHours} ঘণ্টা',
+        ),
+        FontAwesomeIcons.clock,
+      ),
+      _SpecItem(
+        _tr('Quota', 'কোটা'),
+        _tr('${displayDetails.quota} Positions', '${displayDetails.quota} পদ'),
+        FontAwesomeIcons.users,
+      ),
+      _SpecItem(
+        _tr('Iqama', 'ইকামা'),
+        _formatEnum(displayDetails.iqama),
+        FontAwesomeIcons.addressCard,
+      ),
+      _SpecItem(
+        _tr('Accommodation', 'আবাসন'),
+        _formatEnum(displayDetails.accommodation),
+        FontAwesomeIcons.houseChimney,
+      ),
+      _SpecItem(
+        _tr('Food Allowance', 'খাবার সুবিধা'),
+        _formatEnum(displayDetails.food),
+        FontAwesomeIcons.utensils,
+      ),
       _SpecItem(
         _tr('Contract Period', 'চুক্তির মেয়াদ'),
-        '${displayDetails.contractDuration} (${displayDetails.isRenewable ? _tr("Renewable", "নবায়নযোগ্য") : _tr("Non-Renewable", "নবায়নযোগ্য নয়")})',
+        _formatEnum(displayDetails.contractDuration),
+        FontAwesomeIcons.fileContract,
+      ),
+      _SpecItem(
+        _tr('Renewable', 'নবায়নযোগ্য'),
+        displayDetails.isRenewable ? _tr('Yes', 'হ্যাঁ') : _tr('No', 'না'),
+        FontAwesomeIcons.rotate,
       ),
     ];
 
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth > 700;
+        return Wrap(
+          children: rows
+              .map(
+                (row) => SizedBox(
+                  width: twoColumns
+                      ? constraints.maxWidth / 2
+                      : constraints.maxWidth,
+                  child: _SpecRow(item: row),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _packageInclusions() {
+    if (displayDetails.packageIncludes.isEmpty) return const SizedBox.shrink();
+
+    return _tagCard(
+      title: _tr('Included in Package', 'প্যাকেজে অন্তর্ভুক্ত'),
+      items: displayDetails.packageIncludes,
+    );
+  }
+
+  Widget _documentsRequired() {
+    if (displayDetails.documentsRequired.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return _tagCard(
+      title: _tr('Required Documents', 'প্রয়োজনীয় ডকুমেন্ট'),
+      items: displayDetails.documentsRequired,
+    );
+  }
+
+  Widget _tagCard({required String title, required List<String> items}) {
     return _CardShell(
       padding: EdgeInsets.zero,
       child: Column(
@@ -637,7 +730,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
               border: Border(bottom: BorderSide(color: _outline)),
             ),
             child: Text(
-              _tr('Contract Specifications', 'চুক্তির বিবরণ'),
+              title,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -645,80 +738,28 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
               ),
             ),
           ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final twoColumns = constraints.maxWidth > 620;
-              return Wrap(
-                children: rows
-                    .map(
-                      (row) => SizedBox(
-                        width: twoColumns
-                            ? constraints.maxWidth / 2
-                            : constraints.maxWidth,
-                        child: _SpecRow(item: row),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final maxTagWidth = constraints.maxWidth > 0
+                    ? constraints.maxWidth
+                    : 240.0;
+                return Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: items
+                      .map(
+                        (item) =>
+                            _PackageTag(label: item, maxWidth: maxTagWidth),
+                      )
+                      .toList(),
+                );
+              },
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _packageInclusions() {
-    if (displayDetails.packageIncludes.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _tr('Included in Package', 'প্যাকেজে অন্তর্ভুক্ত'),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: _text,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: displayDetails.packageIncludes
-              .map(
-                (item) => Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDAE2FD),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const FaIcon(
-                        FontAwesomeIcons.circleCheck,
-                        size: 14,
-                        color: _brandBlue,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        item,
-                        style: const TextStyle(
-                          color: Color(0xFF5C647A),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ],
     );
   }
 
@@ -913,13 +954,18 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'BDT ${_formatMoney(displayDetails.customerPrice)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 40,
-              height: 1.05,
-              fontWeight: FontWeight.w900,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'BDT ${_formatMoney(displayDetails.customerPrice)}',
+              maxLines: 1,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 40,
+                height: 1.05,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           const SizedBox(height: 22),
@@ -928,59 +974,36 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              _currencyBadge(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      _currencyFlag(displayDetails.currency),
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      displayDetails.currency,
+                      _tr('Monthly Salary', 'মাসিক বেতন'),
+                      textAlign: TextAlign.right,
                       style: const TextStyle(
                         color: Color(0xCCFFFFFF),
                         fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${displayDetails.salary} ${displayDetails.currency}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
+                        height: 1.15,
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _tr('Monthly Salary', 'মাসিক বেতন'),
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: Color(0xCCFFFFFF),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${displayDetails.salary} ${displayDetails.currency}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -1042,16 +1065,65 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
             ),
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _currencyBadge() {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 112),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white12,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_currencyMarker(), style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                displayDetails.currency,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xCCFFFFFF),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _currencyMarker() {
+    final flag = displayDetails.currencyFlag.trim();
+    if (flag.isNotEmpty &&
+        !flag.startsWith('http') &&
+        !flag.contains('/') &&
+        flag.length <= 8) {
+      return flag;
+    }
+    return _currencyFlag(displayDetails.currency);
   }
 
   String _currencyFlag(String currency) {
@@ -1083,6 +1155,55 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     }
   }
 
+  String _ageRangeValue() {
+    final minAge = displayDetails.minAge;
+    final maxAge = displayDetails.maxAge;
+
+    if (minAge > 0 && maxAge > 0) {
+      return _tr('$minAge - $maxAge\nYears', '$minAge - $maxAge\nবছর');
+    }
+    if (minAge > 0) return _tr('$minAge+\nYears', '$minAge+\nবছর');
+    if (maxAge > 0) {
+      return _tr('Up to $maxAge\nYears', '$maxAge বছর পর্যন্ত');
+    }
+    return _tr('N/A', 'প্রযোজ্য নয়');
+  }
+
+  String _ageRangeInline() {
+    final minAge = displayDetails.minAge;
+    final maxAge = displayDetails.maxAge;
+
+    if (minAge > 0 && maxAge > 0) {
+      return _tr('$minAge - $maxAge Years', '$minAge - $maxAge বছর');
+    }
+    if (minAge > 0) return _tr('$minAge+ Years', '$minAge+ বছর');
+    if (maxAge > 0) {
+      return _tr('Up to $maxAge Years', '$maxAge বছর পর্যন্ত');
+    }
+    return _tr('N/A', 'প্রযোজ্য নয়');
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return _tr('N/A', 'প্রযোজ্য নয়');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
+
+  String _formatEnum(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return _tr('N/A', 'প্রযোজ্য নয়');
+
+    return trimmed
+        .split(RegExp(r'[_\s-]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) {
+          final lower = part.toLowerCase();
+          return '${lower[0].toUpperCase()}${lower.substring(1)}';
+        })
+        .join(' ');
+  }
+
   Widget _paymentBreakdown() {
     if (displayDetails.paymentSteps.isEmpty) return const SizedBox.shrink();
 
@@ -1110,10 +1231,12 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                   step: _PaymentStep(
                     displayDetails.paymentSteps[index].name,
                     'BDT ${_formatMoney(displayDetails.paymentSteps[index].amount.toInt())}',
-                    _tr(
-                      '${displayDetails.paymentSteps[index].percentage} of total',
-                      'মোটের ${displayDetails.paymentSteps[index].percentage}',
-                    ),
+                    displayDetails.paymentSteps[index].percentage.isNotEmpty
+                        ? _tr(
+                            '${displayDetails.paymentSteps[index].percentage} of total',
+                            'মোটের ${displayDetails.paymentSteps[index].percentage}',
+                          )
+                        : _tr('Payment step', 'পেমেন্ট ধাপ'),
                     index == 0,
                   ),
                   isLast: index == displayDetails.paymentSteps.length - 1,
@@ -1130,9 +1253,10 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
 
     return _CardShell(
       color: _surfaceLow,
-      child: Row(
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+          final logo = Container(
             width: 62,
             height: 62,
             decoration: BoxDecoration(
@@ -1163,32 +1287,70 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                       size: 24,
                     ),
                   ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayDetails.agency!.name,
-                  style: const TextStyle(
-                    color: _text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
+          );
+          final details = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayDetails.agency!.name,
+                maxLines: compact ? null : 2,
+                overflow: compact
+                    ? TextOverflow.visible
+                    : TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(height: 4),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _tr(
+                  'RL-${displayDetails.agency!.rlNumber} • Licensed Agency',
+                  'আরএল-${displayDetails.agency!.rlNumber} • লাইসেন্সপ্রাপ্ত এজেন্সি',
+                ),
+                style: const TextStyle(
+                  color: _mutedText,
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+              ),
+              if (displayDetails.agency!.phone.isNotEmpty) ...[
+                const SizedBox(height: 6),
                 Text(
-                  _tr(
-                    'RL-${displayDetails.agency!.rlNumber} • Licensed Agency',
-                    'আরএল-${displayDetails.agency!.rlNumber} • লাইসেন্সপ্রাপ্ত এজেন্সি',
+                  displayDetails.agency!.phone,
+                  style: const TextStyle(
+                    color: _mutedText,
+                    fontSize: 13,
+                    height: 1.35,
                   ),
-                  style: const TextStyle(color: _mutedText, fontSize: 13),
                 ),
               ],
-            ),
-          ),
-        ],
+              if (displayDetails.agency!.status.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                _Pill(
+                  label: _formatEnum(displayDetails.agency!.status),
+                  fontSize: 10,
+                ),
+              ],
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [logo, const SizedBox(height: 12), details],
+            );
+          }
+
+          return Row(
+            children: [
+              logo,
+              const SizedBox(width: 16),
+              Expanded(child: details),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1546,62 +1708,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final Widget icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _surfaceHigh,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              icon,
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    letterSpacing: 0.7,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: _text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SpecItem {
   const _SpecItem(this.label, this.value, [this.icon]);
 
@@ -1617,43 +1723,140 @@ class _SpecRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: _outline)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              item.label,
-              style: const TextStyle(color: _mutedText, fontSize: 14),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360;
+
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: compact ? 12 : 16,
           ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (item.icon != null) ...[
-                  FaIcon(item.icon, size: 14, color: _mutedText),
-                  const SizedBox(width: 8),
-                ],
-                Flexible(
-                  child: Text(
-                    item.value,
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      color: _text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: _outline)),
+          ),
+          child: compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.label,
+                      style: const TextStyle(
+                        color: _mutedText,
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    _SpecValue(item: item, alignRight: false),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: Text(
+                        item.label,
+                        style: const TextStyle(
+                          color: _mutedText,
+                          fontSize: 14,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 6,
+                      child: _SpecValue(item: item, alignRight: true),
+                    ),
+                  ],
                 ),
-              ],
+        );
+      },
+    );
+  }
+}
+
+class _SpecValue extends StatelessWidget {
+  const _SpecValue({required this.item, required this.alignRight});
+
+  final _SpecItem item;
+  final bool alignRight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: alignRight
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (item.icon != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: FaIcon(item.icon, size: 14, color: _mutedText),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Flexible(
+          child: Text(
+            item.value,
+            textAlign: alignRight ? TextAlign.right : TextAlign.left,
+            style: const TextStyle(
+              color: _text,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              height: 1.3,
             ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PackageTag extends StatelessWidget {
+  const _PackageTag({required this.label, required this.maxWidth});
+
+  final String label;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDAE2FD),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const FaIcon(
+              FontAwesomeIcons.circleCheck,
+              size: 14,
+              color: _brandBlue,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF5C647A),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
