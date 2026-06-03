@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../common/services/agency_access.dart';
+import '../../common/services/api_client.dart';
 import '../../common/services/auth_service.dart';
 import '../../routes/app_routes.dart';
 
@@ -22,12 +24,15 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       final authService = AuthService();
       final response = await authService.getCurrentUser();
-      
+
       if (response.statusCode == 200) {
-        // User is authenticated
-        // Extract role if needed, e.g., final role = response.data['role'];
-        // For now, route to home or dashboard
-        if (mounted) context.go(AppRoutes.home);
+        if (AgencyAccess.isAgencyAccount(response.data)) {
+          if (mounted) context.go(AppRoutes.home);
+          return;
+        }
+
+        await ApiClient().tokenStorage.clearCookies();
+        if (mounted) context.go(AppRoutes.getStarted);
       } else {
         // Not authenticated
         if (mounted) context.go(AppRoutes.getStarted);
@@ -50,7 +55,10 @@ class _SplashScreenState extends State<SplashScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 220, maxHeight: 220),
+                  constraints: const BoxConstraints(
+                    maxWidth: 220,
+                    maxHeight: 220,
+                  ),
                   child: Image.asset(
                     'assets/img/logo/logo_white.png',
                     fit: BoxFit.contain,

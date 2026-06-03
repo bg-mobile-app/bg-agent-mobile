@@ -9,12 +9,14 @@ class ProfileService {
 
   Future<RecruitingAgencyMeDetailsProps?> getAgencyProfile() async {
     try {
-      final response = await _apiClient.get('/profile/agents/me/');
+      final response = await _apiClient.get('/profile/agency/me/');
       if (response.statusCode == 200 && response.data != null) {
         if (response.data is Map<String, dynamic>) {
           return RecruitingAgencyMeDetailsProps.fromJson(response.data);
         } else if (response.data is String) {
-          return RecruitingAgencyMeDetailsProps.fromJson(jsonDecode(response.data));
+          return RecruitingAgencyMeDetailsProps.fromJson(
+            jsonDecode(response.data),
+          );
         }
       }
       return null;
@@ -24,22 +26,23 @@ class ProfileService {
     }
   }
 
-  Future<RecruitingAgencyMeDetailsProps?> getAgentProfile() async {
-    return getAgencyProfile();
-  }
-
-  Future<RecruitingAgencyMeDetailsProps?> updateAgencyProfile(FormData formData) async {
+  Future<RecruitingAgencyMeDetailsProps?> updateAgencyProfile(
+    FormData formData,
+  ) async {
     try {
       final response = await _apiClient.patch(
         '/profile/agency/me/',
         data: formData,
         options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.data != null) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.data != null) {
         if (response.data is Map<String, dynamic>) {
           return RecruitingAgencyMeDetailsProps.fromJson(response.data);
         } else if (response.data is String) {
-          return RecruitingAgencyMeDetailsProps.fromJson(jsonDecode(response.data));
+          return RecruitingAgencyMeDetailsProps.fromJson(
+            jsonDecode(response.data),
+          );
         }
       }
       return null;

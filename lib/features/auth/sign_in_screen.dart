@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../routes/app_routes.dart';
+import '../../common/services/agency_access.dart';
 import '../../common/services/api_client.dart';
 import '../../common/services/api_exception.dart';
 import 'package:dio/dio.dart';
@@ -71,14 +72,13 @@ class _SignInScreenState extends State<SignInScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
 
-        final role = data?['role'] ?? data?['user']?['role'];
-        if (role != 'AGENT') {
+        if (!AgencyAccess.isAgencyAccount(data)) {
           await apiClient.tokenStorage.clearCookies();
           if (mounted) {
             setState(() => _isLoading = false);
             _showWarningDialog(
               'Access Denied',
-              'You must be an Agent to log in here.',
+              AgencyAccess.accessDeniedMessage,
             );
           }
           return;
@@ -372,7 +372,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   style: TextStyle(color: Color(0xFF64748B)),
                 ),
                 TextButton(
-                  onPressed: () => context.push(AppRoutes.agentSignUp),
+                  onPressed: () => context.push(AppRoutes.agencySignUp),
                   child: const Text(
                     'Create an account',
                     style: TextStyle(fontWeight: FontWeight.w700),

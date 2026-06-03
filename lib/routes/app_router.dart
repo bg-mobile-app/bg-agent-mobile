@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/widgets/layout/app_scaffold.dart';
-import '../features/auth/agent_sign_up_screen.dart';
+import '../features/auth/agency_sign_up_screen.dart';
 import '../features/auth/agent_sign_up_thank_you_screen.dart';
+import '../features/auth/recruiting_sign_up_screen.dart';
 import '../features/auth/sign_in_screen.dart';
 import '../features/auth/otp_verification_screen.dart';
 import '../features/onboarding/get_started_screen.dart';
@@ -38,29 +39,44 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splash,
   routes: [
-    GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashScreen()),
+    GoRoute(
+      path: AppRoutes.splash,
+      builder: (context, state) => const SplashScreen(),
+    ),
     GoRoute(
       path: AppRoutes.getStarted,
-      builder: (_, __) => const GetStartedScreen(),
+      builder: (context, state) => const GetStartedScreen(),
     ),
-    GoRoute(path: AppRoutes.login, builder: (_, __) => const SignInScreen()),
+    GoRoute(
+      path: AppRoutes.login,
+      builder: (context, state) => const SignInScreen(),
+    ),
     GoRoute(
       path: AppRoutes.signUpCustomer,
-      // Keep legacy path, but only allow agent sign up.
-      builder: (_, __) => const AgentSignUpScreen(),
+      // Keep legacy path, but only allow agency sign up.
+      builder: (context, state) => const AgencySignUpScreen(),
     ),
     GoRoute(
       path: AppRoutes.signUpPartner,
-      // Keep legacy path, but only allow agent sign up.
-      builder: (_, __) => const AgentSignUpScreen(),
+      // Keep legacy path, but only allow agency sign up.
+      builder: (context, state) => const AgencySignUpScreen(),
     ),
     GoRoute(
       path: AppRoutes.agentSignUp,
-      builder: (_, __) => const AgentSignUpScreen(),
+      // Keep legacy path, but only allow agency sign up.
+      builder: (context, state) => const AgencySignUpScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.agencySignUp,
+      builder: (context, state) => const AgencySignUpScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.recruitingSignUp,
+      builder: (context, state) => const RecruitingSignUpScreen(),
     ),
     GoRoute(
       path: AppRoutes.agentSignUpThankYou,
-      builder: (_, __) => const AgentSignUpThankYouScreen(),
+      builder: (context, state) => const AgentSignUpThankYouScreen(),
     ),
     GoRoute(
       path: AppRoutes.otpVerify,
