@@ -34,14 +34,13 @@ class WorkPermitCard extends StatelessWidget {
         final contentPadding = responsive.size(18, min: 12, max: 18);
         final sectionGap = responsive.size(16, min: 10, max: 16);
 
+        final cardRadius = BorderRadius.circular(
+          responsive.size(28, min: 20, max: 28),
+        );
+
         return Container(
-          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(
-              responsive.size(28, min: 20, max: 28),
-            ),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: cardRadius,
             boxShadow: const [
               BoxShadow(
                 color: Color(0x140F172A),
@@ -50,122 +49,138 @@ class WorkPermitCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildImageHeader(responsive),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  contentPadding,
-                  responsive.size(16, min: 12, max: 16),
-                  contentPadding,
-                  contentPadding,
+          child: Material(
+            color: Colors.white,
+            borderRadius: cardRadius,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onViewDetails,
+              borderRadius: cardRadius,
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: cardRadius,
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: responsive.font(20, min: 16, max: 20),
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                        height: 1.2,
+                    _buildImageHeader(responsive),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        contentPadding,
+                        responsive.size(16, min: 12, max: 16),
+                        contentPadding,
+                        contentPadding,
                       ),
-                    ),
-                    SizedBox(height: responsive.size(14, min: 10, max: 14)),
-                    Row(
-                      children: [
-                        _buildMetaCell('Job Type', item.workType, responsive),
-                        Container(
-                          width: 1,
-                          height: responsive.size(34, min: 28, max: 34),
-                          margin: EdgeInsets.symmetric(
-                            horizontal: responsive.size(14, min: 8, max: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: responsive.font(20, min: 16, max: 20),
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                              height: 1.2,
+                            ),
                           ),
-                          color: const Color(0xFFE2E8F0),
-                        ),
-                        _buildMetaCell(
-                          'Posted',
-                          timeAgo(item.createdAt),
-                          responsive,
-                          isBlue: true,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: sectionGap),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                    SizedBox(height: sectionGap),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
+                          SizedBox(height: responsive.size(14, min: 10, max: 14)),
+                          Row(
                             children: [
-                              Text(
-                                'Package Price',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: responsive.font(10, min: 8, max: 10),
-                                  letterSpacing: 0.8,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF94A3B8),
+                              _buildMetaCell('Job Type', item.workType, responsive),
+                              Container(
+                                width: 1,
+                                height: responsive.size(34, min: 28, max: 34),
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: responsive.size(14, min: 8, max: 14),
+                                ),
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                              _buildMetaCell(
+                                'Posted',
+                                timeAgo(item.createdAt),
+                                responsive,
+                                isBlue: true,
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: sectionGap),
+                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                          SizedBox(height: sectionGap),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Package Price',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: responsive.font(10, min: 8, max: 10),
+                                        letterSpacing: 0.8,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: responsive.size(4, min: 3, max: 4),
+                                    ),
+                                    Text(
+                                      'BDT ${formatBdt(item.customerPrice)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: responsive.font(22, min: 16, max: 22),
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              SizedBox(
-                                height: responsive.size(4, min: 3, max: 4),
-                              ),
-                              Text(
-                                'BDT ${formatBdt(item.customerPrice)}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: responsive.font(22, min: 16, max: 22),
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF0F172A),
+                              SizedBox(width: responsive.size(12, min: 8, max: 12)),
+                              ElevatedButton(
+                                onPressed: onViewDetails,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: brandBlue,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: responsive.size(18, min: 12, max: 18),
+                                    vertical: responsive.size(14, min: 10, max: 14),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      responsive.size(16, min: 12, max: 16),
+                                    ),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  'View Details',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: responsive.font(13, min: 11, max: 13),
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        SizedBox(width: responsive.size(12, min: 8, max: 12)),
-                        ElevatedButton(
-                          onPressed: onViewDetails,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: brandBlue,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: responsive.size(18, min: 12, max: 18),
-                              vertical: responsive.size(14, min: 10, max: 14),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                responsive.size(16, min: 12, max: 16),
-                              ),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            'View Details',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: responsive.font(13, min: 11, max: 13),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         );
       },
