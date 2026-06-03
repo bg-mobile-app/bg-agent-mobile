@@ -5,6 +5,11 @@ import '../../../common/services/auth_service.dart';
 import '../../../features/booking/appointment_booking_screen.dart';
 import '../../../features/booking/received_all_booking_screen.dart';
 import '../../../features/booking/my_booking_screen.dart';
+import '../../../features/booking/passport_return_accept_screen.dart';
+import '../../../features/booking/passport_return_bg_collect_return_pp_screen.dart';
+import '../../../features/booking/passport_return_bg_handover_screen.dart';
+import '../../../features/booking/passport_return_pp_sent_to_bg_screen.dart';
+import '../../../features/booking/passport_return_request_screen.dart';
 import '../../../features/booking/return_passport_screen.dart';
 import '../../../features/booking/success_flight_screen.dart';
 import '../../../features/chat/chat_list_screen.dart';
@@ -231,6 +236,16 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
           pageTitle: 'Reject File',
           currentHref: '/dashboard/receive-booking/reject-flight',
         );
+      case '/dashboard/passport-return/request-review':
+        return const PassportReturnRequestScreen();
+      case '/dashboard/passport-return/accept':
+        return const PassportReturnAcceptScreen();
+      case '/dashboard/passport-return/pp-sent-to-bg':
+        return const PassportReturnPpSentToBgScreen();
+      case '/dashboard/passport-return/bg-collect-return-pp':
+        return const PassportReturnBgCollectReturnPpScreen();
+      case '/dashboard/passport-return/bg-handover-pp-to-customer':
+        return const PassportReturnBgHandoverScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
       case '/dashboard/customer/change-password':
