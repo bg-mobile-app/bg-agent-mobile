@@ -15,14 +15,17 @@ import '../../../features/booking/success_flight_screen.dart';
 import '../../../features/chat/chat_list_screen.dart';
 import '../../../features/home/change_password_screen.dart';
 import '../../../features/home/check_status_screen.dart';
+import '../../../features/home/commission_screen.dart';
+import '../../../features/home/create_user_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
 import '../../../features/home/home_screen.dart';
+import '../../../features/home/manage_user_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
-import '../../../features/home/commission_screen.dart';
 import '../../../features/home/unauthenticated_profile_screen.dart';
+import '../../../features/home/user_activity_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
 import '../../../common/services/api_client.dart';
 import 'app_bottom_nav.dart';
@@ -248,6 +251,10 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return const PassportReturnBgHandoverScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
+      case '/dashboard/user/create-user':
+        return const CreateUserScreen();
+      case '/dashboard/user/manage-user':
+        return const ManageUserScreen();
       case '/dashboard/customer/change-password':
         return const ChangePasswordScreen();
       case '/dashboard/customer/check-status':
@@ -265,6 +272,20 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
       case '/logout':
         return _buildLogoutScreen(context);
       default:
+        final segments = Uri.parse(widget.route).pathSegments;
+        if (segments.length == 4 &&
+            segments[0] == 'dashboard' &&
+            segments[1] == 'user' &&
+            segments[2] == 'create-user') {
+          return CreateUserScreen(userId: segments[3]);
+        }
+        if (segments.length == 5 &&
+            segments[0] == 'dashboard' &&
+            segments[1] == 'user' &&
+            segments[2] == 'manage-user' &&
+            segments[3] == 'activity') {
+          return UserActivityScreen(userId: segments[4]);
+        }
         return DashboardDummyScreen(
           title: widget.route.split('/').last.replaceAll('-', ' '),
         );
