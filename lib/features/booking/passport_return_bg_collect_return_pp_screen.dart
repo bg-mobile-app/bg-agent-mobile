@@ -1,0 +1,328 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
+
+import '../../common/theme/app_palette.dart';
+import '../../common/widgets/app_search_bar.dart';
+import '../../common/widgets/styled_data_table_card.dart';
+import '../../common/widgets/view_toggle_button.dart';
+import '../home/dashboard_screen.dart';
+
+class PassportReturnBgCollectReturnPpScreen extends StatefulWidget {
+  const PassportReturnBgCollectReturnPpScreen({super.key});
+
+  @override
+  State<PassportReturnBgCollectReturnPpScreen> createState() =>
+      _PassportReturnBgCollectReturnPpScreenState();
+}
+
+class _PassportReturnBgCollectReturnPpScreenState
+    extends State<PassportReturnBgCollectReturnPpScreen> {
+  bool _isCardView = false;
+  bool _isMyReturn = false;
+  late final TextEditingController _searchController;
+  String _searchQuery = '';
+  DateTimeRange? _selectedDateRange;
+
+  final List<_ReturnBgCollectItem> _items = const [
+    _ReturnBgCollectItem(
+      workPermitId: 'WP-RET-4001',
+      id: 8831,
+      createdAt: '2026-05-03',
+      name: 'Mizanur Rahman',
+      passportNo: 'G1122334',
+      fromCountry: 'Bangladesh',
+      toCountry: 'Kuwait',
+      agencyTotalCost: 72000,
+      paidAmount: 32000,
+      isMyReturn: false,
+    ),
+    _ReturnBgCollectItem(
+      workPermitId: 'WP-RET-4002',
+      id: 8832,
+      createdAt: '2026-05-04',
+      name: 'Farhana Akter',
+      passportNo: 'H9988776',
+      fromCountry: 'Bangladesh',
+      toCountry: 'Bahrain',
+      agencyTotalCost: 69000,
+      paidAmount: 45000,
+      isMyReturn: true,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<_ReturnBgCollectItem> get _filteredItems {
+    final query = _searchQuery.trim().toLowerCase();
+    return _items.where((item) {
+      final createdAt = DateTime.parse(item.createdAt);
+      final matchesType = item.isMyReturn == _isMyReturn;
+      final matchesQuery = query.isEmpty ||
+          item.workPermitId.toLowerCase().contains(query) ||
+          item.id.toString().contains(query) ||
+          item.name.toLowerCase().contains(query) ||
+          item.passportNo.toLowerCase().contains(query);
+      final matchesDate = _selectedDateRange == null ||
+          (!createdAt.isBefore(_selectedDateRange!.start) &&
+              !createdAt.isAfter(_selectedDateRange!.end));
+      return matchesType && matchesQuery && matchesDate;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardPageScaffold(
+      currentHref: '/dashboard/passport-return/bg-collect-return-pp',
+      child: Container(
+        color: AppPalette.pageBackground,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _breadcrumb(),
+                    const SizedBox(height: 14),
+                    AppSearchBar(
+                      controller: _searchController,
+                      hintText: 'Search by post ID, booking ID, name or passport',
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      onSearchTap: () =>
+                          setState(() => _searchQuery = _searchController.text),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        ViewToggleButton(
+                          isCardView: _isCardView,
+                          onChanged: (value) => setState(() => _isCardView = value),
+                        ),
+                        const SizedBox(width: 10),
+                        _typeToggle(),
+                        const SizedBox(width: 10),
+                        Expanded(child: _dateRangeButton()),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_isCardView) _buildCardList() else _buildTableList(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _breadcrumb() {
+    return BreadCrumb(
+      items: <BreadCrumbItem>[
+        BreadCrumbItem(
+          content: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.assignment_return_outlined, size: 14, color: AppPalette.textMuted),
+              SizedBox(width: 4),
+              Text('Passport Return List', style: TextStyle(color: AppPalette.textMuted, fontSize: 12)),
+            ],
+          ),
+        ),
+        BreadCrumbItem(
+          content: const Text(
+            'BG Collect Return PP',
+            style: TextStyle(color: AppPalette.textStrongBlue, fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+      divider: const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
+    );
+  }
+
+  Widget _typeToggle() {
+    return Container(
+      width: 110,
+      height: 48,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: const Color(0xFFE9EDFF), borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        children: [
+          _toggleIcon(Icons.groups_outlined, !_isMyReturn, () => setState(() => _isMyReturn = false), 'Customer Return'),
+          _toggleIcon(Icons.person_outline, _isMyReturn, () => setState(() => _isMyReturn = true), 'My Return'),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleIcon(IconData icon, bool active, VoidCallback onTap, String tooltip) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(color: active ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+          alignment: Alignment.center,
+          child: Tooltip(message: tooltip, child: Icon(icon, size: 22, color: active ? const Color(0xFF004AC6) : const Color(0xFF434655))),
+        ),
+      ),
+    );
+  }
+
+  Widget _dateRangeButton() {
+    final label = _selectedDateRange == null
+        ? 'Select Date Range'
+        : '${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)}';
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(color: AppPalette.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFD8E3FA))),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () async {
+                final now = DateTime.now();
+                final picked = await showDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime(now.year + 3, 12, 31), initialDateRange: _selectedDateRange);
+                if (picked != null) setState(() => _selectedDateRange = picked);
+              },
+              child: Row(children: [
+                const Icon(Icons.date_range_rounded, size: 18, color: AppPalette.textStrongBlue),
+                const SizedBox(width: 8),
+                Expanded(child: Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppPalette.textStrongBlue, fontWeight: FontWeight.w600))),
+              ]),
+            ),
+          ),
+          if (_selectedDateRange != null)
+            InkWell(onTap: () => setState(() => _selectedDateRange = null), child: const Icon(Icons.close_rounded, size: 18, color: AppPalette.textMuted)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableList() => StyledDataTableCard(
+        dataRowMaxHeight: 70,
+        columnSpacing: 20,
+        columns: const [
+          DataColumn(label: Text('Post ID')),
+          DataColumn(label: Text('Booking ID')),
+          DataColumn(label: Text('Apply Date')),
+          DataColumn(label: Text('Customer Name')),
+          DataColumn(label: Text('Passport No')),
+          DataColumn(label: Text('From')),
+          DataColumn(label: Text('To')),
+          DataColumn(label: Text('Total Cost')),
+          DataColumn(label: Text('Paid Amount')),
+          DataColumn(label: Text('Actions')),
+        ],
+        rows: _filteredItems.map((item) => DataRow(cells: [
+              DataCell(Text(item.workPermitId)),
+              DataCell(Text(item.id.toString())),
+              DataCell(Text(_displayDate(item.createdAt))),
+              DataCell(Text(item.name)),
+              DataCell(Text(item.passportNo)),
+              DataCell(Text(item.fromCountry)),
+              DataCell(Text(item.toCountry)),
+              DataCell(Text('৳ ${_money(item.agencyTotalCost)}')),
+              DataCell(Text('৳ ${_money(item.paidAmount)}')),
+              DataCell(IconButton(icon: const Icon(Icons.more_vert_rounded, color: AppPalette.textMuted), onPressed: () => _openActionsSheet(context, item))),
+            ])).toList(),
+      );
+
+  Widget _buildCardList() => Column(
+        children: [
+          ..._filteredItems.map((item) => Card(
+                margin: const EdgeInsets.only(bottom: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(item.workPermitId, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppPalette.textPrimary))),
+                      Text('#${item.id}', style: const TextStyle(color: AppPalette.textMuted, fontWeight: FontWeight.w700)),
+                    ]),
+                    const SizedBox(height: 12),
+                    Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text('Passport: ${item.passportNo}', style: const TextStyle(color: AppPalette.textMuted)),
+                    const SizedBox(height: 10),
+                    Text('${item.fromCountry} → ${item.toCountry} • ${_displayDate(item.createdAt)}'),
+                    const SizedBox(height: 14),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      OutlinedButton(onPressed: () => _openActionsSheet(context, item), child: const Text('See Reason')),
+                      OutlinedButton(onPressed: () => _openActionsSheet(context, item), child: const Text('View Documents')),
+                      FilledButton(onPressed: () => _openActionsSheet(context, item), child: const Text('Collect PP')),
+                    ]),
+                  ]),
+                ),
+              )),
+          if (_filteredItems.isEmpty)
+            const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No BG collect return passports found.'))),
+        ],
+      );
+
+  String _displayDate(String iso) {
+    final parts = iso.split('-');
+    if (parts.length != 3) return iso;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[int.parse(parts[1]) - 1]} ${parts[2]}, ${parts[0]}';
+  }
+
+  String _money(int amount) {
+    final s = amount.toString();
+    final chars = s.split('').reversed.toList();
+    final chunks = <String>[];
+    for (var i = 0; i < chars.length; i += 3) {
+      chunks.add(chars.skip(i).take(3).join());
+    }
+    return chunks.map((c) => c.split('').reversed.join()).toList().reversed.join(',');
+  }
+
+  String _formatDate(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  void _openActionsSheet(BuildContext context, _ReturnBgCollectItem item) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Actions • BG Collect Return PP', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('See Reason')),
+              OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('View Documents')),
+              OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Collect Return PP')),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReturnBgCollectItem {
+  const _ReturnBgCollectItem({required this.workPermitId, required this.id, required this.createdAt, required this.name, required this.passportNo, required this.fromCountry, required this.toCountry, required this.agencyTotalCost, required this.paidAmount, required this.isMyReturn});
+
+  final String workPermitId;
+  final int id;
+  final String createdAt;
+  final String name;
+  final String passportNo;
+  final String fromCountry;
+  final String toCountry;
+  final int agencyTotalCost;
+  final int paidAmount;
+  final bool isMyReturn;
+}
