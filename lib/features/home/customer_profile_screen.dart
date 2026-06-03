@@ -139,16 +139,14 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           _ProfileHeaderCard(profile: profile),
                           const SizedBox(height: 18),
                           const _SectionTitle(
-                            title: 'Agency Details',
+                            title: 'Profile Details',
                             subtitle:
-                                'Information related to your agency profile',
+                                'Personal and agency information for your profile',
                           ),
-                          const SizedBox(height: 12),
-                          _AgencyInfoCard(profile: profile),
                           const SizedBox(height: 12),
                           _OwnerInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _LocationInfoCard(profile: profile),
+                          _AgencyInfoCard(profile: profile),
                           const SizedBox(height: 12),
                           _BankInfoCard(profile: profile),
                           const SizedBox(height: 12),
@@ -387,9 +385,18 @@ class _AgencyInfoCard extends StatelessWidget {
         _InfoRow(label: 'AGENCY ID', value: _display(profile.id)),
         _InfoRow(label: 'AGENCY NAME', value: _display(profile.agencyName)),
         _InfoRow(label: 'AGENCY PHONE', value: _display(profile.agencyPhone)),
+        _InfoRow(label: 'RL NUMBER', value: _display(_primaryRlNo(profile))),
         _InfoRow(
           label: 'AGENCY ADDRESS',
           value: _display(profile.agencyAddress),
+        ),
+        _InfoRow(
+          label: 'POLICE STATION',
+          value: _locationLabel(profile.policeStation),
+        ),
+        _InfoRow(
+          label: 'DISTRICT',
+          value: _locationLabel(profile.district),
           isLast: true,
         ),
       ],
@@ -405,9 +412,8 @@ class _OwnerInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _InfoCard(
       icon: Icons.badge_outlined,
-      title: 'Owner Info',
+      title: 'Personal Details',
       rows: [
-        _InfoRow(label: 'OWNER ID', value: _display(profile.owner?.id)),
         _InfoRow(label: 'USER CODE', value: _display(profile.owner?.userCode)),
         _InfoRow(label: 'FULL NAME', value: _display(profile.owner?.fullName)),
         _InfoRow(label: 'EMAIL', value: _display(profile.owner?.email)),
@@ -417,31 +423,6 @@ class _OwnerInfoCard extends StatelessWidget {
         _InfoRow(
           label: 'DATE OF BIRTH',
           value: _formatDob(profile.dob),
-          isLast: true,
-        ),
-      ],
-    );
-  }
-}
-
-class _LocationInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
-  const _LocationInfoCard({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoCard(
-      icon: Icons.location_on_outlined,
-      title: 'Location Info',
-      rows: [
-        _InfoRow(label: 'ADDRESS', value: _display(profile.address)),
-        _InfoRow(
-          label: 'POLICE STATION',
-          value: _locationLabel(profile.policeStation),
-        ),
-        _InfoRow(
-          label: 'DISTRICT',
-          value: _locationLabel(profile.district),
           isLast: true,
         ),
       ],
@@ -867,6 +848,14 @@ String _display(String? value) {
   final trimmed = value?.trim();
   if (trimmed == null || trimmed.isEmpty) return 'N/A';
   return trimmed;
+}
+
+String? _primaryRlNo(RecruitingAgencyMeDetailsProps profile) {
+  for (final document in profile.documents) {
+    final rlNo = document.rlNo?.trim();
+    if (rlNo != null && rlNo.isNotEmpty) return rlNo;
+  }
+  return null;
 }
 
 String _locationLabel(RecruitingAgencyLocation? location) {
