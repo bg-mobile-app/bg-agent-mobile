@@ -32,6 +32,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _quotaController = TextEditingController();
   final TextEditingController _newWorkTypeController = TextEditingController();
+  final TextEditingController _packagePriceController = TextEditingController();
+  final TextEditingController _advancePriceController = TextEditingController();
+  final TextEditingController _afterVisaController = TextEditingController();
+  final TextEditingController _beforeFlightController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
   int _currentStep = 0;
@@ -59,8 +63,6 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
 
   String _tr(String en, String bn) => widget.isBangla ? bn : en;
 
-  String _tr(String en, String bn) => widget.isBangla ? bn : en;
-
   @override
   void initState() {
     super.initState();
@@ -77,6 +79,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     _descriptionController.dispose();
     _quotaController.dispose();
     _newWorkTypeController.dispose();
+    _packagePriceController.dispose();
+    _advancePriceController.dispose();
+    _afterVisaController.dispose();
+    _beforeFlightController.dispose();
     super.dispose();
   }
 
@@ -198,9 +204,18 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   }
 
   Future<void> _publishAd() async {
-    if (_selectedCountryValue == null || _selectedWorkTypeId == null || _selectionType == null) {
+    if (_selectedCountryValue == null ||
+        _selectedWorkTypeId == null ||
+        _selectionType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_tr('Please select country, work type and selection method', 'দেশ, কাজের ধরন এবং নির্বাচন পদ্ধতি নির্বাচন করুন'))),
+        SnackBar(
+          content: Text(
+            _tr(
+              'Please select country, work type and selection method',
+              'দেশ, কাজের ধরন এবং নির্বাচন পদ্ধতি নির্বাচন করুন',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -267,7 +282,6 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       );
     }
   }
-
 
   bool get _requiresInterviewDates {
     return _selectionType == 'Delegate' || _selectionType == 'Zoom Interview';
@@ -340,7 +354,8 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       final suggested = await _createAdService.suggestWorkType(name);
       if (!mounted) return;
       setState(() {
-        if (suggested != null && !_workTypes.any((item) => item.id == suggested.id)) {
+        if (suggested != null &&
+            !_workTypes.any((item) => item.id == suggested.id)) {
           _workTypes = [..._workTypes, suggested];
         }
         if (suggested != null) {
@@ -350,12 +365,18 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
         _newWorkTypeController.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_tr('Work type submitted', 'কাজের ধরন জমা হয়েছে'))),
+        SnackBar(
+          content: Text(_tr('Work type submitted', 'কাজের ধরন জমা হয়েছে')),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_tr('Failed to submit work type', 'কাজের ধরন জমা দেওয়া যায়নি'))),
+        SnackBar(
+          content: Text(
+            _tr('Failed to submit work type', 'কাজের ধরন জমা দেওয়া যায়নি'),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -363,40 +384,48 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    return DashboardPageScaffold(
-      currentHref: '/dashboard/ads/create',
-      child: Container(
-        color: const Color(0xFFF8FAFC),
-        child: Column(
-          children: [
-            _topBar(),
-            _progressBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder:
-                      (Widget child, Animation<double> animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0.05, 0),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        );
-                      },
-                  child: _buildCurrentStep(),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: AppPalette.brandBlue,
+        systemNavigationBarDividerColor: AppPalette.brandBlue,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: DashboardPageScaffold(
+        currentHref: '/dashboard/ads/create',
+        child: Container(
+          color: const Color(0xFFF8FAFC),
+          child: Column(
+            children: [
+              _topBar(),
+              _progressBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0.05, 0),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                    child: _buildCurrentStep(),
+                  ),
                 ),
               ),
-            ),
-            _footerButtons(),
-          ],
+              _footerButtons(),
+            ],
+          ),
         ),
       ),
     );
@@ -686,24 +715,36 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
             ],
           ),
           const SizedBox(height: 32),
-          _buildField(label: _tr('Job Title', 'পদের নাম'), hint: _tr('e.g. Electrician', 'উদাঃ ইলেকট্রিশিয়ান'), controller: _jobTitleController),
+          _buildField(
+            label: _tr('Job Title', 'পদের নাম'),
+            hint: _tr('e.g. Electrician', 'উদাঃ ইলেকট্রিশিয়ান'),
+            controller: _jobTitleController,
+          ),
           const SizedBox(height: 24),
           _buildOptionDropdown<CountryOption>(
             label: _tr('Country', 'দেশ'),
             value: _selectedCountryOption(),
-            hint: _isLoadingMeta ? _tr('Loading countries...', 'দেশ লোড হচ্ছে...') : _tr('Select Country', 'দেশ নির্বাচন করুন'),
+            hint: _isLoadingMeta
+                ? _tr('Loading countries...', 'দেশ লোড হচ্ছে...')
+                : _tr('Select Country', 'দেশ নির্বাচন করুন'),
             items: _countries,
             itemLabel: (item) => item.name,
-            onChanged: (value) => setState(() => _selectedCountryValue = value?.value),
+            onChanged: (value) =>
+                setState(() => _selectedCountryValue = value?.value),
           ),
           const SizedBox(height: 24),
           _buildOptionDropdown<WorkTypeOption>(
             label: _tr('Type of Work', 'কাজের ধরন'),
             value: _selectedWorkTypeOption(),
-            hint: _isLoadingMeta ? _tr('Loading work types...', 'কাজের ধরন লোড হচ্ছে...') : _tr('Select Work Type', 'কাজের ধরন নির্বাচন করুন'),
+            hint: _isLoadingMeta
+                ? _tr('Loading work types...', 'কাজের ধরন লোড হচ্ছে...')
+                : _tr('Select Work Type', 'কাজের ধরন নির্বাচন করুন'),
             items: _workTypes,
             itemLabel: (item) => item.name,
-            extraActionLabel: _tr('Add new work type', 'নতুন কাজের ধরন যোগ করুন'),
+            extraActionLabel: _tr(
+              'Add new work type',
+              'নতুন কাজের ধরন যোগ করুন',
+            ),
             onExtraAction: () => setState(() => _showNewWorkTypeInput = true),
             onChanged: (value) {
               setState(() {
@@ -732,12 +773,24 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppPalette.brandBlue,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                     child: _isSuggestingWorkType
-                        ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text(_tr('Add', 'যোগ করুন'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            _tr('Add', 'যোগ করুন'),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
                   ),
                 ),
               ],
@@ -771,22 +824,32 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
           _buildDateField(
             label: _tr('Application Deadline', 'আবেদনের শেষ তারিখ'),
             value: _applicationDeadline,
-            hint: _tr('Select application deadline', 'আবেদনের শেষ তারিখ নির্বাচন করুন'),
-            onTap: () => _pickFormDate(field: _CreateAdDateField.applicationDeadline),
+            hint: _tr(
+              'Select application deadline',
+              'আবেদনের শেষ তারিখ নির্বাচন করুন',
+            ),
+            onTap: () =>
+                _pickFormDate(field: _CreateAdDateField.applicationDeadline),
           ),
           if (_requiresInterviewDates) ...[
             const SizedBox(height: 24),
             _buildDateField(
               label: _tr('Interview Start Date', 'ইন্টারভিউ শুরুর তারিখ'),
               value: _startDate,
-              hint: _tr('Select interview start date', 'ইন্টারভিউ শুরুর তারিখ নির্বাচন করুন'),
+              hint: _tr(
+                'Select interview start date',
+                'ইন্টারভিউ শুরুর তারিখ নির্বাচন করুন',
+              ),
               onTap: () => _pickFormDate(field: _CreateAdDateField.startDate),
             ),
             const SizedBox(height: 24),
             _buildDateField(
               label: _tr('Interview End Date', 'ইন্টারভিউ শেষের তারিখ'),
               value: _endDate,
-              hint: _tr('Select interview end date', 'ইন্টারভিউ শেষের তারিখ নির্বাচন করুন'),
+              hint: _tr(
+                'Select interview end date',
+                'ইন্টারভিউ শেষের তারিখ নির্বাচন করুন',
+              ),
               onTap: () => _pickFormDate(field: _CreateAdDateField.endDate),
             ),
           ],
@@ -1328,7 +1391,13 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     );
   }
 
-  Widget _buildField({required String label, required String hint, IconData? icon, TextEditingController? controller, TextInputType? keyboardType}) {
+  Widget _buildField({
+    required String label,
+    required String hint,
+    IconData? icon,
+    TextEditingController? controller,
+    TextInputType? keyboardType,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1440,7 +1509,13 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                 color: Colors.white,
                 border: Border.all(color: const Color(0xFFDBEAFE)),
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: const [BoxShadow(color: Color(0x120F172A), blurRadius: 8, offset: Offset(0, 3))],
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x120F172A),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -1451,12 +1526,20 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 15,
-                        color: hasValue ? Colors.black : const Color(0xFF64748B),
-                        fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                        color: hasValue
+                            ? Colors.black
+                            : const Color(0xFF64748B),
+                        fontWeight: hasValue
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
                     ),
                   ),
-                  const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black87, size: 20),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Colors.black87,
+                    size: 20,
+                  ),
                 ],
               ),
             ),
@@ -1486,7 +1569,13 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
             final keyboardInset = mediaQuery.viewInsets.bottom;
             final filteredItems = query.trim().isEmpty
                 ? items
-                : items.where((item) => itemLabel(item).toLowerCase().contains(query.trim().toLowerCase())).toList();
+                : items
+                      .where(
+                        (item) => itemLabel(
+                          item,
+                        ).toLowerCase().contains(query.trim().toLowerCase()),
+                      )
+                      .toList();
 
             return AnimatedPadding(
               duration: const Duration(milliseconds: 180),
@@ -1498,10 +1587,14 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                   alignment: Alignment.bottomCenter,
                   child: Container(
                     width: double.infinity,
-                    constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.72),
+                    constraints: BoxConstraints(
+                      maxHeight: mediaQuery.size.height * 0.72,
+                    ),
                     decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1510,7 +1603,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                         Container(
                           width: 42,
                           height: 4,
-                          decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(999)),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFCBD5E1),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(18, 16, 8, 8),
@@ -1521,10 +1617,17 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                                   title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                  ),
                                 ),
                               ),
-                              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, size: 22)),
+                              IconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close_rounded, size: 22),
+                              ),
                             ],
                           ),
                         ),
@@ -1533,15 +1636,33 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                           child: TextField(
                             autofocus: true,
                             textInputAction: TextInputAction.search,
-                            onChanged: (value) => setSheetState(() => query = value),
+                            onChanged: (value) =>
+                                setSheetState(() => query = value),
                             decoration: InputDecoration(
                               hintText: _tr('Search $title', '$title খুঁজুন'),
-                              prefixIcon: const Icon(Icons.search_rounded, color: AppPalette.brandBlue),
+                              prefixIcon: const Icon(
+                                Icons.search_rounded,
+                                color: AppPalette.brandBlue,
+                              ),
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFDBEAFE))),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppPalette.brandBlue, width: 1.4)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFDBEAFE),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: AppPalette.brandBlue,
+                                  width: 1.4,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -1549,35 +1670,71 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                         Flexible(
                           child: ListView.separated(
                             shrinkWrap: true,
-                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: filteredItems.length + (extraActionLabel == null ? 0 : 1),
-                            separatorBuilder: (context, index) => const Divider(height: 1, indent: 18, endIndent: 18, color: Color(0xFFF1F5F9)),
+                            itemCount:
+                                filteredItems.length +
+                                (extraActionLabel == null ? 0 : 1),
+                            separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              indent: 18,
+                              endIndent: 18,
+                              color: Color(0xFFF1F5F9),
+                            ),
                             itemBuilder: (context, index) {
-                              if (extraActionLabel != null && index == filteredItems.length) {
+                              if (extraActionLabel != null &&
+                                  index == filteredItems.length) {
                                 return ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                                  leading: const Icon(Icons.add_circle_outline_rounded, color: AppPalette.brandBlue),
-                                  title: Text(extraActionLabel, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppPalette.brandBlue)),
-                                  onTap: () => Navigator.pop(context, _DropdownExtraAction.instance),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 4,
+                                  ),
+                                  leading: const Icon(
+                                    Icons.add_circle_outline_rounded,
+                                    color: AppPalette.brandBlue,
+                                  ),
+                                  title: Text(
+                                    extraActionLabel,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppPalette.brandBlue,
+                                    ),
+                                  ),
+                                  onTap: () => Navigator.pop(
+                                    context,
+                                    _DropdownExtraAction.instance,
+                                  ),
                                 );
                               }
 
                               final item = filteredItems[index];
                               final isSelected = item == selectedValue;
                               return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 4,
+                                ),
                                 title: Text(
                                   itemLabel(item),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 15,
-                                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
                                     color: const Color(0xFF0F172A),
                                   ),
                                 ),
-                                trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppPalette.brandBlue, size: 22) : null,
+                                trailing: isSelected
+                                    ? const Icon(
+                                        Icons.check_circle_rounded,
+                                        color: AppPalette.brandBlue,
+                                        size: 22,
+                                      )
+                                    : null,
                                 onTap: () => Navigator.pop(context, item),
                               );
                             },
@@ -1595,11 +1752,24 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     );
   }
 
-  Widget _buildDateField({required String label, required DateTime? value, required String hint, required VoidCallback onTap}) {
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required String hint,
+    required VoidCallback onTap,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppPalette.textMuted)),
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.0,
+            color: AppPalette.textMuted,
+          ),
+        ),
         const SizedBox(height: 8),
         InkWell(
           onTap: onTap,
@@ -1607,7 +1777,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
           child: Container(
             height: 56,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(18),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -1615,12 +1788,20 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                     value == null ? hint : _formatDate(value)!,
                     style: TextStyle(
                       fontSize: 15,
-                      color: value == null ? const Color(0xFF94A3B8) : AppPalette.textPrimary,
-                      fontWeight: value == null ? FontWeight.w400 : FontWeight.w600,
+                      color: value == null
+                          ? const Color(0xFF94A3B8)
+                          : AppPalette.textPrimary,
+                      fontWeight: value == null
+                          ? FontWeight.w400
+                          : FontWeight.w600,
                     ),
                   ),
                 ),
-                const Icon(Icons.calendar_today_outlined, color: Color(0xFF94A3B8), size: 20),
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  color: Color(0xFF94A3B8),
+                  size: 20,
+                ),
               ],
             ),
           ),
@@ -1910,7 +2091,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
 
   Widget _footerButtons() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
@@ -1924,6 +2105,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       ),
       child: SafeArea(
         top: false,
+        bottom: false,
         child: Row(
           children: [
             if (_currentStep > 0)
