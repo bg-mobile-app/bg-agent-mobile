@@ -5,10 +5,19 @@ import 'package:flutter/foundation.dart';
 import '../../../common/services/api_client.dart';
 
 class CountryOption {
-  const CountryOption({required this.value, required this.name});
+  const CountryOption({
+    required this.value,
+    required this.name,
+    this.code = '',
+    this.flag = '',
+    this.unicodeFlag = '',
+  });
 
   final Object value;
   final String name;
+  final String code;
+  final String flag;
+  final String unicodeFlag;
 
   factory CountryOption.fromJson(Map<String, dynamic> json) {
     final name = _readCountryName(json);
@@ -23,6 +32,12 @@ class CountryOption {
             name,
       ),
       name: name,
+      code: (json['code'] ?? json['country_code'] ?? json['countryCode'] ?? '')
+          .toString(),
+      flag: (json['flag'] ?? json['country_flag'] ?? json['countryFlag'] ?? '')
+          .toString(),
+      unicodeFlag:
+          (json['unicodeFlag'] ?? json['unicode_flag'] ?? '').toString(),
     );
   }
 }

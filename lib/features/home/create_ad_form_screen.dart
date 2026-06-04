@@ -32,6 +32,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _quotaController = TextEditingController();
   final TextEditingController _newWorkTypeController = TextEditingController();
+  final TextEditingController _packagePriceController = TextEditingController();
+  final TextEditingController _advancePriceController = TextEditingController();
+  final TextEditingController _afterVisaController = TextEditingController();
+  final TextEditingController _beforeFlightController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
   int _currentStep = 0;
@@ -59,8 +63,6 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
 
   String _tr(String en, String bn) => widget.isBangla ? bn : en;
 
-  String _tr(String en, String bn) => widget.isBangla ? bn : en;
-
   @override
   void initState() {
     super.initState();
@@ -77,6 +79,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     _descriptionController.dispose();
     _quotaController.dispose();
     _newWorkTypeController.dispose();
+    _packagePriceController.dispose();
+    _advancePriceController.dispose();
+    _afterVisaController.dispose();
+    _beforeFlightController.dispose();
     super.dispose();
   }
 
@@ -694,6 +700,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
             hint: _isLoadingMeta ? _tr('Loading countries...', 'দেশ লোড হচ্ছে...') : _tr('Select Country', 'দেশ নির্বাচন করুন'),
             items: _countries,
             itemLabel: (item) => item.name,
+            itemLeading: (item, size) => _countryOptionLeading(item, size),
             onChanged: (value) => setState(() => _selectedCountryValue = value?.value),
           ),
           const SizedBox(height: 24),
@@ -903,9 +910,18 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                           hintStyle: TextStyle(
                             color: Colors.white.withOpacity(0.5),
                           ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          focusColor: Colors.transparent,
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
-                          border: InputBorder.none,
                         ),
                       ),
                     ),
@@ -1156,6 +1172,15 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                           color: Color(0xFF94A3B8),
                         ),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                        focusColor: Colors.transparent,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -1304,6 +1329,15 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
               maxLines: null,
               decoration: InputDecoration(
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                filled: false,
+                fillColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                focusColor: Colors.transparent,
                 hintText: _tr(
                   'Write detailed requirements, work conditions, specific skills needed...',
                   'বিস্তারিত প্রয়োজনীয়তা, কাজের শর্তাবলী লিখুন...',
@@ -1326,6 +1360,51 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
         ],
       ),
     );
+  }
+
+  Widget _countryOptionLeading(CountryOption country, double size) {
+    if (country.unicodeFlag.isNotEmpty) {
+      return Text(
+        country.unicodeFlag,
+        style: TextStyle(fontSize: size * 0.86),
+      );
+    }
+
+    final emoji = _countryCodeToEmoji(country.code);
+    if (emoji.isNotEmpty) {
+      return Text(emoji, style: TextStyle(fontSize: size * 0.86));
+    }
+
+    if (country.flag.isNotEmpty &&
+        !country.flag.toLowerCase().endsWith('.svg')) {
+      final image = country.flag.startsWith('http')
+          ? Image.network(country.flag, fit: BoxFit.cover)
+          : Image.asset(country.flag, fit: BoxFit.cover);
+      return ClipOval(
+        child: SizedBox(width: size, height: size, child: image),
+      );
+    }
+
+    return Icon(
+      Icons.flag_outlined,
+      size: size,
+      color: const Color(0xFF64748B),
+    );
+  }
+
+  String _countryCodeToEmoji(String code) {
+    final normalized = code.trim().toUpperCase();
+    if (normalized.length != 2) return '';
+
+    final first = normalized.codeUnitAt(0);
+    final second = normalized.codeUnitAt(1);
+    if (first < 65 || first > 90 || second < 65 || second > 90) return '';
+
+    const regionalIndicatorOffset = 0x1F1E6 - 65;
+    return String.fromCharCodes([
+      first + regionalIndicatorOffset,
+      second + regionalIndicatorOffset,
+    ]);
   }
 
   Widget _buildField({required String label, required String hint, IconData? icon, TextEditingController? controller, TextInputType? keyboardType}) {
@@ -1396,11 +1475,13 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     required List<T> items,
     required String Function(T item) itemLabel,
     required ValueChanged<T?> onChanged,
+    Widget Function(T item, double size)? itemLeading,
     String? extraActionLabel,
     VoidCallback? onExtraAction,
   }) {
     final hasValue = value != null;
     final displayText = hasValue ? itemLabel(value) : hint;
+    final leading = hasValue ? itemLeading?.call(value, 24) : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1424,6 +1505,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                 items: items,
                 selectedValue: value,
                 itemLabel: itemLabel,
+                itemLeading: itemLeading,
                 extraActionLabel: extraActionLabel,
               );
               if (selected == _DropdownExtraAction.instance) {
@@ -1444,6 +1526,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
               ),
               child: Row(
                 children: [
+                  if (leading != null) ...[
+                    leading,
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: Text(
                       displayText,
@@ -1471,6 +1557,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     required List<T> items,
     required T? selectedValue,
     required String Function(T item) itemLabel,
+    Widget Function(T item, double size)? itemLeading,
     String? extraActionLabel,
   }) {
     return showModalBottomSheet<Object?>(
@@ -1565,8 +1652,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
 
                               final item = filteredItems[index];
                               final isSelected = item == selectedValue;
+                              final leading = itemLeading?.call(item, 24);
                               return ListTile(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                                leading: leading,
                                 title: Text(
                                   itemLabel(item),
                                   maxLines: 1,
@@ -1895,6 +1984,15 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
               isDense: true,
               contentPadding: EdgeInsets.zero,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              fillColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              focusColor: Colors.transparent,
               suffixText: hasCurrency ? '' : '%',
               suffixStyle: TextStyle(
                 fontSize: 18,
