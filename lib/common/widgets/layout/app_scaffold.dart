@@ -46,7 +46,7 @@ class AppScaffold extends StatelessWidget {
     final screens = [
       const HomeScreen(),
       const WorkPermitListScreen(),
-      const _BookingAuthHostScreen(),
+      const _DashboardHostScreen(route: '/dashboard/ads/create'),
       const ChatListScreen(),
       tabIndex == 4
           ? _DashboardHostScreen(route: dashboardPath ?? '/profile')
@@ -67,7 +67,7 @@ class AppScaffold extends StatelessWidget {
       case 1:
         return '/search';
       case 2:
-        return '/booking';
+        return '/dashboard/ads/create';
       case 3:
         return '/chat';
       case 4:
@@ -75,43 +75,6 @@ class AppScaffold extends StatelessWidget {
       default:
         return '/home';
     }
-  }
-}
-
-class _BookingAuthHostScreen extends StatefulWidget {
-  const _BookingAuthHostScreen();
-
-  @override
-  State<_BookingAuthHostScreen> createState() => _BookingAuthHostScreenState();
-}
-
-class _BookingAuthHostScreenState extends State<_BookingAuthHostScreen> {
-  bool? _isLoggedIn;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkLogin();
-  }
-
-  Future<void> _checkLogin() async {
-    final cookies = await ApiClient().tokenStorage.getCookies();
-    if (mounted) {
-      setState(() {
-        _isLoggedIn = cookies != null && cookies.isNotEmpty;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoggedIn == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    if (!_isLoggedIn!) {
-      return const UnauthenticatedProfileScreen();
-    }
-    return const MyBookingScreen();
   }
 }
 
