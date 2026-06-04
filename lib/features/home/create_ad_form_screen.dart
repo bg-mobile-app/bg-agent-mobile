@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../common/theme/app_palette.dart';
 import 'services/create_ad_service.dart';
-import '../../common/theme/app_text_styles.dart';
 import 'dashboard_screen.dart';
 
 class CreateAdFormScreen extends StatefulWidget {
@@ -30,8 +30,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   final CreateAdService _createAdService = CreateAdService();
   final TextEditingController _jobTitleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _quotaController = TextEditingController();
-  final TextEditingController _newWorkTypeController = TextEditingController();
+  final TextEditingController _packagePriceController = TextEditingController();
+  final TextEditingController _advancePriceController = TextEditingController();
+  final TextEditingController _afterVisaController = TextEditingController();
+  final TextEditingController _beforeFlightController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
   int _currentStep = 0;
@@ -48,6 +50,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   XFile? _selectedImage;
+  String _paymentSystem = 'ADVANCE_AFTER_VISA_BEFORE_FLIGHT';
 
   static const List<String> _selectionTypes = [
     'Direct',
@@ -63,15 +66,88 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   void initState() {
     super.initState();
     _loadFormMeta();
+    _packagePriceController.addListener(_handlePaymentInputChanged);
+    _advancePriceController.addListener(_handlePaymentInputChanged);
+    _afterVisaController.addListener(_handlePaymentInputChanged);
+    _beforeFlightController.addListener(_handlePaymentInputChanged);
   }
 
   @override
   void dispose() {
     _jobTitleController.dispose();
     _descriptionController.dispose();
-    _quotaController.dispose();
-    _newWorkTypeController.dispose();
+    _packagePriceController.dispose();
+    _advancePriceController.dispose();
+    _afterVisaController.dispose();
+    _beforeFlightController.dispose();
     super.dispose();
+  }
+
+  void _handlePaymentInputChanged() {
+    if (mounted) setState(() {});
+  }
+
+  int _parseMoney(TextEditingController controller) {
+    final normalized = controller.text.replaceAll(RegExp(r'[^0-9]'), '');
+    return int.tryParse(normalized) ?? 0;
+  }
+
+  int get _packagePrice => _parseMoney(_packagePriceController);
+  int get _advancePrice => _parseMoney(_advancePriceController);
+  int get _afterVisaPrice => _parseMoney(_afterVisaController);
+  int get _beforeFlightPrice => _parseMoney(_beforeFlightController);
+  bool get _usesAdvancePayment => _paymentSystem == 'ADVANCE_AFTER_VISA_BEFORE_FLIGHT';
+  int get _paymentTotal => (_usesAdvancePayment ? _advancePrice : 0) + _afterVisaPrice + _beforeFlightPrice;
+
+  String _formatMoney(int value) {
+    if (value == 0) return '0';
+    final raw = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < raw.length; i++) {
+      final remaining = raw.length - i;
+      buffer.write(raw[i]);
+      if (remaining > 1 && remaining % 3 == 1) buffer.write(',');
+    }
+    return buffer.toString();
+  }
+
+  List<Map<String, dynamic>> get _paymentSteps {
+    final steps = <Map<String, dynamic>>[];
+    var sequence = 1;
+    if (_usesAdvancePayment) {
+      steps.add({'name': 'ADVANCE', 'amount': _advancePrice, 'sequence': sequence++});
+    }
+    steps.add({'name': 'AFTER_VISA', 'amount': _afterVisaPrice, 'sequence': sequence++});
+    steps.add({'name': 'BEFORE_FLIGHT', 'amount': _beforeFlightPrice, 'sequence': sequence});
+    return steps;
+  }
+
+  bool _validatePaymentDetails() {
+    if (_packagePrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_tr('Package price is required', 'প্যাকেজ মূল্য আবশ্যক'))),
+      );
+      return false;
+    }
+    if (_usesAdvancePayment && _advancePrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_tr('Advance payment is required', 'অগ্রিম পেমেন্ট আবশ্যক'))),
+      );
+      return false;
+    }
+    if (_afterVisaPrice <= 0 || _beforeFlightPrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_tr('After Visa and Before Flight payments are required', 'ভিসার পর এবং ফ্লাইটের আগে পেমেন্ট আবশ্যক'))),
+      );
+      return false;
+    }
+    if (_paymentTotal != _packagePrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_tr('Payment steps total must match package price', 'পেমেন্ট ধাপের মোট প্যাকেজ মূল্যের সমান হতে হবে'))),
+      );
+      return false;
+    }
+    return true;
   }
 
   Future<void> _loadFormMeta() async {
@@ -100,11 +176,12 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
         workTypeId: _selectedWorkTypeId,
         title: _jobTitleController.text.trim(),
         description: _descriptionController.text.trim(),
-        selectionType: _selectionType!,
-        quota: int.tryParse(_quotaController.text.trim()),
-        applicationDeadline: _formatDate(_applicationDeadline),
-        startDate: _requiresInterviewDates ? _formatDate(_startDate) : null,
-        endDate: _requiresInterviewDates ? _formatDate(_endDate) : null,
+        packagePrice: _packagePrice,
+        paymentSystem: _paymentSystem,
+        paymentSteps: _paymentSteps,
+        advancePrice: _usesAdvancePayment ? _advancePrice : 0,
+        afterVisa: _afterVisaPrice,
+        beforeFlight: _beforeFlightPrice,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -595,10 +672,20 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                 child: const Icon(Icons.payments_outlined, color: AppPalette.brandBlue),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(_tr('Payment Breakdown', 'পেমেন্ট বিবরণ'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppPalette.textPrimary))),
+              Expanded(child: Text(_tr('Package Price Details', 'প্যাকেজ মূল্যের বিবরণ'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppPalette.textPrimary))),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
+          _buildPaymentInfoBox(
+            icon: Icons.info_outline,
+            title: _tr('Important Instruction', 'গুরুত্বপূর্ণ নির্দেশনা'),
+            message: _tr('Enter every numerical payment value using English digits only.', 'সব সংখ্যাগত পেমেন্ট মান শুধুমাত্র ইংরেজি সংখ্যায় লিখুন।'),
+            background: const Color(0xFFEFF1FC),
+            border: const Color(0xFFE0E5F5),
+            iconBackground: AppPalette.brandBlue,
+            iconColor: Colors.white,
+          ),
+          const SizedBox(height: 24),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -606,17 +693,19 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_tr('TOTAL PACKAGE', 'মোট প্যাকেজ'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2.0, color: Colors.white70)),
+                Text(_tr('PACKAGE PRICE *', 'প্যাকেজ মূল্য *'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2.0, color: Colors.white70)),
                 const SizedBox(height: 8),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: TextField(
+                        controller: _packagePriceController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, height: 1.0),
                         decoration: InputDecoration(
-                          hintText: '4,50,000',
+                          hintText: '450000',
                           hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
@@ -625,32 +714,222 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('SAR', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white70)),
+                    const Text('BDT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white70)),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _metricInputCard(_tr('CUSTOMER %', 'গ্রাহক %'), '10', const Color(0xFFEFF6FF), const Color(0xFFDBEAFE), const Color(0xFF1D4ED8), const Color(0xFF1E3A8A), hasCurrency: false)),
-              const SizedBox(width: 16),
-              Expanded(child: _metricInputCard(_tr('AGENT %', 'এজেন্ট %'), '5', const Color(0xFFFAF5FF), const Color(0xFFF3E8FF), const Color(0xFF7E22CE), const Color(0xFF581C87), hasCurrency: false)),
-            ],
+          const SizedBox(height: 20),
+          _buildPaymentSystemDropdown(),
+          const SizedBox(height: 20),
+          _buildPaymentInfoBox(
+            icon: Icons.report_problem_rounded,
+            title: _tr('Commission Warning', 'কমিশন সতর্কতা'),
+            message: _tr('An additional 10% for customers and 5% for agents will be added to the final cost automatically.', 'চূড়ান্ত খরচে গ্রাহকদের জন্য অতিরিক্ত ১০% এবং এজেন্টদের জন্য ৫% স্বয়ংক্রিয়ভাবে যোগ হবে।'),
+            background: const Color(0xFFFFFBEB),
+            border: const Color(0xFFFEF3C7),
+            iconBackground: const Color(0xFFFEF3C7),
+            iconColor: const Color(0xFFB45309),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _metricInputCard(_tr('ADVANCE', 'অগ্রিম'), '50,000', const Color(0xFFFFF7ED), const Color(0xFFFFEDD5), const Color(0xFFC2410C), const Color(0xFF78350F))),
-              const SizedBox(width: 16),
-              Expanded(child: _metricInputCard(_tr('AFTER VISA', 'ভিসার পর'), '2,00,000', const Color(0xFFF0FDF4), const Color(0xFFDCFCE7), const Color(0xFF15803D), const Color(0xFF14532D))),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _metricInputCard(_tr('PRE-FLIGHT', 'ফ্লাইটের আগে'), '2,00,000', const Color(0xFFEEF2FF), const Color(0xFFE0E7FF), const Color(0xFF4338CA), const Color(0xFF312E81)),
+          const SizedBox(height: 24),
+          _buildPaymentStepsGrid(),
         ],
       ),
+    );
+  }
+
+  Widget _buildPaymentInfoBox({
+    required IconData icon,
+    required String title,
+    required String message,
+    required Color background,
+    required Color border,
+    required Color iconBackground,
+    required Color iconColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: background,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: iconBackground, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppPalette.textPrimary)),
+                const SizedBox(height: 4),
+                Text(message, style: const TextStyle(fontSize: 13, color: AppPalette.textMuted, height: 1.45, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentSystemDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_tr('PAYMENT SYSTEM *', 'পেমেন্ট সিস্টেম *'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppPalette.textMuted)),
+        const SizedBox(height: 8),
+        Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _paymentSystem,
+              isExpanded: true,
+              items: [
+                DropdownMenuItem(
+                  value: 'ADVANCE_AFTER_VISA_BEFORE_FLIGHT',
+                  child: Text(_tr('Advance + After Visa + Before Flight', 'অগ্রিম + ভিসার পর + ফ্লাইটের আগে')),
+                ),
+                DropdownMenuItem(
+                  value: 'AFTER_VISA_BEFORE_FLIGHT',
+                  child: Text(_tr('After Visa + Before Flight', 'ভিসার পর + ফ্লাইটের আগে')),
+                ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _paymentSystem = value);
+                if (!_usesAdvancePayment) _advancePriceController.clear();
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentStepsGrid() {
+    final rows = <Widget>[];
+    if (_usesAdvancePayment) {
+      rows.add(_buildPaymentStepRow(_tr('Advance Payment', 'অগ্রিম পেমেন্ট'), _advancePriceController));
+    }
+    rows.addAll([
+      _buildPaymentStepRow(_tr('After Visa Payment', 'ভিসার পর পেমেন্ট'), _afterVisaController),
+      _buildPaymentStepRow(_tr('Before Flight Payment', 'ফ্লাইটের আগে পেমেন্ট'), _beforeFlightController),
+      _buildPaymentTotalRow(),
+    ]);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_tr('PAYMENT TITLES & AMOUNTS', 'পেমেন্ট শিরোনাম ও পরিমাণ'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppPalette.textMuted)),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(children: rows),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentStepRow(String title, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              minHeight: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+              alignment: Alignment.centerLeft,
+              child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppPalette.textPrimary)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        hintText: _tr('Amount', 'পরিমাণ'),
+                        hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF94A3B8)),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      style: const TextStyle(fontSize: 15, color: AppPalette.textPrimary, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('BDT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppPalette.textMuted)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentTotalRow() {
+    final matchesPackage = _packagePrice > 0 && _paymentTotal == _packagePrice;
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            minHeight: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+            alignment: Alignment.centerLeft,
+            child: Text(_tr('Total Payment', 'মোট পেমেন্ট'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppPalette.brandBlue)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _formatMoney(_paymentTotal),
+                    style: TextStyle(fontSize: 15, color: matchesPackage ? AppPalette.brandBlue : AppPalette.textPrimary, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('BDT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppPalette.textMuted)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1144,6 +1423,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(_tr('Ad image is required to continue', 'পরবর্তী ধাপে যেতে বিজ্ঞাপনের ছবি আবশ্যক'))),
                     );
+                    return;
+                  }
+
+                  if (_currentStep == 2 && !_validatePaymentDetails()) {
                     return;
                   }
 
