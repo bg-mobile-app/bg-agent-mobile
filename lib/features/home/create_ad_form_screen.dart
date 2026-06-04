@@ -729,8 +729,8 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                 : _tr('Select Country', 'দেশ নির্বাচন করুন'),
             items: _countries,
             itemLabel: (item) => item.name,
-            onChanged: (value) =>
-                setState(() => _selectedCountryValue = value?.value),
+            itemLeading: (item, size) => _countryOptionLeading(item, size),
+            onChanged: (value) => setState(() => _selectedCountryValue = value?.value),
           ),
           const SizedBox(height: 24),
           _buildOptionDropdown<WorkTypeOption>(
@@ -966,9 +966,18 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                           hintStyle: TextStyle(
                             color: Colors.white.withOpacity(0.5),
                           ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          focusColor: Colors.transparent,
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
-                          border: InputBorder.none,
                         ),
                       ),
                     ),
@@ -1219,6 +1228,15 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                           color: Color(0xFF94A3B8),
                         ),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                        focusColor: Colors.transparent,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -1367,6 +1385,15 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
               maxLines: null,
               decoration: InputDecoration(
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                filled: false,
+                fillColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                focusColor: Colors.transparent,
                 hintText: _tr(
                   'Write detailed requirements, work conditions, specific skills needed...',
                   'বিস্তারিত প্রয়োজনীয়তা, কাজের শর্তাবলী লিখুন...',
@@ -1465,11 +1492,13 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     required List<T> items,
     required String Function(T item) itemLabel,
     required ValueChanged<T?> onChanged,
+    Widget Function(T item, double size)? itemLeading,
     String? extraActionLabel,
     VoidCallback? onExtraAction,
   }) {
     final hasValue = value != null;
     final displayText = hasValue ? itemLabel(value) : hint;
+    final leading = hasValue ? itemLeading?.call(value, 24) : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1493,6 +1522,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                 items: items,
                 selectedValue: value,
                 itemLabel: itemLabel,
+                itemLeading: itemLeading,
                 extraActionLabel: extraActionLabel,
               );
               if (selected == _DropdownExtraAction.instance) {
@@ -1519,6 +1549,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
               ),
               child: Row(
                 children: [
+                  if (leading != null) ...[
+                    leading,
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: Text(
                       displayText,
@@ -1554,6 +1588,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     required List<T> items,
     required T? selectedValue,
     required String Function(T item) itemLabel,
+    Widget Function(T item, double size)? itemLeading,
     String? extraActionLabel,
   }) {
     return showModalBottomSheet<Object?>(
@@ -1711,6 +1746,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
 
                               final item = filteredItems[index];
                               final isSelected = item == selectedValue;
+                              final leading = itemLeading?.call(item, 24);
                               return ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 18,
@@ -2076,6 +2112,15 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
               isDense: true,
               contentPadding: EdgeInsets.zero,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              fillColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              focusColor: Colors.transparent,
               suffixText: hasCurrency ? '' : '%',
               suffixStyle: TextStyle(
                 fontSize: 18,
