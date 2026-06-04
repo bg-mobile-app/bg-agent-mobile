@@ -52,7 +52,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   XFile? _selectedImage;
-  String _paymentSystem = 'ADVANCE_AFTER_VISA_BEFORE_FLIGHT';
+  String _paymentSystem = 'AFTER_VISA_BEFORE_FLIGHT';
 
   static const List<String> _selectionTypes = [
     'Direct',
@@ -123,18 +123,18 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     var sequence = 1;
     if (_usesAdvancePayment) {
       steps.add({
-        'name': 'ADVANCE',
+        'step': 'ADVANCE',
         'amount': _advancePrice,
         'sequence': sequence++,
       });
     }
     steps.add({
-      'name': 'AFTER_VISA',
+      'step': 'AFTER_VISA',
       'amount': _afterVisaPrice,
       'sequence': sequence++,
     });
     steps.add({
-      'name': 'BEFORE_FLIGHT',
+      'step': 'BEFORE_FLIGHT',
       'amount': _beforeFlightPrice,
       'sequence': sequence,
     });
@@ -204,15 +204,22 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   }
 
   Future<void> _publishAd() async {
+    final title = _jobTitleController.text.trim();
+    final quota = int.tryParse(_quotaController.text.trim());
+    final applicationDeadline = _formatDate(_applicationDeadline);
+
     if (_selectedCountryValue == null ||
         _selectedWorkTypeId == null ||
-        _selectionType == null) {
+        _selectionType == null ||
+        title.isEmpty ||
+        quota == null ||
+        applicationDeadline == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             _tr(
-              'Please select country, work type and selection method',
-              'দেশ, কাজের ধরন এবং নির্বাচন পদ্ধতি নির্বাচন করুন',
+              'Please complete title, country, work type, selection method, quota and deadline',
+              'পদের নাম, দেশ, কাজের ধরন, নির্বাচন পদ্ধতি, কোটা এবং শেষ তারিখ পূরণ করুন',
             ),
           ),
         ),
@@ -222,15 +229,17 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     setState(() => _isPublishing = true);
     try {
       await _createAdService.createAd(
-        countryValue: _selectedCountryValue,
-        workTypeId: _selectedWorkTypeId,
-        title: _jobTitleController.text.trim(),
+        country: _apiCountryValue(),
+        workTypeId: _selectedWorkTypeId!,
+        title: title,
         description: _descriptionController.text.trim(),
-        selectionType: _selectionType!,
-        quota: int.tryParse(_quotaController.text.trim()),
-        applicationDeadline: _formatDate(_applicationDeadline),
-        startDate: _requiresInterviewDates ? _formatDate(_startDate) : null,
-        endDate: _requiresInterviewDates ? _formatDate(_endDate) : null,
+        selectionType: _apiEnumValue(_selectionType!),
+        quota: quota,
+        applicationDeadline: applicationDeadline,
+        packagePrice: _packagePrice,
+        paymentSystem: _paymentSystem,
+        paymentSteps: _paymentSteps,
+        isBn: widget.isBangla,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -290,6 +299,19 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   String? _formatDate(DateTime? date) {
     if (date == null) return null;
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _apiCountryValue() {
+    final selectedCountry = _selectedCountryOption();
+    final countryCode = selectedCountry?.code.trim();
+    if (countryCode != null && countryCode.isNotEmpty) {
+      return countryCode.toUpperCase();
+    }
+    return _selectedCountryValue?.toString().trim() ?? '';
+  }
+
+  String _apiEnumValue(String value) {
+    return value.trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]+'), '_');
   }
 
   Future<void> _pickFormDate({required _CreateAdDateField field}) async {

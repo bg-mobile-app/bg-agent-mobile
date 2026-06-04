@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../../../common/services/api_client.dart';
+import '../../../common/services/api_exception.dart';
 
 class CountryOption {
   const CountryOption({
@@ -140,30 +141,86 @@ class CreateAdService {
   }
 
   Future<void> createAd({
-    required Object? countryValue,
-    required int? workTypeId,
+    required String country,
+    required int workTypeId,
     required String title,
     required String description,
     required String selectionType,
-    required int? quota,
-    required String? applicationDeadline,
-    required String? startDate,
-    required String? endDate,
+    required int quota,
+    required String applicationDeadline,
+    required int packagePrice,
+    required String paymentSystem,
+    required List<Map<String, dynamic>> paymentSteps,
+    required bool isBn,
   }) async {
-    await _apiClient.post(
-      '/work-permits/',
-      data: {
-        'country': countryValue,
-        'work_type': workTypeId,
-        'title': title,
-        'description': description,
-        'selection_type': selectionType,
-        'quota': quota,
-        'application_deadline': applicationDeadline,
-        'start_date': startDate,
-        'end_date': endDate,
-      },
+    final payload = {
+      'title': title,
+      'country': country,
+      'workType': workTypeId,
+      'companyName': 'Example Company Name',
+      'selectionType': selectionType,
+      'salary': 50000,
+      'currency': 'BDT',
+      'minAge': '25',
+      'maxAge': '40',
+      'food': 'COMPANY',
+      'workingHours': '8',
+      'quota': quota,
+      'contractDuration': 'TWO_YEAR',
+      'accommodation': 'COMPANY',
+      'gender': 'MALE',
+      'documentsRequired': ['PASSPORT'],
+      'packageIncludes': ['VISA'],
+      'experienceRequired': 'ONE_YEAR',
+      'applicationDeadline': applicationDeadline,
+      'processingTime': '30 days',
+      'packagePrice': packagePrice,
+      'paymentSystem': paymentSystem,
+      'paymentSteps': paymentSteps,
+      'isBn': isBn,
+      'customerPercentage': 10,
+      'agentPercentage': 5,
+    };
+
+    if (description.isNotEmpty) {
+      payload['description'] = description;
+    }
+
+    debugPrint(
+      'CreateAdService.createAd request payload: ${jsonEncode(payload)}',
     );
+
+    try {
+      final response = await _apiClient.post('/work-permits/', data: payload);
+      debugPrint(
+        'CreateAdService.createAd success: '
+        'statusCode=${response.statusCode}, data=${_safeEncode(response.data)}',
+      );
+    } on ApiException catch (e, stackTrace) {
+      _logCreateAdFailure(e, stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      debugPrint('CreateAdService.createAd unexpected error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  void _logCreateAdFailure(ApiException error, StackTrace stackTrace) {
+    debugPrint(
+      'CreateAdService.createAd failed: '
+      'statusCode=${error.statusCode}, message=${error.message}, '
+      'data=${_safeEncode(error.data)}',
+    );
+    debugPrintStack(stackTrace: stackTrace);
+  }
+
+  String _safeEncode(dynamic value) {
+    try {
+      return jsonEncode(value);
+    } catch (_) {
+      return value.toString();
+    }
   }
 
   dynamic _decodeResponse(dynamic raw) {
