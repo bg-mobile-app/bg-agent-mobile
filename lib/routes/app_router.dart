@@ -103,6 +103,14 @@ final GoRouter appRouter = GoRouter(
           _slideTransition(c, s, const AppScaffold(tabIndex: 2)),
     ),
     GoRoute(
+      path: '/dashboard/ads/create',
+      pageBuilder: (c, s) => _slideTransition(
+        c,
+        s,
+        const AppScaffold(dashboardPath: '/dashboard/ads/create', tabIndex: 2),
+      ),
+    ),
+    GoRoute(
       path: AppRoutes.tabChat,
       pageBuilder: (c, s) =>
           _slideTransition(c, s, const AppScaffold(tabIndex: 3)),

@@ -91,9 +91,9 @@ class AppBottomNav extends StatelessWidget {
                                     ),
                                   ),
                                   child: const Icon(
-                                    Icons.calendar_month_rounded,
+                                    Icons.add_rounded,
                                     color: Colors.white,
-                                    size: 30,
+                                    size: 34,
                                   ),
                                 ),
                               ],
@@ -240,7 +240,7 @@ const List<_BottomNavItem> _items = [
     selectedIcon: RegularStraight.SEARCH,
   ),
   _BottomNavItem(
-    label: 'My Booking',
+    label: 'Create Ad',
     icon: '',
     selectedIcon: '',
     isProminent: true,
