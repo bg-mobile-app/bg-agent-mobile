@@ -69,6 +69,7 @@ class MyAdItem {
     required this.status,
     required this.image,
     required this.country,
+    required this.isBn,
   });
 
   final int id;
@@ -76,6 +77,7 @@ class MyAdItem {
   final String status;
   final String image;
   final String country;
+  final bool isBn;
 
   factory MyAdItem.fromJson(Map<String, dynamic> json) {
     final countryJson = json['country'];
@@ -91,6 +93,17 @@ class MyAdItem {
       status: json['status']?.toString() ?? 'UNKNOWN',
       image: json['image']?.toString() ?? '',
       country: country,
+      isBn: _parseBool(json['isBn'] ?? json['is_bn']),
     );
   }
+}
+
+bool _parseBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final text = value.trim().toLowerCase();
+    return text == 'true' || text == '1' || text == 'yes';
+  }
+  return false;
 }

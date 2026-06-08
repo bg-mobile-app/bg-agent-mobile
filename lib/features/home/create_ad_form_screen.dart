@@ -8,12 +8,14 @@ import 'package:image_picker/image_picker.dart';
 import '../../common/services/api_exception.dart';
 import '../../common/theme/app_palette.dart';
 import 'services/create_ad_service.dart';
+import '../search/models/work_permit_details.dart';
 import 'dashboard_screen.dart';
 
 class CreateAdFormScreen extends StatefulWidget {
-  const CreateAdFormScreen({super.key, required this.isBangla});
+  const CreateAdFormScreen({super.key, required this.isBangla, this.adId});
 
   final bool isBangla;
+  final int? adId;
 
   @override
   State<CreateAdFormScreen> createState() => _CreateAdFormScreenState();
@@ -41,6 +43,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
 
   int _currentStep = 0;
   bool _isLoadingMeta = false;
+  bool _isLoadingExistingAd = false;
   bool _isPublishing = false;
   bool _showNewWorkTypeInput = false;
   bool _isSuggestingWorkType = false;
@@ -53,6 +56,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   XFile? _selectedImage;
+  String _existingImageUrl = '';
   String _paymentSystem = 'AFTER_VISA_BEFORE_FLIGHT';
 
   static const List<String> _selectionTypes = [
@@ -62,12 +66,14 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     'Lottery',
   ];
 
+  bool get _isEditMode => widget.adId != null;
+
   String _tr(String en, String bn) => widget.isBangla ? bn : en;
 
   @override
   void initState() {
     super.initState();
-    _loadFormMeta();
+    _loadInitialData();
     _packagePriceController.addListener(_handlePaymentInputChanged);
     _advancePriceController.addListener(_handlePaymentInputChanged);
     _afterVisaController.addListener(_handlePaymentInputChanged);
@@ -192,16 +198,134 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     return true;
   }
 
-  Future<void> _loadFormMeta() async {
-    setState(() => _isLoadingMeta = true);
-    final countries = await _createAdService.getCountries();
-    final workTypes = await _createAdService.getWorkTypes();
-    if (!mounted) return;
+  Future<void> _loadInitialData() async {
     setState(() {
-      _countries = countries;
-      _workTypes = workTypes;
-      _isLoadingMeta = false;
+      _isLoadingMeta = true;
+      _isLoadingExistingAd = _isEditMode;
     });
+
+    try {
+      final results = await Future.wait<dynamic>([
+        _createAdService.getCountries(),
+        _createAdService.getWorkTypes(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _countries = results[0] as List<CountryOption>;
+        _workTypes = results[1] as List<WorkTypeOption>;
+        _isLoadingMeta = false;
+      });
+
+      final adId = widget.adId;
+      if (adId != null) {
+        final details = await _createAdService.getAdDetails(adId);
+        if (!mounted) return;
+        _prefillForm(details);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditMode
+                ? _tr(
+                    'Failed to load ad data',
+                    'বিজ্ঞাপনের তথ্য লোড করা যায়নি',
+                  )
+                : _tr(
+                    'Failed to load form data',
+                    'ফর্মের তথ্য লোড করা যায়নি',
+                  ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMeta = false;
+          _isLoadingExistingAd = false;
+        });
+      }
+    }
+  }
+
+  void _prefillForm(WorkPermitDetails details) {
+    var matchingCountry = _findCountry(details.countryName);
+    if (matchingCountry == null && details.countryName.trim().isNotEmpty) {
+      matchingCountry = CountryOption(
+        value: details.countryName,
+        name: details.countryName,
+      );
+      _countries = [..._countries, matchingCountry];
+    }
+    final detailsWorkType = details.workType;
+    final workTypeId = detailsWorkType?.id ?? 0;
+    if (detailsWorkType != null &&
+        workTypeId > 0 &&
+        !_workTypes.any((item) => item.id == workTypeId)) {
+      _workTypes = [
+        ..._workTypes,
+        WorkTypeOption(id: workTypeId, name: detailsWorkType.name),
+      ];
+    }
+
+    _jobTitleController.text = details.title;
+    _descriptionController.text = details.description;
+    _quotaController.text = details.quota > 0 ? details.quota.toString() : '';
+    final packagePrice = details.packagePrice ?? details.customerPrice;
+    _packagePriceController.text = packagePrice > 0
+        ? packagePrice.toString()
+        : '';
+    _paymentSystem = details.paymentSystem.isNotEmpty
+        ? details.paymentSystem
+        : 'AFTER_VISA_BEFORE_FLIGHT';
+    _advancePriceController.text = details.advancePrice > 0
+        ? details.advancePrice.toString()
+        : '';
+    _afterVisaController.text = details.afterVisa > 0
+        ? details.afterVisa.toString()
+        : '';
+    _beforeFlightController.text = details.beforeFlight > 0
+        ? details.beforeFlight.toString()
+        : '';
+    for (final step in details.paymentSteps) {
+      final normalized = step.name
+          .toUpperCase()
+          .replaceAll(RegExp(r'[^A-Z0-9]+'), '_');
+      final amount = step.amount.toInt();
+      if (amount <= 0) continue;
+      if (normalized.contains('ADVANCE')) {
+        _advancePriceController.text = amount.toString();
+      } else if (normalized.contains('AFTER') && normalized.contains('VISA')) {
+        _afterVisaController.text = amount.toString();
+      } else if (normalized.contains('BEFORE') &&
+          normalized.contains('FLIGHT')) {
+        _beforeFlightController.text = amount.toString();
+      }
+    }
+
+    setState(() {
+      _selectedCountryValue = matchingCountry?.value;
+      _selectedWorkTypeId = workTypeId > 0 ? workTypeId : null;
+      _selectionType = _displaySelectionType(details.selectionType);
+      _applicationDeadline = details.applicationDeadline;
+      _startDate = details.startDate;
+      _endDate = details.endDate;
+      _existingImageUrl = details.image;
+    });
+  }
+
+  CountryOption? _findCountry(String countryName) {
+    final normalized = countryName.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    for (final item in _countries) {
+      if (item.name.trim().toLowerCase() == normalized ||
+          item.code.trim().toLowerCase() == normalized ||
+          item.value.toString().trim().toLowerCase() == normalized) {
+        return item;
+      }
+    }
+    return null;
   }
 
   Future<void> _publishAd() async {
@@ -212,7 +336,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     if (_selectedCountryValue == null ||
         _selectedWorkTypeId == null ||
         _selectionType == null ||
-        _selectedImage == null ||
+        (!_isEditMode && _selectedImage == null) ||
         title.isEmpty ||
         quota == null ||
         applicationDeadline == null) {
@@ -220,8 +344,12 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
         SnackBar(
           content: Text(
             _tr(
-              'Please complete title, country, work type, selection method, quota, deadline and image',
-              'পদের নাম, দেশ, কাজের ধরন, নির্বাচন পদ্ধতি, কোটা, শেষ তারিখ এবং ছবি পূরণ করুন',
+              _isEditMode
+                  ? 'Please complete title, country, work type, selection method, quota and deadline'
+                  : 'Please complete title, country, work type, selection method, quota, deadline and image',
+              _isEditMode
+                  ? 'পদের নাম, দেশ, কাজের ধরন, নির্বাচন পদ্ধতি, কোটা এবং শেষ তারিখ পূরণ করুন'
+                  : 'পদের নাম, দেশ, কাজের ধরন, নির্বাচন পদ্ধতি, কোটা, শেষ তারিখ এবং ছবি পূরণ করুন',
             ),
           ),
         ),
@@ -230,25 +358,51 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     }
     setState(() => _isPublishing = true);
     try {
-      await _createAdService.createAd(
-        country: _apiCountryValue(),
-        workTypeId: _selectedWorkTypeId!,
-        title: title,
-        description: _descriptionController.text.trim(),
-        selectionType: _apiSelectionTypeValue(_selectionType!),
-        quota: quota,
-        applicationDeadline: applicationDeadline,
-        packagePrice: _packagePrice,
-        paymentSystem: _paymentSystem,
-        paymentSteps: _paymentSteps,
-        isBn: widget.isBangla,
-        imagePath: _selectedImage!.path,
-      );
+      if (_isEditMode) {
+        await _createAdService.updateAd(
+          adId: widget.adId!,
+          country: _apiCountryValue(),
+          workTypeId: _selectedWorkTypeId!,
+          title: title,
+          description: _descriptionController.text.trim(),
+          selectionType: _apiSelectionTypeValue(_selectionType!),
+          quota: quota,
+          applicationDeadline: applicationDeadline,
+          packagePrice: _packagePrice,
+          paymentSystem: _paymentSystem,
+          paymentSteps: _paymentSteps,
+          isBn: widget.isBangla,
+          imagePath: _selectedImage?.path,
+        );
+      } else {
+        await _createAdService.createAd(
+          country: _apiCountryValue(),
+          workTypeId: _selectedWorkTypeId!,
+          title: title,
+          description: _descriptionController.text.trim(),
+          selectionType: _apiSelectionTypeValue(_selectionType!),
+          quota: quota,
+          applicationDeadline: applicationDeadline,
+          packagePrice: _packagePrice,
+          paymentSystem: _paymentSystem,
+          paymentSteps: _paymentSteps,
+          isBn: widget.isBangla,
+          imagePath: _selectedImage!.path,
+        );
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _tr('Ad created successfully', 'বিজ্ঞাপন সফলভাবে তৈরি হয়েছে'),
+            _isEditMode
+                ? _tr(
+                    'Ad updated successfully',
+                    'বিজ্ঞাপন সফলভাবে আপডেট হয়েছে',
+                  )
+                : _tr(
+                    'Ad created successfully',
+                    'বিজ্ঞাপন সফলভাবে তৈরি হয়েছে',
+                  ),
           ),
         ),
       );
@@ -257,6 +411,8 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       if (!mounted) return;
       final message = e.message.trim().isNotEmpty
           ? e.message
+          : _isEditMode
+          ? _tr('Failed to update ad', 'বিজ্ঞাপন আপডেট করা যায়নি')
           : _tr('Failed to publish ad', 'বিজ্ঞাপন প্রকাশ করা যায়নি');
       ScaffoldMessenger.of(
         context,
@@ -266,7 +422,9 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _tr('Failed to publish ad', 'বিজ্ঞাপন প্রকাশ করা যায়নি'),
+            _isEditMode
+                ? _tr('Failed to update ad', 'বিজ্ঞাপন আপডেট করা যায়নি')
+                : _tr('Failed to publish ad', 'বিজ্ঞাপন প্রকাশ করা যায়নি'),
           ),
         ),
       );
@@ -281,7 +439,7 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
     if (context.canPop()) {
       Navigator.of(context).pop();
     } else {
-      context.go('/dashboard/ads/create');
+      context.go(_isEditMode ? '/dashboard/ads/my' : '/dashboard/ads/create');
     }
   }
 
@@ -319,6 +477,21 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
       return countryCode.toUpperCase();
     }
     return _selectedCountryValue?.toString().trim() ?? '';
+  }
+
+  String _displaySelectionType(String value) {
+    switch (value.trim().toUpperCase()) {
+      case 'PUSHING':
+      case 'DIRECT':
+        return 'Direct';
+      case 'DELEGATE':
+        return 'Delegate';
+      case 'ZOOM_INTERVIEW':
+        return 'Zoom Interview';
+      case 'LOTTERY':
+        return 'Lottery';
+    }
+    return value;
   }
 
   String _apiSelectionTypeValue(String value) {
@@ -517,6 +690,13 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
   }
 
   Widget _buildCurrentStep() {
+    if (_isLoadingExistingAd) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 80),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     switch (_currentStep) {
       case 0:
         return _buildStep1ImageUpload();
@@ -553,7 +733,9 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
         const SizedBox(width: 16),
         Expanded(
           child: Text(
-            _tr('Create New Ad', 'নতুন বিজ্ঞাপন তৈরি করুন'),
+            _isEditMode
+                ? _tr('Edit Ad', 'বিজ্ঞাপন সম্পাদনা করুন')
+                : _tr('Create New Ad', 'নতুন বিজ্ঞাপন তৈরি করুন'),
             style: const TextStyle(
               fontSize: 16,
               color: AppPalette.brandBlue,
@@ -641,7 +823,32 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
               ),
               child: Column(
                 children: [
-                  if (_selectedImage == null)
+                  if (_selectedImage != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        File(_selectedImage!.path),
+                        height: 120,
+                        width: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else if (_existingImageUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        _existingImageUrl,
+                        height: 120,
+                        width: 180,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.image_outlined,
+                          color: AppPalette.brandBlue,
+                          size: 48,
+                        ),
+                      ),
+                    )
+                  else
                     Container(
                       width: 64,
                       height: 64,
@@ -654,20 +861,10 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                         color: AppPalette.brandBlue,
                         size: 32,
                       ),
-                    )
-                  else
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        File(_selectedImage!.path),
-                        height: 120,
-                        width: 180,
-                        fit: BoxFit.cover,
-                      ),
                     ),
                   const SizedBox(height: 16),
                   Text(
-                    _selectedImage == null
+                    _selectedImage == null && _existingImageUrl.isEmpty
                         ? _tr(
                             'Upload job poster or main image',
                             'কাজের পোস্টার বা প্রধান ছবি আপলোড করুন',
@@ -2267,7 +2464,9 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                 onPressed: _isPublishing
                     ? null
                     : () {
-                        if (_currentStep == 0 && _selectedImage == null) {
+                        if (_currentStep == 0 &&
+                            !_isEditMode &&
+                            _selectedImage == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -2314,6 +2513,8 @@ class _CreateAdFormScreenState extends State<CreateAdFormScreen> {
                     : Text(
                         _currentStep < 3
                             ? _tr('Next Step', 'পরবর্তী ধাপ')
+                            : _isEditMode
+                            ? _tr('Update Ad', 'বিজ্ঞাপন আপডেট করুন')
                             : _tr('Publish Ad', 'বিজ্ঞাপন দিন'),
                         style: const TextStyle(
                           fontSize: 16,
