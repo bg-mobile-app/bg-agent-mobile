@@ -11,13 +11,7 @@ class ProfileService {
     try {
       final response = await _apiClient.get('/profile/agency/me/');
       if (response.statusCode == 200 && response.data != null) {
-        if (response.data is Map<String, dynamic>) {
-          return RecruitingAgencyMeDetailsProps.fromJson(response.data);
-        } else if (response.data is String) {
-          return RecruitingAgencyMeDetailsProps.fromJson(
-            jsonDecode(response.data),
-          );
-        }
+        return _profileFromResponseData(response.data);
       }
       return null;
     } catch (e) {
@@ -35,20 +29,35 @@ class ProfileService {
         data: formData,
         options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
-      if ((response.statusCode == 200 || response.statusCode == 201) &&
+      if (response.statusCode == 204) {
+        return getAgencyProfile();
+      }
+
+      if ((response.statusCode == 200 ||
+              response.statusCode == 201 ||
+              response.statusCode == 202) &&
           response.data != null) {
-        if (response.data is Map<String, dynamic>) {
-          return RecruitingAgencyMeDetailsProps.fromJson(response.data);
-        } else if (response.data is String) {
-          return RecruitingAgencyMeDetailsProps.fromJson(
-            jsonDecode(response.data),
-          );
-        }
+        final profile = _profileFromResponseData(response.data);
+        return profile ?? getAgencyProfile();
       }
       return null;
     } catch (e) {
       debugPrint('Error updating agency profile: $e');
-      return null;
+      rethrow;
     }
+  }
+
+  RecruitingAgencyMeDetailsProps? _profileFromResponseData(dynamic raw) {
+    final data = raw is String ? jsonDecode(raw) : raw;
+    if (data is! Map<String, dynamic>) return null;
+
+    for (final key in const ['data', 'profile', 'account']) {
+      final nested = data[key];
+      if (nested is Map<String, dynamic>) {
+        return RecruitingAgencyMeDetailsProps.fromJson(nested);
+      }
+    }
+
+    return RecruitingAgencyMeDetailsProps.fromJson(data);
   }
 }

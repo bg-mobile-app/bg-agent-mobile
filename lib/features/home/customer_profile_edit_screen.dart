@@ -24,6 +24,9 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
   final _agencyNameController = TextEditingController();
   final _agencyPhoneController = TextEditingController();
   final _agencyAddressController = TextEditingController();
+  final _ownerFullNameController = TextEditingController();
+  final _ownerPhoneController = TextEditingController();
+  final _ownerEmailController = TextEditingController();
   final _bankNameController = TextEditingController();
   final _branchNameController = TextEditingController();
   final _accountNameController = TextEditingController();
@@ -48,7 +51,6 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
 
   XFile? _profileImage;
   XFile? _nidImage;
-  XFile? _nidBackImage; // Local mock storage for back NID
   XFile? _tradeLicenseImage;
   XFile? _rlLicenseImage;
   XFile? _civilAviationLicenseImage;
@@ -93,6 +95,9 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         _agencyNameController.text = profile.agencyName ?? '';
         _agencyPhoneController.text = profile.agencyPhone ?? profile.owner?.phone ?? '';
         _agencyAddressController.text = profile.agencyAddress ?? '';
+        _ownerFullNameController.text = profile.owner?.fullName ?? '';
+        _ownerPhoneController.text = profile.owner?.phone ?? profile.agencyPhone ?? '';
+        _ownerEmailController.text = profile.owner?.email ?? '';
         _bankNameController.text = bank?.bankName ?? '';
         _branchNameController.text = bank?.branchName ?? '';
         _accountNameController.text = bank?.accountName ?? '';
@@ -163,6 +168,9 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
         'agencyAddress': _agencyAddressController.text.trim(),
         if (_selectedDistrictId != null) 'district': _selectedDistrictId,
         if (_selectedPoliceStationId != null) 'policeStation': _selectedPoliceStationId,
+        'owner.fullName': _ownerFullNameController.text.trim(),
+        'owner.phone': _ownerPhoneController.text.trim(),
+        'owner.email': _ownerEmailController.text.trim(),
         'bankInformation.bankName': _bankNameController.text.trim(),
         'bankInformation.branchName': _branchNameController.text.trim(),
         'bankInformation.accountName': _accountNameController.text.trim(),
@@ -199,6 +207,9 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
     _agencyNameController.dispose();
     _agencyPhoneController.dispose();
     _agencyAddressController.dispose();
+    _ownerFullNameController.dispose();
+    _ownerPhoneController.dispose();
+    _ownerEmailController.dispose();
     _bankNameController.dispose();
     _branchNameController.dispose();
     _accountNameController.dispose();
@@ -280,6 +291,31 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
                           ],
                         ),
 
+                        // Card 2: Owner Information
+                        _buildSectionCard(
+                          title: 'Owner Information',
+                          icon: Icons.person_outline,
+                          children: [
+                            _buildCustomTextField(
+                              label: 'Owner Full Name',
+                              controller: _ownerFullNameController,
+                              icon: Icons.person,
+                            ),
+                            _buildCustomTextField(
+                              label: 'Owner Phone',
+                              controller: _ownerPhoneController,
+                              icon: Icons.phone,
+                              keyboardType: TextInputType.phone,
+                            ),
+                            _buildCustomTextField(
+                              label: 'Owner Email',
+                              controller: _ownerEmailController,
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                          ],
+                        ),
+
                         // Card 3: Location
                         _buildSectionCard(
                           title: 'Location',
@@ -356,17 +392,10 @@ class _CustomerProfileEditScreenState extends State<CustomerProfileEditScreen> {
                             Row(
                               children: [
                                 _buildNidCard(
-                                  label: 'NID Front Side',
+                                  label: 'NID Image',
                                   localFile: _nidImage,
                                   existingUrl: _existingNidImageUrl,
                                   onTap: () => _pickImage((v) => setState(() => _nidImage = v)),
-                                ),
-                                const SizedBox(width: 12),
-                                _buildNidCard(
-                                  label: 'NID Back Side',
-                                  localFile: _nidBackImage,
-                                  existingUrl: null,
-                                  onTap: () => _pickImage((v) => setState(() => _nidBackImage = v)),
                                 ),
                               ],
                             ),

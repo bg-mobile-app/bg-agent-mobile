@@ -20,6 +20,7 @@ import '../../../features/home/create_ad_form_screen.dart';
 import '../../../features/home/create_ad_screen.dart';
 import '../../../features/home/create_user_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
+import '../../../features/home/customer_profile_edit_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
 import '../../../features/home/home_screen.dart';
 import '../../../features/home/manage_user_screen.dart';
@@ -238,6 +239,8 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return const PassportReturnBgHandoverScreen();
       case '/dashboard/customer/profile':
         return const CustomerProfileScreen();
+      case '/dashboard/customer/profile/edit':
+        return const CustomerProfileEditScreen();
       case '/dashboard/user/create-user':
         return const CreateUserScreen();
       case '/dashboard/user/manage-user':

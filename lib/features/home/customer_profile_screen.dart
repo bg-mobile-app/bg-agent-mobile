@@ -136,7 +136,17 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           const SizedBox(height: 8),
                           const _PageHeading(),
                           const SizedBox(height: 16),
-                          _ProfileHeaderCard(profile: profile),
+                          _ProfileHeaderCard(
+                            profile: profile,
+                            onEditProfile: () async {
+                              final updated = await context.push<bool>(
+                                '/dashboard/customer/profile/edit',
+                              );
+                              if (updated == true && mounted) {
+                                await _fetchProfile();
+                              }
+                            },
+                          ),
                           const SizedBox(height: 18),
                           const _SectionTitle(
                             title: 'Profile Details',
@@ -221,8 +231,12 @@ class _PageHeading extends StatelessWidget {
 
 class _ProfileHeaderCard extends StatelessWidget {
   final RecruitingAgencyMeDetailsProps profile;
+  final VoidCallback onEditProfile;
 
-  const _ProfileHeaderCard({required this.profile});
+  const _ProfileHeaderCard({
+    required this.profile,
+    required this.onEditProfile,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -313,14 +327,7 @@ class _ProfileHeaderCard extends StatelessWidget {
           SizedBox(
             width: 170,
             child: FilledButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Working on this page'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
+              onPressed: onEditProfile,
               icon: const Icon(Icons.edit_outlined, size: 18),
               label: const Text('Edit Profile'),
               style: FilledButton.styleFrom(
