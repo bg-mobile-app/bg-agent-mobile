@@ -8,6 +8,7 @@ import '../../common/theme/app_palette.dart';
 import 'widgets/received_booking_card.dart';
 import '../home/dashboard_screen.dart';
 import 'services/booking_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ReceivedAppliedBookingScreen extends StatefulWidget {
   const ReceivedAppliedBookingScreen({super.key});
@@ -435,7 +436,7 @@ class _ReceivedAppliedBookingScreenState
     rows: _filteredBookings.map((item) {
       final style = _styleFor(item.statusLabel);
       return DataRow(
-        onLongPress: () => _openActionsSheet(context, item),
+        onLongPress: () => _openActionsSheet(context, item, onRefresh: _fetchAppliedBookings),
         cells: [
           DataCell(Text(item.workPermitId)),
           DataCell(Text(item.id.toString())),
@@ -529,7 +530,7 @@ class _ReceivedAppliedBookingScreenState
             badgeText: style.badgeText,
             ctaLabel: style.ctaLabel,
           ),
-          onMoreTap: () => _openActionsSheet(context, item),
+          onMoreTap: () => _openActionsSheet(context, item, onRefresh: _fetchAppliedBookings),
         );
       }),
     ],
@@ -890,7 +891,7 @@ List<String> _actionsFor(BookingItem row) {
   }).toList();
 }
 
-void _openActionsSheet(BuildContext context, BookingItem row) {
+void _openActionsSheet(BuildContext context, BookingItem row, {VoidCallback? onRefresh}) {
   final actions = _actionsFor(row);
   showModalBottomSheet<void>(
     context: context,
@@ -917,7 +918,25 @@ void _openActionsSheet(BuildContext context, BookingItem row) {
                       (action) => OutlinedButton(
                         onPressed: row.isReturn
                             ? null
-                            : () => Navigator.pop(context),
+                            : () async {
+                                Navigator.pop(context);
+                                if (action == 'View Post') {
+                                  final urlString = row.status == 'APPLIED_FILE'
+                                      ? 'https://demo.bideshgami.com/dashboard/agency/booking-file/details/${row.workPermitId}'
+                                      : 'https://demo.bideshgami.com/dashboard/agency/booking-file/details/${row.id}';
+                                  final uri = Uri.parse(urlString);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  }
+                                } else if (action == 'Reject' || action == 'Reject File') {
+                                  final bookingService = BookingService();
+                                  await bookingService.updateBookingStatus(
+                                    bookingId: row.id,
+                                    status: 'REJECT_FILE',
+                                  );
+                                  if (onRefresh != null) onRefresh();
+                                }
+                              },
                         child: Text(action),
                       ),
                     )

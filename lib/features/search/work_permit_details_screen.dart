@@ -303,7 +303,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                           horizontalPadding,
                           16,
                           horizontalPadding,
-                          128,
+                          24,
                         ),
                         sliver: SliverToBoxAdapter(
                           child: Center(
@@ -1255,8 +1255,6 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     );
   }
 
-
-
   Widget _bottomActions(BuildContext context) {
     return SafeArea(
       top: false,
@@ -1404,7 +1402,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 540,
+          height: 420,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: displaySimilar.length,

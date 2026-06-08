@@ -578,18 +578,13 @@ class ReceivedBookingItemDto {
       policeClearanceExpiryDate: json['policeClearanceExpiryDate']?.toString(),
       visaExpiryDate: json['visaExpiryDate']?.toString(),
       passportNo: json['passportNo']?.toString(),
-      packagePrice: json['packagePrice'] is int
-          ? json['packagePrice'] as int
-          : int.tryParse(json['packagePrice']?.toString() ?? '') ??
-                (json['package_price'] is int
-                    ? json['package_price'] as int
-                    : int.tryParse(json['package_price']?.toString() ?? '')),
-      paidAmount: json['paidAmount'] is int
-          ? json['paidAmount'] as int
-          : int.tryParse(json['paidAmount']?.toString() ?? '') ??
-                (json['paid_amount'] is int
-                    ? json['paid_amount'] as int
-                    : int.tryParse(json['paid_amount']?.toString() ?? '')),
+      packagePrice: _pickInt(json, [
+        'agencyTotalCost',
+        'agency_total_cost',
+        'packagePrice',
+        'package_price',
+      ]),
+      paidAmount: _pickInt(json, ['paidAmount', 'paid_amount']),
       meeting: json['meeting']?.toString(),
     );
   }
