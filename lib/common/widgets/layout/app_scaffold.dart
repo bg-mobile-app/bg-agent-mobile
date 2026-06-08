@@ -292,6 +292,27 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         final segments = Uri.parse(widget.route).pathSegments;
         if (segments.length == 4 &&
             segments[0] == 'dashboard' &&
+            segments[1] == 'ads' &&
+            segments[2] == 'edit') {
+          final adId = int.tryParse(segments[3]);
+          if (adId != null) {
+            return CreateAdFormScreen(isBangla: false, adId: adId);
+          }
+        }
+        if (segments.length == 5 &&
+            segments[0] == 'dashboard' &&
+            segments[1] == 'ads' &&
+            segments[2] == 'edit') {
+          final adId = int.tryParse(segments[4]);
+          if (adId != null) {
+            return CreateAdFormScreen(
+              isBangla: segments[3].toLowerCase() == 'bn',
+              adId: adId,
+            );
+          }
+        }
+        if (segments.length == 4 &&
+            segments[0] == 'dashboard' &&
             segments[1] == 'user' &&
             segments[2] == 'create-user') {
           return CreateUserScreen(userId: segments[3]);

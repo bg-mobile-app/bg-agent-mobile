@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../common/services/api_client.dart';
 import '../../../common/services/api_exception.dart';
+import '../../search/models/work_permit_details.dart';
 
 class CountryOption {
   const CountryOption({
@@ -138,6 +139,11 @@ class CreateAdService {
     }
   }
 
+  Future<WorkPermitDetails> getAdDetails(int adId) async {
+    final response = await _apiClient.get('/work-permits/$adId/');
+    return WorkPermitDetails.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<void> createAd({
     required String country,
     required int workTypeId,
@@ -215,9 +221,92 @@ class CreateAdService {
     }
   }
 
+  Future<void> updateAd({
+    required int adId,
+    required String country,
+    required int workTypeId,
+    required String title,
+    required String description,
+    required String selectionType,
+    required int quota,
+    required String applicationDeadline,
+    required int packagePrice,
+    required String paymentSystem,
+    required List<Map<String, dynamic>> paymentSteps,
+    required bool isBn,
+    String? imagePath,
+  }) async {
+    final payload = <String, dynamic>{
+      'title': title,
+      'country': country,
+      'workType': workTypeId,
+      'companyName': title,
+      'companyAddress': title,
+      'visaSponsorName': title,
+      'selectionType': selectionType,
+      'visaOccupation': title,
+      'salary': 50000,
+      'currency': 'BDT',
+      'minAge': '25',
+      'maxAge': '40',
+      'iqama': 'SELF',
+      'food': 'COMPANY',
+      'workingHours': '8',
+      'quota': quota,
+      'contractDuration': '2_YEAR',
+      'isRenewable': false,
+      'accommodation': 'COMPANY',
+      'gender': 'MALE',
+      'documentsRequired': ['Passport'],
+      'packageIncludes': ['Visa'],
+      'experienceRequired': '',
+      'applicationDeadline': applicationDeadline,
+      'processingTime': '30 days',
+      'packagePrice': packagePrice,
+      'paymentSystem': paymentSystem,
+      'paymentSteps': paymentSteps,
+      'isBn': isBn,
+      'customerPercentage': 10,
+      'agentPercentage': 5,
+    };
+
+    if (description.isNotEmpty) {
+      payload['description'] = description;
+    }
+
+    debugPrint(
+      'CreateAdService.updateAd request payload: ${jsonEncode(payload)}',
+    );
+
+    try {
+      final requestData = await _buildMultipartPayload(payload, imagePath);
+      final response = await _apiClient.patch(
+        '/work-permits/$adId/',
+        data: requestData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+      debugPrint(
+        'CreateAdService.updateAd success: '
+        'statusCode=${response.statusCode}, data=${_safeEncode(response.data)}',
+      );
+    } on ApiException catch (e, stackTrace) {
+      debugPrint(
+        'CreateAdService.updateAd failed: '
+        'statusCode=${e.statusCode}, message=${e.message}, '
+        'data=${_safeEncode(e.data)}',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      debugPrint('CreateAdService.updateAd unexpected error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
   Future<FormData> _buildMultipartPayload(
     Map<String, dynamic> payload,
-    String imagePath,
+    String? imagePath,
   ) async {
     final formData = FormData();
     for (final entry in payload.entries) {
@@ -229,15 +318,17 @@ class CreateAdService {
       }
     }
 
-    formData.files.add(
-      MapEntry(
-        'image',
-        await MultipartFile.fromFile(
-          imagePath,
-          filename: imagePath.split(RegExp(r'[/\\]')).last,
+    if (imagePath != null && imagePath.isNotEmpty) {
+      formData.files.add(
+        MapEntry(
+          'image',
+          await MultipartFile.fromFile(
+            imagePath,
+            filename: imagePath.split(RegExp(r'[/\\]')).last,
+          ),
         ),
-      ),
-    );
+      );
+    }
     return formData;
   }
 

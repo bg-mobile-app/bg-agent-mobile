@@ -206,7 +206,12 @@ class _MyAdsScreenState extends State<MyAdsScreen> {
                             ad: ad,
                             onTap: () =>
                                 _showInfo('Opening ad #${ad.id} details'),
-                            onEdit: () => _showInfo('Editing ad #${ad.id}'),
+                            onEdit: () {
+                              final lang = ad.isBn ? 'bn' : 'en';
+                              context.push(
+                                '/dashboard/ads/edit/$lang/${ad.id}',
+                              );
+                            },
                             onPromote: () =>
                                 _showInfo('Promote ad #${ad.id} request sent'),
                           ),
