@@ -115,5 +115,5 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/img/logo/favicon_agency.png
+  image_path: assets/img/logo/Favicon_agency_app.png
   remove_alpha_ios: true
