@@ -741,6 +741,79 @@ class _ReceivedBgSentPassportScreenState
         .join(',');
   }
 
+  Future<void> _receivePassport(BookingItem row) async {
+    try {
+      await _apiClient.patch(
+        '/booking/wp/update/status/${row.id}/',
+        data: {'status': 'A_RECEIVE_PP'},
+      );
+      if (!mounted) return;
+      setState(() {
+        _collectedBookings = _collectedBookings
+            .where((booking) => booking.id != row.id)
+            .toList();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Passport received for booking #${row.id}.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to receive passport. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  void _openActionsSheet(BuildContext context, BookingItem row) {
+    final actions = _actionsFor(row);
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Actions • ${row.statusLabel}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (actions.isEmpty)
+                const Text('No actions available')
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: actions
+                      .map(
+                        (action) => OutlinedButton(
+                          onPressed: row.isReturn
+                              ? null
+                              : () {
+                                  Navigator.pop(sheetContext);
+                                  if (action == 'Receive Passport') {
+                                    _receivePassport(row);
+                                  }
+                                },
+                          child: Text(action),
+                        ),
+                      )
+                      .toList(),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   _CardStyle _styleFor(String status) {
     switch (status) {
       case 'Success Flight':
@@ -1013,46 +1086,6 @@ List<String> _actionsFor(BookingItem row) {
       return false;
     return true;
   }).toList();
-}
-
-void _openActionsSheet(BuildContext context, BookingItem row) {
-  final actions = _actionsFor(row);
-  showModalBottomSheet<void>(
-    context: context,
-    builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Actions • ${row.statusLabel}',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            if (actions.isEmpty)
-              const Text('No actions available')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: actions
-                    .map(
-                      (action) => OutlinedButton(
-                        onPressed: row.isReturn
-                            ? null
-                            : () => Navigator.pop(context),
-                        child: Text(action),
-                      ),
-                    )
-                    .toList(),
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 String _formatDate(DateTime date) {
