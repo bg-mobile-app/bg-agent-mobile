@@ -1,5 +1,7 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
+import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/widgets/app_search_bar.dart';
@@ -185,6 +187,530 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _handleBookingAction(BookingItem item, String action) async {
+    switch (action) {
+      case 'Receive Passport':
+        await _confirmStatusUpdate(
+          item: item,
+          dialogTitle: 'Receive Passport?',
+          dialogMessage:
+              'Confirm that passport for booking #${item.id} has been received?',
+          status: 'A_RECEIVE_PP',
+          successMessage: 'Passport received successfully.',
+          errorMessage: 'Failed to receive passport. Please try again.',
+        );
+        break;
+      case 'Sent to Processing':
+        await _confirmStatusUpdate(
+          item: item,
+          dialogTitle: 'Send to Processing?',
+          dialogMessage: 'Move booking #${item.id} to Under Processing?',
+          status: 'UNDER_PROCESSING',
+          successMessage: 'Booking sent to processing successfully.',
+          errorMessage:
+              'Failed to send booking to processing. Please try again.',
+        );
+        break;
+      case 'Payment Request':
+        await _showPaymentRequestDialog(item);
+        break;
+      case 'Upload Documents':
+        await _showUploadDocumentsDialog(item);
+        break;
+      case 'Add Reminder':
+        await _showReminderDialog(item);
+        break;
+      case 'Visa Reminder':
+        await _showVisaReminderDialog(item);
+        break;
+      case 'Visa Approved':
+        await _confirmStatusUpdate(
+          item: item,
+          dialogTitle: 'Visa Approved?',
+          dialogMessage: 'Mark this passport as visa approved?',
+          status: 'VISA_APPROVED',
+          successMessage: 'Booking marked as visa approved successfully.',
+          errorMessage: 'Failed to mark visa approved. Please try again.',
+        );
+        break;
+      case 'BMET Done':
+        await _confirmStatusUpdate(
+          item: item,
+          dialogTitle: 'BMET Done?',
+          dialogMessage: 'Mark as BMET done?',
+          status: 'BMET_DONE',
+          successMessage: 'BMET Done successfully for ${item.passportNo}',
+          errorMessage: 'Failed to mark BMET done. Please try again.',
+        );
+        break;
+      case 'View Documents':
+        context.go('/dashboard/booking/documents/${item.id}');
+        break;
+      case 'Reject':
+      case 'Reject File':
+        context.go('/dashboard/agency/booking-file/return/request/${item.id}');
+        break;
+    }
+  }
+
+  Future<void> _confirmStatusUpdate({
+    required BookingItem item,
+    required String dialogTitle,
+    required String dialogMessage,
+    required String status,
+    required String successMessage,
+    required String errorMessage,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(dialogTitle),
+        content: Text(dialogMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _bookingService.updateBookingStatus(
+        bookingId: item.id,
+        status: status,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(successMessage)),
+      );
+      await _fetchBookings();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+  }
+
+  Future<void> _showPaymentRequestDialog(BookingItem item) async {
+    final amountController = TextEditingController();
+    final step = _paymentRequestStepFor(item.status);
+    final isAmountRequired = item.status != 'VISA_APPROVED';
+    String? validationError;
+
+    final request = await showDialog<_PaymentRequestInput>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Payment Request'),
+          content: TextField(
+            controller: amountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: isAmountRequired
+                  ? 'Request Amount'
+                  : 'Request Amount (Optional)',
+              prefixText: '৳ ',
+              errorText: validationError,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final rawAmount = amountController.text.trim().replaceAll(
+                      ',',
+                      '',
+                    );
+                final amount = rawAmount.isEmpty
+                    ? null
+                    : num.tryParse(rawAmount);
+                if (isAmountRequired && (amount == null || amount <= 0)) {
+                  setDialogState(
+                    () => validationError = 'Enter a valid request amount.',
+                  );
+                  return;
+                }
+                if (amount != null && amount <= 0) {
+                  setDialogState(
+                    () => validationError = 'Enter a valid request amount.',
+                  );
+                  return;
+                }
+                Navigator.pop(
+                  dialogContext,
+                  _PaymentRequestInput(requestAmount: amount),
+                );
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+    amountController.dispose();
+
+    if (request == null) return;
+
+    try {
+      await _bookingService.submitAgencyPayoutRequest(
+        bookingId: item.id,
+        step: step,
+        requestAmount: request.requestAmount,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment Request submitted successfully.')),
+      );
+      await _fetchBookings();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to submit payment request. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  String _paymentRequestStepFor(String status) {
+    switch (status) {
+      case 'VISA_APPROVED':
+        return 'AFTER_VISA';
+      case 'TICKET_DONE':
+        return 'BEFORE_FLIGHT';
+      case 'A_RECEIVE_PP':
+      default:
+        return 'ADVANCE';
+    }
+  }
+
+  Future<void> _showUploadDocumentsDialog(BookingItem item) async {
+    var selectedFiles = <PlatformFile>[];
+    String? validationError;
+
+    final shouldUpload = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Upload Documents'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Accepted: PDF, JPG, JPEG, PNG, WEBP. Each file will be uploaded separately.',
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final result = await FilePicker.platform.pickFiles(
+                    allowMultiple: true,
+                    type: FileType.custom,
+                    allowedExtensions: const [
+                      'pdf',
+                      'jpg',
+                      'jpeg',
+                      'png',
+                      'webp',
+                    ],
+                    withData: true,
+                  );
+                  if (result == null) return;
+                  setDialogState(() {
+                    selectedFiles = result.files;
+                    validationError = null;
+                  });
+                },
+                icon: const Icon(Icons.attach_file_rounded),
+                label: const Text('Select Files'),
+              ),
+              if (selectedFiles.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ...selectedFiles.map(
+                  (file) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      file.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+              if (validationError != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  validationError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (selectedFiles.isEmpty) {
+                  setDialogState(
+                    () => validationError = 'Select at least one document.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Upload'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (shouldUpload != true) return;
+
+    try {
+      await Future.wait(
+        selectedFiles.map(
+          (file) => _bookingService.uploadBookingDocument(
+            bookingId: item.id,
+            fileName: file.name,
+            filePath: file.path,
+            fileBytes: file.bytes,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Documents uploaded successfully.')),
+      );
+      await _fetchBookings();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to upload documents. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showReminderDialog(BookingItem item) async {
+    final medicalController = TextEditingController(
+      text: _initialReminderDateText(item.medicalExpiryDate),
+    );
+    final policeController = TextEditingController(
+      text: _initialReminderDateText(item.policeClearanceExpiryDate),
+    );
+    String? validationError;
+
+    final reminder = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add Reminder'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ReminderDateField(
+                controller: medicalController,
+                label: 'Medical Expiry Date',
+                onPickDate: () async {
+                  final picked = await _pickReminderDate(dialogContext);
+                  if (picked == null) return;
+                  setDialogState(() {
+                    medicalController.text = _formatApiDate(picked);
+                    validationError = null;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              _ReminderDateField(
+                controller: policeController,
+                label: 'Police Clearance Expiry Date',
+                onPickDate: () async {
+                  final picked = await _pickReminderDate(dialogContext);
+                  if (picked == null) return;
+                  setDialogState(() {
+                    policeController.text = _formatApiDate(picked);
+                    validationError = null;
+                  });
+                },
+              ),
+              if (validationError != null) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    validationError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final medicalDate = medicalController.text.trim();
+                final policeDate = policeController.text.trim();
+                if (medicalDate.isEmpty && policeDate.isEmpty) {
+                  setDialogState(
+                    () => validationError = 'Add at least one expiry date.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, {
+                  if (medicalDate.isNotEmpty)
+                    'medical_expiry_date': medicalDate,
+                  if (policeDate.isNotEmpty)
+                    'police_clearance_expiry_date': policeDate,
+                });
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    medicalController.dispose();
+    policeController.dispose();
+
+    if (reminder == null) return;
+
+    try {
+      await _bookingService.updateBookingReminders(
+        bookingId: item.id,
+        medicalExpiryDate: reminder['medical_expiry_date'],
+        policeClearanceExpiryDate: reminder['police_clearance_expiry_date'],
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reminder updated successfully.')),
+      );
+      await _fetchBookings();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update reminder.')),
+      );
+    }
+  }
+
+  Future<void> _showVisaReminderDialog(BookingItem item) async {
+    final visaController = TextEditingController(
+      text: _initialReminderDateText(item.visaExpiryDate),
+    );
+    String? validationError;
+
+    final visaDate = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Visa Reminder'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ReminderDateField(
+                controller: visaController,
+                label: 'Visa Expiry Date',
+                onPickDate: () async {
+                  final picked = await _pickReminderDate(dialogContext);
+                  if (picked == null) return;
+                  setDialogState(() {
+                    visaController.text = _formatApiDate(picked);
+                    validationError = null;
+                  });
+                },
+              ),
+              if (validationError != null) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    validationError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = visaController.text.trim();
+                if (value.isEmpty) {
+                  setDialogState(
+                    () => validationError = 'Add a visa expiry date.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, value);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    visaController.dispose();
+
+    if (visaDate == null) return;
+
+    try {
+      await _bookingService.updateBookingReminders(
+        bookingId: item.id,
+        visaExpiryDate: visaDate,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Visa reminder updated successfully.')),
+      );
+      await _fetchBookings();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update visa reminder.')),
+      );
+    }
+  }
+
+  Future<DateTime?> _pickReminderDate(BuildContext dialogContext) {
+    final now = DateTime.now();
+    return showDatePicker(
+      context: dialogContext,
+      initialDate: now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 10, 12, 31),
+    );
+  }
+
+  String _initialReminderDateText(String? value) {
+    if (value == null || value.isEmpty) return '';
+    final parsed = DateTime.tryParse(value);
+    return parsed == null ? value : _formatApiDate(parsed);
   }
 
   BookingItem _mapDtoToBookingItem(ReceiveBookingItemDto item) {
@@ -467,7 +993,11 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     rows: _visibleBookings.map((item) {
       final style = _styleFor(item.statusLabel);
       return DataRow(
-        onLongPress: () => _openActionsSheet(context, item),
+        onLongPress: () => _openActionsSheet(
+          context,
+          item,
+          onActionSelected: _handleBookingAction,
+        ),
         cells: [
           DataCell(Text(item.workPermitId)),
           DataCell(Text(item.id.toString())),
@@ -567,7 +1097,11 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
           showPoliceClear: _selectedStatus == 'UNDER_PROCESSING',
           showVisa: _selectedStatus == 'VISA_APPROVED',
           style: _styleFor(item.statusLabel),
-          onMoreTap: () => _openActionsSheet(context, item),
+          onMoreTap: () => _openActionsSheet(
+            context,
+            item,
+            onActionSelected: _handleBookingAction,
+          ),
         );
       }),
     ],
@@ -706,6 +1240,41 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+class _PaymentRequestInput {
+  const _PaymentRequestInput({this.requestAmount});
+
+  final num? requestAmount;
+}
+
+class _ReminderDateField extends StatelessWidget {
+  const _ReminderDateField({
+    required this.controller,
+    required this.label,
+    required this.onPickDate,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final VoidCallback onPickDate;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: 'YYYY-MM-DD',
+        suffixIcon: IconButton(
+          onPressed: onPickDate,
+          icon: const Icon(Icons.calendar_today_rounded),
+        ),
+      ),
+      onTap: onPickDate,
+    );
+  }
+}
+
 class BookingItem {
   const BookingItem({
     required this.workPermitId,
@@ -810,15 +1379,13 @@ List<String> _actionsFor(BookingItem row) {
     if (action == 'Sent to Processing' && row.status == 'A_RECEIVE_PP') {
       if (row.paymentStepCount == 3 && !row.hasAdvancePayout) return false;
     }
-    if (action == 'BMET Done' &&
-        row.status == 'VISA_APPROVED' &&
-        !row.hasAfterVisaPayout)
-      return false;
     if (action == 'Payment Request') {
       if (row.status == 'A_RECEIVE_PP' &&
           (row.paymentStepCount != 3 || row.hasAdvancePayout))
         return false;
-      if (row.status == 'VISA_APPROVED' && row.hasAfterVisaPayout) return false;
+      if (row.status == 'VISA_APPROVED' &&
+          (row.paymentStepCount != 3 || row.hasAfterVisaPayout))
+        return false;
       if (row.status == 'TICKET_DONE' && row.hasBeforeFlightPayout)
         return false;
     }
@@ -830,7 +1397,11 @@ List<String> _actionsFor(BookingItem row) {
   }).toList();
 }
 
-void _openActionsSheet(BuildContext context, BookingItem row) {
+void _openActionsSheet(
+  BuildContext context,
+  BookingItem row, {
+  Future<void> Function(BookingItem row, String action)? onActionSelected,
+}) {
   final actions = _actionsFor(row);
   showModalBottomSheet<void>(
     context: context,
@@ -857,7 +1428,10 @@ void _openActionsSheet(BuildContext context, BookingItem row) {
                       (action) => OutlinedButton(
                         onPressed: row.isReturn
                             ? null
-                            : () => Navigator.pop(context),
+                            : () async {
+                                Navigator.pop(context);
+                                await onActionSelected?.call(row, action);
+                              },
                         child: Text(action),
                       ),
                     )

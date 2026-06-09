@@ -171,5 +171,13 @@ final GoRouter appRouter = GoRouter(
         AppScaffold(dashboardPath: s.uri.path, tabIndex: 4),
       ),
     ),
+    GoRoute(
+      path: '/dashboard/:a/:b/:c/:d/:e',
+      pageBuilder: (c, s) => _slideTransition(
+        c,
+        s,
+        AppScaffold(dashboardPath: s.uri.path, tabIndex: 4),
+      ),
+    ),
   ],
 );

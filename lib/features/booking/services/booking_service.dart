@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../../common/services/api_client.dart';
 
@@ -99,6 +102,70 @@ class BookingService {
     await _apiClient.patch(
       '/booking/wp/status/$bookingId/set/',
       data: {'status': status},
+    );
+  }
+
+  Future<void> submitAgencyPayoutRequest({
+    required int bookingId,
+    required String step,
+    num? requestAmount,
+  }) async {
+    await _apiClient.post(
+      '/payment/agency/payout-request/',
+      data: {
+        'booking': bookingId,
+        'step': step,
+        if (requestAmount != null) 'requestAmount': requestAmount,
+      },
+    );
+  }
+
+  Future<void> updateBookingReminders({
+    required int bookingId,
+    String? medicalExpiryDate,
+    String? policeClearanceExpiryDate,
+    String? visaExpiryDate,
+  }) async {
+    final payload = <String, dynamic>{};
+    if (medicalExpiryDate != null && medicalExpiryDate.isNotEmpty) {
+      payload['medical_expiry_date'] = medicalExpiryDate;
+    }
+    if (policeClearanceExpiryDate != null &&
+        policeClearanceExpiryDate.isNotEmpty) {
+      payload['police_clearance_expiry_date'] = policeClearanceExpiryDate;
+    }
+    if (visaExpiryDate != null && visaExpiryDate.isNotEmpty) {
+      payload['visa_expiry_date'] = visaExpiryDate;
+    }
+    if (payload.isEmpty) {
+      throw ArgumentError('At least one reminder date is required.');
+    }
+
+    await _apiClient.patch(
+      '/booking/wp/reminders/$bookingId/update/',
+      data: payload,
+    );
+  }
+
+  Future<void> uploadBookingDocument({
+    required int bookingId,
+    required String fileName,
+    String? filePath,
+    Uint8List? fileBytes,
+  }) async {
+    if (filePath == null && fileBytes == null) {
+      throw ArgumentError('A document path or bytes value is required.');
+    }
+
+    final extension = fileName.split('.').last.toLowerCase();
+    final fieldName = extension == 'pdf' ? 'document' : 'image';
+    final multipartFile = filePath != null
+        ? await MultipartFile.fromFile(filePath, filename: fileName)
+        : MultipartFile.fromBytes(fileBytes!, filename: fileName);
+
+    await _apiClient.post(
+      '/booking/wp/$bookingId/documents/',
+      data: FormData.fromMap({fieldName: multipartFile}),
     );
   }
 
@@ -396,7 +463,14 @@ class ReceiveBookingItemDto {
 
 int _toInt(dynamic value, {int fallback = 0}) {
   if (value is int) return value;
-  return int.tryParse(value?.toString() ?? '') ?? fallback;
+  if (value is num) return value.toInt();
+
+  final normalized = value?.toString().trim().replaceAll(',', '') ?? '';
+  if (normalized.isEmpty) return fallback;
+
+  return int.tryParse(normalized) ??
+      double.tryParse(normalized)?.toInt() ??
+      fallback;
 }
 
 String _pickString(
