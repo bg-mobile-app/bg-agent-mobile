@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../common/services/api_client.dart';
 import '../common/widgets/layout/app_scaffold.dart';
 import '../features/auth/agent_sign_up_thank_you_screen.dart';
 import '../features/auth/recruiting_sign_up_screen.dart';
@@ -43,7 +44,27 @@ CustomTransitionPage _slideTransition(
   );
 }
 
+Future<String?> _authRedirect(BuildContext context, GoRouterState state) async {
+  final location = state.uri.path;
+  final isAuthRoute = location == AppRoutes.splash ||
+      location == AppRoutes.login ||
+      location == AppRoutes.getStarted ||
+      location == AppRoutes.signUpCustomer ||
+      location == AppRoutes.agentSignUp ||
+      location == AppRoutes.agencySignUp ||
+      location == AppRoutes.recruitingSignUp ||
+      location == AppRoutes.agentSignUpThankYou ||
+      location == AppRoutes.otpVerify;
+
+  if (isAuthRoute) return null;
+
+  final cookies = await ApiClient().tokenStorage.getCookies();
+  final isLoggedIn = cookies != null && cookies.isNotEmpty;
+  return isLoggedIn ? null : AppRoutes.login;
+}
+
 final GoRouter appRouter = GoRouter(
+  redirect: _authRedirect,
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splash,
   routes: [

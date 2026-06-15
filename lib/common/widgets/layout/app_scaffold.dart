@@ -30,7 +30,6 @@ import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/home/receive_payment_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
-import '../../../features/home/unauthenticated_profile_screen.dart';
 import '../../../features/home/user_activity_screen.dart';
 import '../../../features/reminder/medical_expiry_screen.dart';
 import '../../../features/search/work_permit_list_screen.dart';
@@ -115,7 +114,12 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
 
     if (!_isLoggedIn! &&
         (widget.route == '/profile' || widget.route.startsWith('/dashboard'))) {
-      return const UnauthenticatedProfileScreen();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.go('/login');
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     switch (widget.route) {

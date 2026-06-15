@@ -32,14 +32,14 @@ class _SplashScreenState extends State<SplashScreen> {
         }
 
         await ApiClient().tokenStorage.clearCookies();
-        if (mounted) context.go(AppRoutes.getStarted);
+        if (mounted) context.go(AppRoutes.login);
       } else {
         // Not authenticated
-        if (mounted) context.go(AppRoutes.getStarted);
+        if (mounted) context.go(AppRoutes.login);
       }
     } catch (e) {
       // Error or not authenticated
-      if (mounted) context.go(AppRoutes.getStarted);
+      if (mounted) context.go(AppRoutes.login);
     }
   }
 

@@ -6,13 +6,17 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:fui_kit/fui_kit.dart';
 
 import 'models/home_models.dart';
+import 'models/dashboard_models.dart';
+import 'services/dashboard_service.dart';
 import 'services/home_service.dart';
 import 'widgets/home_common_widgets.dart';
 import 'widgets/home_responsive.dart';
 import 'widgets/work_permit_card.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
+import '../../common/theme/app_text_styles.dart';
 import '../../common/services/api_client.dart';
+import '../../common/services/expiry_reminder_dialog_service.dart';
 import '../../common/services/profile_service.dart';
 import '../../routes/app_routes.dart';
 import '../search/work_permit_details_screen.dart';
@@ -46,8 +50,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _profileImageUrl;
 
   final HomeService _homeService = HomeService();
+  final DashboardService _dashboardService = DashboardService();
   final ProfileService _profileService = ProfileService();
+  final ExpiryReminderDialogService _expiryReminderDialogService =
+      ExpiryReminderDialogService();
   bool _isLoading = true;
+  bool _isCheckingExpiryReminderDialog = false;
 
   List<CountryItem> _countries = [];
   List<WorkTypeItem> _workTypes = [];
@@ -75,11 +83,94 @@ class _HomeScreenState extends State<HomeScreen> {
     final cookies = await ApiClient().tokenStorage.getCookies();
     if (mounted && cookies != null && cookies.isNotEmpty) {
       setState(() => _isLoggedIn = true);
+      unawaited(_scheduleExpiryReminderDialog());
       final profile = await _profileService.getAgencyProfile();
       if (mounted) {
         setState(() => _profileImageUrl = profile?.image);
       }
     }
+  }
+
+  Future<void> _scheduleExpiryReminderDialog() async {
+    if (_isCheckingExpiryReminderDialog) return;
+    _isCheckingExpiryReminderDialog = true;
+
+    final hasShown = await _expiryReminderDialogService
+        .hasShownForCurrentLogin();
+    if (!mounted || hasShown) {
+      _isCheckingExpiryReminderDialog = false;
+      return;
+    }
+
+    AgencyDashboardStats stats;
+    try {
+      stats = await _dashboardService.getAgencyDashboard('This Month');
+    } catch (_) {
+      _isCheckingExpiryReminderDialog = false;
+      return;
+    }
+    if (!mounted) {
+      _isCheckingExpiryReminderDialog = false;
+      return;
+    }
+
+    await _expiryReminderDialogService.markShownForCurrentLogin();
+    if (!mounted) {
+      _isCheckingExpiryReminderDialog = false;
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isCheckingExpiryReminderDialog = false;
+      if (!mounted) return;
+      _showExpiryReminderDialog(stats.expiryReminders);
+    });
+  }
+
+  Future<void> _showExpiryReminderDialog(ExpiryReminderStats stats) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Row(
+          children: [
+            const Icon(Icons.alarm_outlined, color: AppPalette.brandBlue),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Expiry Reminders',
+                style: AppTextStyles.subtitle1.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ExpiryReminderDialogCard(
+                title: 'Expiring in 3 Days',
+                group: stats.days3,
+              ),
+              const SizedBox(height: 12),
+              _ExpiryReminderDialogCard(
+                title: 'Expiring in 10 Days',
+                group: stats.days10,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadData() async {
@@ -1313,6 +1404,83 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+  }
+}
+
+class _ExpiryReminderDialogCard extends StatelessWidget {
+  const _ExpiryReminderDialogCard({required this.title, required this.group});
+
+  final String title;
+  final ExpiryReminderGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppPalette.borderSoftBlue),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppPalette.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              _ReminderPill(label: 'Total', value: group.total),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ReminderPill(label: 'Medical', value: group.medical),
+              _ReminderPill(label: 'Police', value: group.police),
+              _ReminderPill(label: 'Visa', value: group.visa),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReminderPill extends StatelessWidget {
+  const _ReminderPill({required this.label, required this.value});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppPalette.borderSoftBlue),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          color: AppPalette.brandBlue,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }
