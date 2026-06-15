@@ -536,7 +536,9 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context, index) {
               final item = navLinkData[index];
               return InkWell(
-                onTap: item.href.isEmpty ? _showComingSoon : _showComingSoon,
+                onTap: item.href.isEmpty
+                    ? _showComingSoon
+                    : () => context.push(item.href),
                 borderRadius: BorderRadius.circular(
                   responsive.size(12, min: 10, max: 12),
                 ),
