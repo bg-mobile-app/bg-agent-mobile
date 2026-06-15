@@ -15,6 +15,27 @@ void main() {
       );
     });
 
+    test('allows agency staff to sign in and reads permissions', () {
+      final staffPayload = {
+        'status': 'VERIFIED',
+        'role': 'AGENCY_STAFF',
+        'email': 'staff.member@example.com',
+        'userCode': 'AS-12345',
+        'phone': '123-456-7890',
+        'image': '/path/to/profile/image.png',
+        'permissions': ['BOOKING_LIST', 'BOOKING_DETAILS', 'MY_PAYMENT'],
+      };
+
+      expect(AgencyAccess.isAgencyAccount(staffPayload), isTrue);
+      expect(AgencyAccess.isAgencyStaffAccount(staffPayload), isTrue);
+      expect(AgencyAccess.hasPermission(staffPayload, 'BOOKING_LIST'), isTrue);
+      expect(
+        AgencyAccess.hasPermission(staffPayload, 'booking-details'),
+        isTrue,
+      );
+      expect(AgencyAccess.hasPermission(staffPayload, 'MANAGE_USER'), isFalse);
+    });
+
     test('blocks customer and agent roles', () {
       expect(AgencyAccess.isAgencyAccount({'role': 'CUSTOMER'}), isFalse);
       expect(AgencyAccess.isAgencyAccount({'role': 'AGENT'}), isFalse);

@@ -62,12 +62,23 @@ class SharedPreferencesTokenStorage implements TokenStorage {
   Future<String?> getApiKey() async => _apiKey;
 }
 
+class _ResponseCacheEntry {
+  _ResponseCacheEntry({required this.response, required this.expiresAt});
+
+  final Response response;
+  final DateTime expiresAt;
+
+  bool get isFresh => DateTime.now().isBefore(expiresAt);
+}
+
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   late Dio _dio;
   late TokenStorage tokenStorage;
   final String baseUrl =
       'https://demoapi.bideshgami.com/api/r'; // Replace with your base URL
+  final Map<String, _ResponseCacheEntry> _responseCache = {};
+  final Duration defaultCacheDuration = const Duration(minutes: 2);
 
   factory ApiClient() {
     return _instance;
@@ -294,22 +305,69 @@ class ApiClient {
 
     final mergedCookieStr = _serializeCookies(cookiesMap);
     await tokenStorage.saveCookies(mergedCookieStr);
+    clearResponseCache();
     debugPrint("Cookie jar updated persistent storage: $mergedCookieStr");
   }
 
   Dio get dio => _dio;
 
+  void clearResponseCache() {
+    _responseCache.clear();
+  }
+
+  Future<String> _cacheKey(
+    String path,
+    Map<String, dynamic>? queryParameters,
+  ) async {
+    final cookies = await tokenStorage.getCookies() ?? '';
+    final buffer = StringBuffer('${cookies.hashCode}:$path');
+    if (queryParameters != null && queryParameters.isNotEmpty) {
+      final keys = queryParameters.keys.map((key) => key.toString()).toList()
+        ..sort();
+      final encodedQuery = keys
+          .map((key) {
+            final value = queryParameters[key];
+            return '${Uri.encodeQueryComponent(key)}='
+                '${Uri.encodeQueryComponent(value?.toString() ?? '')}';
+          })
+          .join('&');
+      buffer.write('?');
+      buffer.write(encodedQuery);
+    }
+    return buffer.toString();
+  }
+
   Future<Response> get(
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
+    bool useCache = true,
+    bool forceRefresh = false,
+    Duration? cacheDuration,
   }) async {
+    final key = await _cacheKey(path, queryParameters);
+    if (useCache && !forceRefresh) {
+      final cached = _responseCache[key];
+      if (cached != null && cached.isFresh) {
+        return cached.response;
+      }
+    }
+
     try {
-      return await _dio.get(
+      final response = await _dio.get(
         path,
         queryParameters: queryParameters,
         options: options,
       );
+      if (useCache &&
+          response.statusCode != null &&
+          response.statusCode! < 400) {
+        _responseCache[key] = _ResponseCacheEntry(
+          response: response,
+          expiresAt: DateTime.now().add(cacheDuration ?? defaultCacheDuration),
+        );
+      }
+      return response;
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -322,6 +380,7 @@ class ApiClient {
     Options? options,
   }) async {
     try {
+      clearResponseCache();
       return await _dio.post(
         path,
         data: data,
@@ -340,6 +399,7 @@ class ApiClient {
     Options? options,
   }) async {
     try {
+      clearResponseCache();
       return await _dio.put(
         path,
         data: data,
@@ -358,6 +418,7 @@ class ApiClient {
     Options? options,
   }) async {
     try {
+      clearResponseCache();
       return await _dio.patch(
         path,
         data: data,
@@ -376,6 +437,7 @@ class ApiClient {
     Options? options,
   }) async {
     try {
+      clearResponseCache();
       return await _dio.delete(
         path,
         data: data,

@@ -1,23 +1,17 @@
-import 'package:shared_preferences/shared_preferences.dart';
-
-/// Tracks whether the expiry reminder dialog has already been shown for the
-/// current authenticated login.
+/// Tracks whether the expiry reminder dialog has already been shown during the
+/// current app start.
 class ExpiryReminderDialogService {
-  static const String _shownForCurrentLoginKey =
-      'expiry_reminder_dialog_shown_for_current_login';
+  static bool _shownForCurrentAppStart = false;
 
   Future<void> markPendingForLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_shownForCurrentLoginKey, false);
+    _shownForCurrentAppStart = false;
   }
 
   Future<bool> hasShownForCurrentLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_shownForCurrentLoginKey) ?? false;
+    return _shownForCurrentAppStart;
   }
 
   Future<void> markShownForCurrentLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_shownForCurrentLoginKey, true);
+    _shownForCurrentAppStart = true;
   }
 }

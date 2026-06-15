@@ -39,7 +39,16 @@ class AuthService {
   }
 
   Future<void> getSingOut() async {
-    await _apiClient.get('/auth/logout/');
+    try {
+      await _apiClient.get(
+        '/auth/logout/',
+        useCache: false,
+        forceRefresh: true,
+      );
+    } finally {
+      await _apiClient.tokenStorage.clearCookies();
+      _apiClient.clearResponseCache();
+    }
   }
 
   Future<Response> getCurrentUser() async {

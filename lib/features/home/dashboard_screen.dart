@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -9,7 +7,6 @@ import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_text_styles.dart';
 import '../../common/services/api_client.dart';
 import '../../common/services/auth_service.dart';
-import '../../common/services/expiry_reminder_dialog_service.dart';
 import '../../common/services/profile_service.dart';
 import '../../routes/app_routes.dart';
 import 'models/agency_profile.dart';
@@ -84,12 +81,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final DashboardService _dashboardService = DashboardService();
   late Future<AgencyDashboardStats> _dashboardFuture;
   String _selectedPeriod = 'This Month';
-  final ExpiryReminderDialogService _expiryReminderDialogService =
-      ExpiryReminderDialogService();
-  bool _isCheckingExpiryReminderDialog = false;
-
-  bool get _shouldShowExpiryReminderDialog =>
-      widget.currentHref == '/dashboard/agency';
 
   @override
   void initState() {
@@ -102,31 +93,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _selectedPeriod = period;
       _dashboardFuture = _dashboardService.getAgencyDashboard(_selectedPeriod);
-    });
-  }
-
-  Future<void> _scheduleExpiryReminderDialog(ExpiryReminderStats stats) async {
-    if (_isCheckingExpiryReminderDialog) return;
-    _isCheckingExpiryReminderDialog = true;
-
-    final cookies = await ApiClient().tokenStorage.getCookies();
-    final isSignedIn = cookies != null && cookies.trim().isNotEmpty;
-    final hasShown = await _expiryReminderDialogService
-        .hasShownForCurrentLogin();
-
-    if (!mounted) return;
-    if (!isSignedIn || hasShown) {
-      _isCheckingExpiryReminderDialog = false;
-      return;
-    }
-
-    await _expiryReminderDialogService.markShownForCurrentLogin();
-    if (!mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _isCheckingExpiryReminderDialog = false;
-      if (!mounted) return;
-      _showExpiryReminderDialog(stats);
     });
   }
 
@@ -155,14 +121,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     snapshot.data ??
                     (isLoading ? _mockStats : AgencyDashboardStats.empty());
                 final hasError = snapshot.hasError;
-                if (_shouldShowExpiryReminderDialog && snapshot.hasData) {
-                  unawaited(
-                    _scheduleExpiryReminderDialog(
-                      snapshot.data!.expiryReminders,
-                    ),
-                  );
-                }
-
                 return SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
@@ -249,52 +207,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Future<void> _showExpiryReminderDialog(ExpiryReminderStats stats) {
-    return showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            const Icon(Icons.alarm_outlined, color: AppPalette.brandBlue),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Expiry Reminders',
-                style: AppTextStyles.subtitle1.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ExpiryReminderDialogCard(
-                title: 'Expiring in 3 Days',
-                group: stats.days3,
-              ),
-              const SizedBox(height: 12),
-              _ExpiryReminderDialogCard(
-                title: 'Expiring in 10 Days',
-                group: stats.days10,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -707,56 +619,6 @@ class _ExpiryReminderCard extends StatelessWidget {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: [
-              _ReminderPill(label: 'Medical', value: group.medical),
-              _ReminderPill(label: 'Police', value: group.police),
-              _ReminderPill(label: 'Visa', value: group.visa),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExpiryReminderDialogCard extends StatelessWidget {
-  const _ExpiryReminderDialogCard({required this.title, required this.group});
-
-  final String title;
-  final ExpiryReminderGroup group;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppPalette.borderSoftBlue),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppPalette.textPrimary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              _ReminderPill(label: 'Total', value: group.total),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
             children: [
               _ReminderPill(label: 'Medical', value: group.medical),
               _ReminderPill(label: 'Police', value: group.police),
