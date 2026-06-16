@@ -79,175 +79,180 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           ? '/dashboard/user/manage-user'
           : '/dashboard/user/create-user',
       child: Container(
-        color: const Color(0xFFD5E1F2),
+        color: const Color(0xFFF8FAFC),
         child: SafeArea(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _breadcrumb(),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
+          child: DefaultTextStyle(
+            style: const TextStyle(color: AppPalette.textPrimary),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _breadcrumb(),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _isEditMode
+                                  ? 'Update Staff Account'
+                                  : 'Onboard New Talent',
+                              style: AppTextStyles.headline2,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
                             _isEditMode
-                                ? 'Update Staff Account'
-                                : 'Onboard New Talent',
-                            style: AppTextStyles.headline2,
+                                ? 'Update the existing user details below.'
+                                : 'Fill in the details below to grant system access\nto a new team member.',
+                            textAlign: TextAlign.left,
+                            style: AppTextStyles.caption,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _isEditMode
-                              ? 'Update the existing user details below.'
-                              : 'Fill in the details below to grant system access\nto a new team member.',
-                          textAlign: TextAlign.left,
-                          style: AppTextStyles.caption,
-                        ),
-                        const SizedBox(height: 18),
-                        _formCard(
-                          icon: Icons.badge_outlined,
-                          title: 'Basic Information',
-                          child: Column(
-                            children: [
-                              _input(
-                                'Full Name',
-                                'John Doe',
-                                controller: _fullNameController,
-                                requiredField: true,
-                              ),
-                              _input(
-                                'Contact Number',
-                                '+1 234 567 8900',
-                                controller: _contactNoController,
-                                requiredField: true,
-                              ),
-                              Row(
-                                children: [
-                                  Expanded(child: _genderInput()),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: _input(
-                                      'Designation',
-                                      'Sales Executive',
-                                      controller: _designationController,
-                                      requiredField: true,
+                          const SizedBox(height: 18),
+                          _formCard(
+                            icon: Icons.badge_outlined,
+                            title: 'Basic Information',
+                            child: Column(
+                              children: [
+                                _input(
+                                  'Full Name',
+                                  'John Doe',
+                                  controller: _fullNameController,
+                                  requiredField: true,
+                                ),
+                                _input(
+                                  'Contact Number',
+                                  '+1 234 567 8900',
+                                  controller: _contactNoController,
+                                  requiredField: true,
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(child: _genderInput()),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: _input(
+                                        'Designation',
+                                        'Sales Executive',
+                                        controller: _designationController,
+                                        requiredField: true,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              _permissionsInput(),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _formCard(
-                          icon: Icons.lock_outline,
-                          title: 'Login Information',
-                          child: Column(
-                            children: [
-                              _input(
-                                'Username (Optional)',
-                                'john_doe',
-                                controller: _usernameController,
-                              ),
-                              _input(
-                                'Email Address',
-                                'john@example.com',
-                                controller: _emailController,
-                                requiredField: true,
-                                keyboardType: TextInputType.emailAddress,
-                                validator: _validateEmail,
-                              ),
-                              _input(
-                                'Password',
-                                'Demo@123',
-                                controller: _passwordController,
-                                eye: true,
-                              ),
-                              _input(
-                                'Confirm Password',
-                                'Demo@123',
-                                controller: _confirmPasswordController,
-                                eye: true,
-                                validator: _validateConfirmPassword,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: (_isSubmitting || _isLoadingUser)
-                                ? null
-                                : _submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0C4ACD),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                                  ],
+                                ),
+                                _permissionsInput(),
+                              ],
                             ),
-                            child: (_isSubmitting || _isLoadingUser)
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    _isEditMode
-                                        ? 'Update Staff Account'
-                                        : 'Create Staff Account',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: OutlinedButton(
-                            onPressed: (_isSubmitting || _isLoadingUser)
-                                ? null
-                                : _resetForm,
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF9EB7E3)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                          const SizedBox(height: 14),
+                          _formCard(
+                            icon: Icons.lock_outline,
+                            title: 'Login Information',
+                            child: Column(
+                              children: [
+                                _input(
+                                  'Username (Optional)',
+                                  'john_doe',
+                                  controller: _usernameController,
+                                ),
+                                _input(
+                                  'Email Address',
+                                  'john@example.com',
+                                  controller: _emailController,
+                                  requiredField: true,
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: _validateEmail,
+                                ),
+                                _input(
+                                  'Password',
+                                  'Demo@123',
+                                  controller: _passwordController,
+                                  eye: true,
+                                ),
+                                _input(
+                                  'Confirm Password',
+                                  'Demo@123',
+                                  controller: _confirmPasswordController,
+                                  eye: true,
+                                  validator: _validateConfirmPassword,
+                                ),
+                              ],
                             ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0C4ACD),
+                          ),
+                          const SizedBox(height: 18),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: (_isSubmitting || _isLoadingUser)
+                                  ? null
+                                  : _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0C4ACD),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: (_isSubmitting || _isLoadingUser)
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      _isEditMode
+                                          ? 'Update Staff Account'
+                                          : 'Create Staff Account',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: OutlinedButton(
+                              onPressed: (_isSubmitting || _isLoadingUser)
+                                  ? null
+                                  : _resetForm,
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: Color(0xFF9EB7E3),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0C4ACD),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
+                ],
+              ),
+            ), // Form
+          ), // DefaultTextStyle
+        ), // SafeArea
       ),
     );
   }
@@ -384,7 +389,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
     width: double.infinity,
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: const Color(0xFFEFF4FF),
+      color: const Color(0xFFF8FAFC),
       borderRadius: BorderRadius.circular(28),
       border: Border.all(color: const Color(0xFFDCE2F7)),
     ),
@@ -413,20 +418,24 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
         BreadCrumbItem(
           content: Text(
             'Dashboard',
-            style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted),
+            style: AppTextStyles.caption.copyWith(
+              color: AppPalette.textPrimary,
+            ),
           ),
         ),
         BreadCrumbItem(
           content: Text(
             'Manage User',
-            style: AppTextStyles.caption.copyWith(color: AppPalette.textMuted),
+            style: AppTextStyles.caption.copyWith(
+              color: AppPalette.textPrimary,
+            ),
           ),
         ),
         BreadCrumbItem(
           content: Text(
             _isEditMode ? 'Update User' : 'Create User',
             style: AppTextStyles.caption.copyWith(
-              color: AppPalette.textStrongBlue,
+              color: AppPalette.textPrimary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -450,7 +459,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF3E4A5F),
+            color: AppPalette.textPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -466,7 +475,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
               isExpanded: true,
               value: _selectedGender,
               style: AppTextStyles.body2.copyWith(
-                color: const Color(0xFF667085),
+                color: AppPalette.textPrimary,
               ),
               icon: const Icon(Icons.expand_more, color: Color(0xFF6B7280)),
               items: _genders
@@ -498,7 +507,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF3E4A5F),
+            color: AppPalette.textPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -516,7 +525,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                     ? 'Select permissions...'
                     : '${_selectedPermissions.length} permission(s) selected',
                 style: AppTextStyles.body2.copyWith(
-                  color: const Color(0xFF667085),
+                  color: AppPalette.textPrimary,
                 ),
               ),
               childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -571,7 +580,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF3E4A5F),
+            color: AppPalette.textPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -665,7 +674,7 @@ class _PermissionChip extends StatelessWidget {
                 fontSize: 15,
                 color: selected
                     ? const Color(0xFF0C4ACD)
-                    : const Color(0xFF222938),
+                    : AppPalette.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
