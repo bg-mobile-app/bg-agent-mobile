@@ -61,6 +61,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       setState(() {
         _details = details;
         _similarPermits = similar;
+        _isBangla = details?.isBn ?? false;
         _isLoading = false;
       });
     }
@@ -441,6 +442,19 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
               fontWeight: FontWeight.w800,
             ),
           ),
+          if (displayDetails.description.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              displayDetails.description.trim(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _mutedText,
+                fontSize: isSmallPhone ? 12.0 : 13.0,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           Wrap(
             alignment: WrapAlignment.center,
