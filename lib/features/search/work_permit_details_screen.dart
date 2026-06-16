@@ -1661,8 +1661,8 @@ class _PriceTimelineStep extends StatelessWidget {
                 Text(
                   title.toUpperCase(),
                   style: TextStyle(
-                    color:
-                        (title.toLowerCase().contains('after visa') ||
+                    color: (title.toLowerCase().contains('advance') ||
+                            title.toLowerCase().contains('after visa') ||
                             title.toLowerCase().contains('before flight'))
                         ? Colors.white
                         : (active ? _brandBlue : _mutedText),

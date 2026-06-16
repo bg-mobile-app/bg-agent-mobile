@@ -19,6 +19,18 @@ class BideshgamiApp extends StatelessWidget {
         title: 'Bideshgami',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        builder: (context, child) {
+          return GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              final currentFocus = FocusScope.of(context);
+              if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+                currentFocus.unfocus();
+              }
+            },
+            child: child,
+          );
+        },
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

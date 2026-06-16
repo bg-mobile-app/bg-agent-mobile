@@ -32,6 +32,8 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
 
   bool _isSubmitting = false;
   bool _isLoadingUser = false;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   bool get _isEditMode => widget.userId != null && widget.userId!.isNotEmpty;
 
@@ -100,7 +102,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                             child: Text(
                               _isEditMode
                                   ? 'Update Staff Account'
-                                  : 'Onboard New Talent',
+                                  : 'Onboard New User',
                               style: AppTextStyles.headline2,
                             ),
                           ),
@@ -172,12 +174,26 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                                   'Demo@123',
                                   controller: _passwordController,
                                   eye: true,
+                                  isPasswordVisible: _isPasswordVisible,
+                                  onVisibilityToggle: () {
+                                    setState(
+                                      () => _isPasswordVisible =
+                                          !_isPasswordVisible,
+                                    );
+                                  },
                                 ),
                                 _input(
                                   'Confirm Password',
                                   'Demo@123',
                                   controller: _confirmPasswordController,
                                   eye: true,
+                                  isPasswordVisible: _isConfirmPasswordVisible,
+                                  onVisibilityToggle: () {
+                                    setState(
+                                      () => _isConfirmPasswordVisible =
+                                          !_isConfirmPasswordVisible,
+                                    );
+                                  },
                                   validator: _validateConfirmPassword,
                                 ),
                               ],
@@ -301,13 +317,32 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
       );
       if (mounted) Navigator.of(context).maybePop();
     } catch (e, st) {
-      debugPrint('CreateUserScreen submit error: $e\n$st');
-      _showMessage(
-        _isEditMode
-            ? 'Failed to update staff account: $e'
-            : 'Failed to create staff account: $e',
-        isError: true,
-      );
+      final errorMessage = e.toString();
+      final errorType = e.runtimeType.toString();
+
+      if (_isEditMode) {
+        debugPrint(
+          '[ERROR] Staff account update failed\n'
+          'Error Type: $errorType\n'
+          'Error Message: $errorMessage\n'
+          'Stack Trace:\n$st',
+        );
+        _showMessage(
+          'Failed to update staff account: $errorMessage',
+          isError: true,
+        );
+      } else {
+        debugPrint(
+          '[ERROR] User creation failed - Staff account not created\n'
+          'Error Type: $errorType\n'
+          'Error Message: $errorMessage\n'
+          'Stack Trace:\n$st',
+        );
+        _showMessage(
+          'Failed to create staff account: $errorMessage',
+          isError: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -570,6 +605,8 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
     bool requiredField = false,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
+    bool isPasswordVisible = false,
+    VoidCallback? onVisibilityToggle,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 14),
     child: Column(
@@ -587,7 +624,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          obscureText: eye,
+          obscureText: eye && !isPasswordVisible,
           validator:
               validator ??
               (requiredField
@@ -620,9 +657,14 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
               borderSide: const BorderSide(color: Colors.red),
             ),
             suffixIcon: eye
-                ? const Icon(
-                    Icons.visibility_outlined,
-                    color: Color(0xFF6B7280),
+                ? IconButton(
+                    onPressed: onVisibilityToggle,
+                    icon: Icon(
+                      isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: const Color(0xFF6B7280),
+                    ),
                   )
                 : null,
           ),

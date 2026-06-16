@@ -109,7 +109,7 @@ class ReceivedBookingCard extends StatelessWidget {
         Expanded(
           child: Text(
             '#$bookingId',
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.left,
             style: const TextStyle(
               color: AppPalette.textStrongBlue,
               fontWeight: FontWeight.w700,
@@ -117,35 +117,37 @@ class ReceivedBookingCard extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    style.badgeBg,
-                    style.badgeBg.withValues(alpha: 0.72),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(999),
+        const SizedBox(width: 12),
+        IntrinsicWidth(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  style.badgeBg,
+                  style.badgeBg.withValues(alpha: 0.72),
+                ],
               ),
-              child: Text(
-                statusText.toUpperCase(),
-                style: TextStyle(
-                  color: style.badgeText,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: .4,
-                ),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              statusText.toUpperCase(),
+              softWrap: false,
+              overflow: TextOverflow.fade,
+              style: TextStyle(
+                color: style.badgeText,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .4,
               ),
             ),
           ),
         ),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             postId,
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.right,
             style: const TextStyle(
               color: AppPalette.textMuted,
               fontWeight: FontWeight.w600,

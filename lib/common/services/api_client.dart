@@ -248,7 +248,13 @@ class ApiClient {
     final setCookieHeaders = response.headers['set-cookie'];
     if (setCookieHeaders != null && setCookieHeaders.isNotEmpty) {
       await _updateAndSaveCookies(setCookieHeaders);
+      return;
     }
+
+    debugPrint(
+      'saveCookiesFromResponse: no set-cookie headers found on response for '
+      '${response.requestOptions.path}. This may mean the backend is not returning cookie-based auth.',
+    );
   }
 
   Map<String, String> _parseCookieString(String cookieString) {

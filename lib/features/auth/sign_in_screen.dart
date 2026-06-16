@@ -85,7 +85,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
     try {
       final apiClient = ApiClient();
-      await apiClient.tokenStorage.clearCookies();
 
       final response = await apiClient.post(
         '/auth/login/',
@@ -108,6 +107,8 @@ class _SignInScreenState extends State<SignInScreen> {
         }
 
         await apiClient.saveCookiesFromResponse(response);
+        final savedCookies = await apiClient.tokenStorage.getCookies();
+        debugPrint('Login completed. Saved auth cookies: $savedCookies');
         await ExpiryReminderDialogService().markPendingForLogin();
         // Set system navigation color for logged-in users
         SystemChrome.setSystemUIOverlayStyle(
