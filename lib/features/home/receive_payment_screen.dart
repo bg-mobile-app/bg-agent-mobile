@@ -14,6 +14,7 @@ import 'services/payout_request_service.dart';
 
 const List<String> receivePaymentStatuses = [
   'PENDING',
+  'APPROVE',
   'APPROVED',
   'PAID',
   'CANCELLED',
@@ -244,26 +245,316 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
   Widget _card(PayoutRequestItem e) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppPalette.borderSoftBlue),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            '${e.postId} / #${e.bookingId}',
-            style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w700),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppPalette.borderSoftBlue),
+              boxShadow: AppPalette.cardShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.confirmation_number,
+                                  color: AppPalette.brandBlue, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Post & Booking ID'.toUpperCase(),
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppPalette.textMuted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${e.postId} - #${e.bookingId}',
+                            style: AppTextStyles.body1.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppPalette.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppPalette.brandBlue,
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: AppPalette.softShadow,
+                          ),
+                          child: Text(
+                            e.status.isNotEmpty ? e.status : 'PENDING',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          e.step.toUpperCase(),
+                          style: AppTextStyles.caption.copyWith(
+                              color: AppPalette.brandBlue,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+
+                // Main content
+                Column(
+                  children: [
+                    // Customer
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppPalette.borderSoftBlue,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.person, color: AppPalette.brandBlue),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Customer Name & Passport',
+                                  style: AppTextStyles.caption
+                                      .copyWith(color: AppPalette.textMuted)),
+                              const SizedBox(height: 4),
+                              Text('${e.customerName}',
+                                  style: AppTextStyles.body1
+                                      .copyWith(fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 2),
+                              Text('Passport: ${e.passportNo}',
+                                  style: AppTextStyles.body2),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Agency
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppPalette.borderSoftBlue,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.business_center, color: AppPalette.brandBlue),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Processing Agency',
+                                  style: AppTextStyles.caption
+                                      .copyWith(color: AppPalette.textMuted)),
+                              const SizedBox(height: 4),
+                              Text('${e.processingBy} (${e.rlNo})',
+                                  style: AppTextStyles.body1.copyWith(
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Reference
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppPalette.borderSoftBlue,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.handshake, color: AppPalette.brandBlue),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Reference By',
+                                  style: AppTextStyles.caption
+                                      .copyWith(color: AppPalette.textMuted)),
+                              const SizedBox(height: 4),
+                              Text('${e.referenceBy}',
+                                  style: AppTextStyles.body1.copyWith(
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                // Financial breakdown
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.pageBackground,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppPalette.borderSoftBlue.withOpacity(0.4)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Total Amount',
+                                    style: AppTextStyles.caption
+                                        .copyWith(color: AppPalette.textMuted)),
+                                const SizedBox(height: 6),
+                                Text('৳ ${e.totalAmount}',
+                                    style: AppTextStyles.body1
+                                        .copyWith(fontWeight: FontWeight.w800)),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text('Paid Amount',
+                                    style: AppTextStyles.caption
+                                        .copyWith(color: AppPalette.textMuted)),
+                                const SizedBox(height: 6),
+                                Text('৳ ${e.paidAmount}',
+                                    style: AppTextStyles.body1.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: AppPalette.brandBlue)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Current Request',
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppPalette.brandBlue,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.2)),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('৳ ${e.currentRequest}',
+                              style: AppTextStyles.headline2
+                                  .copyWith(color: AppPalette.brandBlue)),
+                          const Icon(Icons.trending_up, color: AppPalette.brandBlue),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Actions
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text('Approve'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppPalette.brandBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppPalette.borderNeutral),
+                        color: Colors.white,
+                      ),
+                      child: IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.more_vert),
+                        color: AppPalette.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Text('Customer: ${e.customerName} (${e.passportNo})'),
-          Text('Processing: ${e.processingBy} (${e.rlNo})'),
-          Text('Reference: ${e.referenceBy}'),
-          Text('Step & Status: ${e.step} / ${e.status}'),
-          Text('Total: ৳ ${e.totalAmount} | Paid: ৳ ${e.paidAmount}'),
-          Text('Current Request: ৳ ${e.currentRequest}'),
+
+          // Decorative accent circle
+          Positioned(
+            top: -24,
+            right: -24,
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: AppPalette.brandBlue.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(48),
+                // a subtle blur effect isn't available here without a backdrop filter,
+              ),
+            ),
+          ),
         ],
       ),
     );

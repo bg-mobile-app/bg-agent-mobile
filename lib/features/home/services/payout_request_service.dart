@@ -47,8 +47,17 @@ class PayoutRequestItem {
 
   factory PayoutRequestItem.fromJson(Map<String, dynamic> json) {
     int toInt(dynamic value) {
+      if (value is int) return value;
       if (value is num) return value.toInt();
-      return int.tryParse('${value ?? ''}') ?? 0;
+
+      final normalized = value?.toString().trim().replaceAll(',', '') ?? '';
+      if (normalized.isEmpty) return 0;
+      return int.tryParse(normalized) ?? double.tryParse(normalized)?.toInt() ?? 0;
+    }
+
+    String toStringValue(dynamic value) {
+      if (value == null) return '';
+      return value.toString().trim();
     }
 
     return PayoutRequestItem(
@@ -78,13 +87,29 @@ class PayoutRequestItem {
       rlNo: json['rlNo']?.toString() ?? json['rl_no']?.toString() ?? '-',
       step: json['step']?.toString() ?? '-',
       status: json['status']?.toString() ?? '-',
-      totalAmount: toInt(json['totalAmount'] ?? json['total_amount']),
-      paidAmount: toInt(json['paidAmount'] ?? json['paid_amount']),
-      currentRequest:
-          json['currentRequest']?.toString() ??
-          json['current_request']?.toString() ??
-          json['status']?.toString() ??
-          '-',
+      totalAmount: toInt(json['totalAmount'] ??
+          json['total_amount'] ??
+          json['agencyTotalCost'] ??
+          json['agency_total_cost'] ??
+          json['packagePrice'] ??
+          json['package_price'] ??
+          json['total']),
+      paidAmount: toInt(json['paidAmount'] ??
+          json['paid_amount'] ??
+          json['customerAmount'] ??
+          json['customer_amount'] ??
+          json['paid']),
+      currentRequest: toStringValue(json['currentRequest']).isNotEmpty
+          ? toStringValue(json['currentRequest'])
+          : toStringValue(json['current_request']).isNotEmpty
+              ? toStringValue(json['current_request'])
+              : toStringValue(json['currentAmount']).isNotEmpty
+                  ? toStringValue(json['currentAmount'])
+                  : toStringValue(json['current_amount']).isNotEmpty
+                      ? toStringValue(json['current_amount'])
+                      : toStringValue(json['status']).isNotEmpty
+                          ? toStringValue(json['status'])
+                          : '-',
     );
   }
 }

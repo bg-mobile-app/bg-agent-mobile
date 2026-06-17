@@ -113,11 +113,15 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-flutter_launcher_icons:
-  image_path: "assets/img/logo/bideshgamiAgency.png"
+flutter_icons:
   android: true
   ios: true
+  image_path: "assets/img/logo/bideshgamiAgency.png"
+  image_path_android: "assets/img/logo/bideshgamiAgency.png"
   remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/img/logo/bideshgamiAgency.png"
+  adaptive_icon_foreground_inset: 16
   web:
     generate: true
     image_path: "assets/img/logo/bideshgamiAgency.png"

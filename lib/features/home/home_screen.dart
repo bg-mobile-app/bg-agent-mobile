@@ -114,6 +114,12 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final expiry = stats.expiryReminders;
+    if (expiry.days3.total == 0 && expiry.days10.total == 0) {
+      _isCheckingExpiryReminderDialog = false;
+      return;
+    }
+
     await _expiryReminderDialogService.markShownForCurrentLogin();
     if (!mounted) {
       _isCheckingExpiryReminderDialog = false;
