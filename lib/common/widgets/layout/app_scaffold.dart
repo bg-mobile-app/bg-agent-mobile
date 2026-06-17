@@ -29,6 +29,7 @@ import '../../../features/home/my_ads_screen.dart';
 import '../../../features/home/notifications_screen.dart';
 import '../../../features/home/payments_screen.dart';
 import '../../../features/home/receive_payment_screen.dart';
+import '../../../features/home/refund_request_list_screen.dart';
 import '../../../features/home/terms_conditions_screen.dart';
 import '../../../features/home/user_activity_screen.dart';
 import '../../../features/reminder/medical_expiry_screen.dart';
@@ -275,10 +276,7 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
           title: 'Receive Payment',
         );
       case '/dashboard/refund-payment/request-list':
-        return const DashboardDummyScreen(
-          currentHref: '/dashboard/refund-payment/request-list',
-          title: 'Request List',
-        );
+        return const RefundRequestListScreen();
       case '/dashboard/refund-payment/manage-bill':
         return const DashboardDummyScreen(
           currentHref: '/dashboard/refund-payment/manage-bill',

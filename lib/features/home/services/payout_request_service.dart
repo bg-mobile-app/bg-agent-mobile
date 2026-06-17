@@ -6,12 +6,14 @@ class PayoutRequestPage {
     required this.next,
     required this.previous,
     required this.results,
+    required this.pageSize,
   });
 
   final int count;
   final String? next;
   final String? previous;
   final List<PayoutRequestItem> results;
+  final int pageSize;
 }
 
 class PayoutRequestItem {
@@ -119,6 +121,7 @@ class PayoutRequestService {
       count: int.tryParse('${data['count'] ?? 0}') ?? 0,
       next: data['next']?.toString(),
       previous: data['previous']?.toString(),
+      pageSize: int.tryParse('${data['pageSize'] ?? 20}') ?? 20,
       results: rawResults
           .whereType<Map>()
           .map((e) => PayoutRequestItem.fromJson(Map<String, dynamic>.from(e)))
