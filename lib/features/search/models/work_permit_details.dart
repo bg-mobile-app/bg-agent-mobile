@@ -346,12 +346,19 @@ class WorkPermitDetails {
   }
 
   static List<PaymentStepProps> _parsePaymentSteps(dynamic value) {
-    if (value == null) return [];
+    if (value == null) {
+      print('Payment steps is null');
+      return [];
+    }
     if (value is List) {
-      return value
+      print('Payment steps count: ${value.length}');
+      final parsed = value
           .map((e) => PaymentStepProps.fromJson(e as Map<String, dynamic>))
           .toList();
+      print('Parsed payment steps: $parsed');
+      return parsed;
     }
+    print('Payment steps not a list: ${value.runtimeType}');
     return [];
   }
 }

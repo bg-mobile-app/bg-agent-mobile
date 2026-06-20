@@ -446,19 +446,6 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
               fontWeight: FontWeight.w800,
             ),
           ),
-          if (displayDetails.description.trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              displayDetails.description.trim(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _mutedText,
-                fontSize: isSmallPhone ? 12.0 : 13.0,
-                height: 1.35,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
           const SizedBox(height: 10),
           Wrap(
             alignment: WrapAlignment.center,
@@ -570,6 +557,10 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
           const SizedBox(height: 16),
           _documentsRequired(),
         ],
+        if (displayDetails.description.trim().isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _descriptionBox(),
+        ],
       ],
     );
   }
@@ -679,13 +670,8 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       ),
       _SpecItem(
         _tr('Contract Period', 'চুক্তির মেয়াদ'),
-        _formatEnum(displayDetails.contractDuration),
+        '${_formatEnum(displayDetails.contractDuration)} - ${displayDetails.isRenewable ? _tr('Renewable', 'নবায়নযোগ্য') : _tr('Non-Renewable', 'অ-নবায়নযোগ্য')}',
         FontAwesomeIcons.fileContract,
-      ),
-      _SpecItem(
-        _tr('Renewable', 'নবায়নযোগ্য'),
-        displayDetails.isRenewable ? _tr('Yes', 'হ্যাঁ') : _tr('No', 'না'),
-        FontAwesomeIcons.rotate,
       ),
     ];
 
@@ -714,6 +700,48 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     return _tagCard(
       title: _tr('Included in Package', 'প্যাকেজে অন্তর্ভুক্ত'),
       items: displayDetails.packageIncludes,
+    );
+  }
+
+  Widget _descriptionBox() {
+    if (displayDetails.description.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return _CardShell(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: _surfaceLow,
+              border: Border(bottom: BorderSide(color: _outline)),
+            ),
+            child: Text(
+              _tr('Description', 'বর্ণনা'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: _text,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              displayDetails.description.trim(),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _text,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -970,7 +998,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
             maxLines: 1,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 40,
+              fontSize: 36,
               height: 1.0,
               fontWeight: FontWeight.w900,
             ),
@@ -1016,6 +1044,14 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
             const SizedBox(height: 12),
             Container(height: 1, color: Colors.white24),
             const SizedBox(height: 12),
+            if (agentSpending != null) ...[
+              _privatePriceRow(
+                title: _tr('Commission', 'কমিশন'),
+                value: 'BDT ${_formatMoney((displayDetails.customerPrice - agentSpending).toInt())}',
+                valueFontSize: 36,
+                valueOnSecondLine: true,
+              ),
+            ],
           ],
         ],
       ),

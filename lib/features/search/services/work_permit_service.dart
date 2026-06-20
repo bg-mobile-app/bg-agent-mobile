@@ -9,7 +9,9 @@ class WorkPermitService {
   Future<WorkPermitDetails?> getWorkPermitDetails(String slug) async {
     try {
       final response = await _apiClient.get('/work-permits/$slug/');
-      return WorkPermitDetails.fromJson(response.data);
+      final details = WorkPermitDetails.fromJson(response.data);
+      debugPrint('Payment Steps from API: ${details.paymentSteps}');
+      return details;
     } catch (e) {
       debugPrint("Error fetching work permit details: $e");
       return null;
