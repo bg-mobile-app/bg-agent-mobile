@@ -24,6 +24,16 @@ class BookingService {
     }
   }
 
+  Future<ReceiveBookingItemDto> getReceiveBookingDetail(int bookingId) async {
+    final response = await _apiClient.get('/booking/wp/$bookingId/');
+    if (response.data is Map<String, dynamic>) {
+      return ReceiveBookingItemDto.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    }
+    throw Exception('Invalid response type: ${response.data.runtimeType}');
+  }
+
   Future<ReceiveBookingsResponse> getReceiveBookings({
     required String status,
     required int page,
@@ -110,14 +120,23 @@ class BookingService {
     required String step,
     num? requestAmount,
   }) async {
-    await _apiClient.post(
-      '/payment/agency/payout-request/',
-      data: {
-        'booking': bookingId,
-        'step': step,
-        if (requestAmount != null) 'requestAmount': requestAmount,
-      },
-    );
+    final payload = <String, dynamic>{
+      'booking': bookingId,
+      'step': step,
+      if (requestAmount != null) 'requestAmount': requestAmount,
+    };
+    try {
+      debugPrint('Submitting agency payout request: $payload');
+      await _apiClient.post(
+        '/payment/agency/payout-request/',
+        data: payload,
+      );
+      debugPrint('Payout request submitted successfully for booking $bookingId');
+    } catch (e, stacktrace) {
+      debugPrint('Payout request failed for booking $bookingId: $e');
+      debugPrint(stacktrace.toString());
+      rethrow;
+    }
   }
 
   Future<void> updateBookingReminders({
@@ -150,6 +169,7 @@ class BookingService {
   Future<void> uploadBookingDocument({
     required int bookingId,
     required String fileName,
+    required String title,
     String? filePath,
     Uint8List? fileBytes,
   }) async {
@@ -165,8 +185,27 @@ class BookingService {
 
     await _apiClient.post(
       '/booking/wp/$bookingId/documents/',
-      data: FormData.fromMap({fieldName: multipartFile}),
+      data: FormData.fromMap({
+        fieldName: multipartFile,
+        'title': title,
+      }),
     );
+  }
+
+  Future<List<Map<String, dynamic>>> getBookingDocuments(int bookingId) async {
+    final response = await _apiClient.get('/booking/wp/$bookingId/documents/');
+    final data = response.data;
+    if (data is Map && data['documents'] is List) {
+      final list = data['documents'] as List;
+      return List<Map<String, dynamic>>.from(
+        list.map((e) => Map<String, dynamic>.from(e as Map)),
+      );
+    } else if (data is List) {
+      return List<Map<String, dynamic>>.from(
+        data.map((e) => Map<String, dynamic>.from(e as Map)),
+      );
+    }
+    return [];
   }
 
   Future<void> submitReturnRequest({
@@ -183,6 +222,27 @@ class BookingService {
       payload['costDetails'] = costDetails.trim();
     }
     await _apiClient.post('/booking/wp/return/file-request/', data: payload);
+  }
+
+  Future<void> submitSendPassportRequest({
+    required String fullName,
+    required String phone,
+    required String employeeId,
+    required String email,
+    required String employeeOf,
+    required List<int> bookingIds,
+  }) async {
+    await _apiClient.post(
+      '/booking/wp/send-passport/list/',
+      data: {
+        'fullName': fullName,
+        'phone': phone,
+        'employeeId': employeeId,
+        'email': email,
+        'employeeOf': employeeOf,
+        'bookingIds': bookingIds,
+      },
+    );
   }
 
   Future<MyAppointmentsResponse> getMyAppointments({
@@ -457,15 +517,15 @@ class ReceiveBookingItemDto {
       hasAdvancePayout: _pickBool(json, [
         'hasAdvancePayout',
         'has_advance_payout',
-      ], fallback: true),
+      ], fallback: false),
       hasAfterVisaPayout: _pickBool(json, [
         'hasAfterVisaPayout',
         'has_after_visa_payout',
-      ], fallback: true),
+      ], fallback: false),
       hasBeforeFlightPayout: _pickBool(json, [
         'hasBeforeFlightPayout',
         'has_before_flight_payout',
-      ], fallback: true),
+      ], fallback: false),
       paymentStepCount: _pickInt(json, [
         'paymentStepCount',
         'payment_step_count',

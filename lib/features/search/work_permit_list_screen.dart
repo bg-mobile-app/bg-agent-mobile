@@ -18,7 +18,9 @@ import '../../common/services/profile_service.dart';
 import '../../routes/app_routes.dart';
 
 class WorkPermitListScreen extends StatefulWidget {
-  const WorkPermitListScreen({super.key});
+  const WorkPermitListScreen({super.key, this.queryParams});
+
+  final Map<String, String>? queryParams;
 
   @override
   State<WorkPermitListScreen> createState() => _WorkPermitListScreenState();
@@ -42,7 +44,35 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _parseQueryParams();
     _loadData();
+  }
+
+  void _parseQueryParams() {
+    final q = widget.queryParams;
+    if (q != null && q.isNotEmpty) {
+      _currentFilter = FilterValue(
+        query: q['query'] ?? '',
+        country: q['country'],
+        workType: q['workType'],
+        selectionType: q['selectionType'],
+        minAge: q['minAge'],
+        maxAge: q['maxAge'],
+      );
+      _searchController.text = _currentFilter.query;
+    } else {
+      _currentFilter = const FilterValue(query: '');
+      _searchController.clear();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant WorkPermitListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.queryParams != oldWidget.queryParams) {
+      _parseQueryParams();
+      _loadData();
+    }
   }
 
   Future<void> _checkLoginStatus() async {
@@ -160,6 +190,122 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
     );
   }
 
+  Widget _buildActiveFilters() {
+    final chips = <Widget>[];
+
+    if (_currentFilter.query.isNotEmpty) {
+      chips.add(_filterChip('Keyword: ${_currentFilter.query}', () {
+        _searchController.clear();
+        _applyFilters(FilterValue(
+          query: '',
+          country: _currentFilter.country,
+          workType: _currentFilter.workType,
+          selectionType: _currentFilter.selectionType,
+          minAge: _currentFilter.minAge,
+          maxAge: _currentFilter.maxAge,
+        ));
+      }));
+    }
+
+    if (_currentFilter.country != null) {
+      chips.add(_filterChip('Country: ${_currentFilter.country}', () {
+        _applyFilters(FilterValue(
+          query: _currentFilter.query,
+          country: null,
+          workType: _currentFilter.workType,
+          selectionType: _currentFilter.selectionType,
+          minAge: _currentFilter.minAge,
+          maxAge: _currentFilter.maxAge,
+        ));
+      }));
+    }
+
+    if (_currentFilter.workType != null) {
+      chips.add(_filterChip('Work: ${_currentFilter.workType}', () {
+        _applyFilters(FilterValue(
+          query: _currentFilter.query,
+          country: _currentFilter.country,
+          workType: null,
+          selectionType: _currentFilter.selectionType,
+          minAge: _currentFilter.minAge,
+          maxAge: _currentFilter.maxAge,
+        ));
+      }));
+    }
+
+    if (_currentFilter.selectionType != null) {
+      chips.add(_filterChip('Selection: ${_currentFilter.selectionType}', () {
+        _applyFilters(FilterValue(
+          query: _currentFilter.query,
+          country: _currentFilter.country,
+          workType: _currentFilter.workType,
+          selectionType: null,
+          minAge: _currentFilter.minAge,
+          maxAge: _currentFilter.maxAge,
+        ));
+      }));
+    }
+
+    if (_currentFilter.minAge != null || _currentFilter.maxAge != null) {
+      final minStr = _currentFilter.minAge ?? '';
+      final maxStr = _currentFilter.maxAge ?? '';
+      final ageText = minStr.isNotEmpty && maxStr.isNotEmpty
+          ? 'Age: $minStr-$maxStr'
+          : minStr.isNotEmpty
+              ? 'Age: >=$minStr'
+              : 'Age: <=$maxStr';
+      chips.add(_filterChip(ageText, () {
+        _applyFilters(FilterValue(
+          query: _currentFilter.query,
+          country: _currentFilter.country,
+          workType: _currentFilter.workType,
+          selectionType: _currentFilter.selectionType,
+          minAge: null,
+          maxAge: null,
+        ));
+      }));
+    }
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12, bottom: 8),
+      height: 38,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          ...chips,
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () {
+              _searchController.clear();
+              _applyFilters(const FilterValue(query: ''));
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            child: const Text('Clear all', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip(String label, VoidCallback onDeleted) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: InputChip(
+        label: Text(label, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
+        backgroundColor: _brandBlue,
+        deleteIconColor: Colors.white,
+        onDeleted: onDeleted,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -189,7 +335,8 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
               children: [
                 _searchBar(),
                 _buildServices(),
-                const SizedBox(height: AppSpacing.lg),
+                _buildActiveFilters(),
+                const SizedBox(height: AppSpacing.md),
                 _buildWorkPermitSection(),
               ],
             ),

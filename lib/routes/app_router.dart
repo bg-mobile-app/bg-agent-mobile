@@ -117,7 +117,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.tabSearch,
       pageBuilder: (c, s) =>
-          _slideTransition(c, s, const AppScaffold(tabIndex: 1)),
+          _slideTransition(c, s, AppScaffold(tabIndex: 1, queryParams: s.uri.queryParameters)),
     ),
     GoRoute(
       path: AppRoutes.tabBooking,

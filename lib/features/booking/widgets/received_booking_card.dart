@@ -103,58 +103,95 @@ class ReceivedBookingCard extends StatelessWidget {
   }
 
   Widget _header() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Text(
-            '#$bookingId',
-            textAlign: TextAlign.left,
-            style: const TextStyle(
-              color: AppPalette.textStrongBlue,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        IntrinsicWidth(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  style.badgeBg,
-                  style.badgeBg.withValues(alpha: 0.72),
+    return SizedBox(
+      width: double.infinity,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '#$bookingId',
+                    style: const TextStyle(
+                      color: AppPalette.textStrongBlue,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 1,
+                    height: 16,
+                    color: AppPalette.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      postId,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppPalette.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(999),
             ),
-            child: Text(
-              statusText.toUpperCase(),
-              softWrap: false,
-              overflow: TextOverflow.fade,
-              style: TextStyle(
-                color: style.badgeText,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: .4,
+          ),
+          IntrinsicWidth(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    style.badgeBg,
+                    style.badgeBg.withValues(alpha: 0.72),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                statusText.toUpperCase(),
+                softWrap: false,
+                overflow: TextOverflow.fade,
+                style: TextStyle(
+                  color: style.badgeText,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .4,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            postId,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: AppPalette.textMuted,
-              fontWeight: FontWeight.w600,
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: IconButton(
+                onPressed: onMoreTap,
+                icon: const Icon(
+                  Icons.more_horiz_rounded,
+                  color: AppPalette.textMuted,
+                  size: 20,
+                ),
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+                tooltip: 'Actions',
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

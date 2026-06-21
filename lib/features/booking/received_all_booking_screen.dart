@@ -245,8 +245,22 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
           errorMessage: 'Failed to mark BMET done. Please try again.',
         );
         break;
+      case 'Ticket Done':
+        await _confirmStatusUpdate(
+          item: item,
+          dialogTitle: 'Mark as Ticket Done?',
+          dialogMessage: 'Mark this booking as Ticket Done?',
+          status: 'TICKET_DONE',
+          successMessage: 'Ticket Done successfully for ${item.passportNo}',
+          errorMessage: 'Failed to mark ticket done. Please try again.',
+        );
+        break;
       case 'View Documents':
         context.go('/dashboard/booking/documents/${item.id}');
+        break;
+      case 'PP Send to BG':
+        debugPrint('Navigating to PP Send to BG form for booking ${item.id}');
+        context.go('/dashboard/agency/booking-file/pp-sent-bg/add/${item.id}');
         break;
       case 'Reject':
       case 'Reject File':
@@ -284,16 +298,22 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
     if (confirmed != true) return;
 
     try {
+      debugPrint(
+        'Updating booking ${item.id} (${item.passportNo}) status from ${item.status} to $status',
+      );
       await _bookingService.updateBookingStatus(
         bookingId: item.id,
         status: status,
       );
+      debugPrint('Status update successful for booking ${item.id} to $status');
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(successMessage)));
       await _fetchBookings();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Status update failed for booking ${item.id}: $error');
+      debugPrint(stackTrace.toString());
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -304,7 +324,8 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
   Future<void> _showPaymentRequestDialog(BookingItem item) async {
     final amountController = TextEditingController();
     final step = _paymentRequestStepFor(item.status);
-    final isAmountRequired = item.status != 'VISA_APPROVED';
+    final isAmountRequired =
+        item.status != 'VISA_APPROVED' && item.status != 'TICKET_DONE';
     String? validationError;
 
     final request = await showDialog<_PaymentRequestInput>(
@@ -360,16 +381,25 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
         ),
       ),
     );
-    amountController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      amountController.dispose();
+    });
 
     if (request == null) return;
 
     try {
+      final payload = {
+        'booking': item.id,
+        'step': step,
+        'requestAmount': request.requestAmount,
+      };
+      debugPrint('Submitting payment request: $payload');
       await _bookingService.submitAgencyPayoutRequest(
         bookingId: item.id,
         step: step,
         requestAmount: request.requestAmount,
       );
+      debugPrint('Payment request API call completed for booking ${item.id}');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -378,6 +408,11 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
       );
       await _fetchBookings();
     } catch (_) {
+      debugPrint('Payment request failed for booking ${item.id}');
+      // attempt to print stack trace if available
+      try {
+        // no-op: placeholder to hint stacktrace availability in catch
+      } catch (_) {}
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -401,99 +436,150 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
 
   Future<void> _showUploadDocumentsDialog(BookingItem item) async {
     var selectedFiles = <PlatformFile>[];
+    final fileTitleControllers = <String, TextEditingController>{};
     String? validationError;
 
-    final shouldUpload = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Upload Documents'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Accepted: PDF, JPG, JPEG, PNG, WEBP. Each file will be uploaded separately.',
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final result = await FilePicker.platform.pickFiles(
-                    allowMultiple: true,
-                    type: FileType.custom,
-                    allowedExtensions: const [
-                      'pdf',
-                      'jpg',
-                      'jpeg',
-                      'png',
-                      'webp',
-                    ],
-                    withData: true,
-                  );
-                  if (result == null) return;
-                  setDialogState(() {
-                    selectedFiles = result.files;
-                    validationError = null;
-                  });
-                },
-                icon: const Icon(Icons.attach_file_rounded),
-                label: const Text('Select Files'),
-              ),
-              if (selectedFiles.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ...selectedFiles.map(
-                  (file) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      file.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+    try {
+      final shouldUpload = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Upload Documents'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Accepted: PDF, JPG, JPEG, PNG, WEBP. Each file will be uploaded separately.',
                   ),
-                ),
-              ],
-              if (validationError != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  validationError!,
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final result = await FilePicker.platform.pickFiles(
+                        allowMultiple: true,
+                        type: FileType.custom,
+                        allowedExtensions: const [
+                          'pdf',
+                          'jpg',
+                          'jpeg',
+                          'png',
+                          'webp',
+                        ],
+                        withData: true,
+                      );
+                      if (result == null) return;
+                      setDialogState(() {
+                        selectedFiles = result.files;
+                        validationError = null;
+                        final controllersToDispose = List<TextEditingController>.from(fileTitleControllers.values);
+                        fileTitleControllers.clear();
+                        for (final file in selectedFiles) {
+                          fileTitleControllers[file.name] = TextEditingController(
+                            text: file.name.split('.').first,
+                          );
+                        }
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          for (final controller in controllersToDispose) {
+                            controller.dispose();
+                          }
+                        });
+                      });
+                    },
+                    icon: const Icon(Icons.attach_file_rounded),
+                    label: const Text('Select Files'),
+                  ),
+                  if (selectedFiles.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ...selectedFiles.map(
+                      (file) {
+                        final controller = fileTitleControllers[file.name];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                file.name,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppPalette.textMuted,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: controller,
+                                decoration: const InputDecoration(
+                                  labelText: 'Document Title',
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  if (validationError != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      validationError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  if (selectedFiles.isEmpty) {
+                    setDialogState(
+                      () => validationError = 'Select at least one document.',
+                    );
+                    return;
+                  }
+                  for (final file in selectedFiles) {
+                    final title = fileTitleControllers[file.name]?.text.trim() ?? '';
+                    if (title.isEmpty) {
+                      setDialogState(() => validationError = 'Title cannot be empty.');
+                      return;
+                    }
+                  }
+                  Navigator.pop(dialogContext, true);
+                },
+                child: const Text('Upload'),
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (selectedFiles.isEmpty) {
-                  setDialogState(
-                    () => validationError = 'Select at least one document.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('Upload'),
-            ),
-          ],
         ),
-      ),
-    );
+      );
 
-    if (shouldUpload != true) return;
+      if (shouldUpload != true) return;
 
-    try {
+      debugPrint('Uploading ${selectedFiles.length} document(s) for booking ${item.id} (${item.status})');
       await Future.wait(
         selectedFiles.map(
-          (file) => _bookingService.uploadBookingDocument(
-            bookingId: item.id,
-            fileName: file.name,
-            filePath: file.path,
-            fileBytes: file.bytes,
-          ),
+          (file) {
+            final title = fileTitleControllers[file.name]?.text.trim() ?? file.name;
+            return _bookingService.uploadBookingDocument(
+              bookingId: item.id,
+              fileName: file.name,
+              title: title.isNotEmpty ? title : file.name,
+              filePath: file.path,
+              fileBytes: file.bytes,
+            );
+          },
         ),
       );
       if (!mounted) return;
@@ -501,13 +587,21 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
         const SnackBar(content: Text('Documents uploaded successfully.')),
       );
       await _fetchBookings();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Upload documents failed for booking ${item.id} (${item.status}): $error');
+      debugPrint(stackTrace.toString());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to upload documents. Please try again.'),
         ),
       );
+    } finally {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (var controller in fileTitleControllers.values) {
+          controller.dispose();
+        }
+      });
     }
   }
 
@@ -593,8 +687,10 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
         ),
       ),
     );
-    medicalController.dispose();
-    policeController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      medicalController.dispose();
+      policeController.dispose();
+    });
 
     if (reminder == null) return;
 
@@ -677,7 +773,9 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
         ),
       ),
     );
-    visaController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      visaController.dispose();
+    });
 
     if (visaDate == null) return;
 
@@ -1056,11 +1154,28 @@ class _ReceivedAllBookingScreenState extends State<ReceivedAllBookingScreen> {
                     : _displayDate(item.visaExpiryDate!),
               ),
             ),
-          const DataCell(
-            Icon(
-              Icons.more_horiz_rounded,
-              color: AppPalette.textMuted,
-              size: 18,
+          DataCell(
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: IconButton(
+                onPressed: () => _openActionsSheet(
+                  context,
+                  item,
+                  onActionSelected: _handleBookingAction,
+                ),
+                icon: const Icon(
+                  Icons.more_horiz_rounded,
+                  color: AppPalette.textMuted,
+                  size: 18,
+                ),
+                padding: const EdgeInsets.all(2),
+                constraints: const BoxConstraints(),
+                tooltip: 'Actions',
+              ),
             ),
           ),
         ],
@@ -1412,8 +1527,7 @@ List<String> _actionsFor(BookingItem row) {
       if (row.status == 'A_RECEIVE_PP' &&
           (row.paymentStepCount != 3 || row.hasAdvancePayout))
         return false;
-      if (row.status == 'VISA_APPROVED' &&
-          (row.paymentStepCount != 3 || row.hasAfterVisaPayout))
+      if (row.status == 'VISA_APPROVED' && row.hasAfterVisaPayout)
         return false;
       if (row.status == 'TICKET_DONE' && row.hasBeforeFlightPayout)
         return false;

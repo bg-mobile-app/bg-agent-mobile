@@ -39,8 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _workType;
   String _serviceType = 'WORK_PERMIT';
   String _selectionType = 'All';
-  DateTime? _fromDate;
-  DateTime? _toDate;
 
   final _bannerController = PageController(viewportFraction: 1);
   Timer? _bannerTimer;
@@ -205,60 +203,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   bool get _hasActiveFilters {
-    return (_country?.isNotEmpty ?? false) ||
-        (_workType?.isNotEmpty ?? false) ||
-        _serviceType != 'WORK_PERMIT' ||
-        _selectionType != 'All' ||
-        _companyController.text.trim().isNotEmpty ||
-        _minAgeController.text.trim().isNotEmpty ||
-        _maxAgeController.text.trim().isNotEmpty ||
-        _fromDate != null ||
-        _toDate != null;
+    return false;
+  }
+
+  void _navigateToSearch() {
+    final params = <String, String>{};
+    if (_country != null && _country!.isNotEmpty) {
+      try {
+        final code = _countries.firstWhere((c) => c.name == _country).code;
+        params['country'] = code;
+      } catch (_) {}
+    }
+    if (_workType != null && _workType!.isNotEmpty) {
+      params['workType'] = _workType!;
+    }
+    if (_selectionType != 'All') {
+      params['selectionType'] = _selectionType;
+    }
+    if (_companyController.text.trim().isNotEmpty) {
+      params['query'] = _companyController.text.trim();
+    }
+    if (_minAgeController.text.trim().isNotEmpty) {
+      params['minAge'] = _minAgeController.text.trim();
+    }
+    if (_maxAgeController.text.trim().isNotEmpty) {
+      params['maxAge'] = _maxAgeController.text.trim();
+    }
+
+    final uri = Uri(path: '/search', queryParameters: params.isNotEmpty ? params : null);
+    context.go(uri.toString());
   }
 
   Future<void> _applyFilters() async {
-    if (!_hasActiveFilters) {
-      setState(() => _filteredWorkPermits = List.from(_workPermits));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    String? countryCode;
-    if (_country != null && _country!.isNotEmpty) {
-      try {
-        countryCode = _countries.firstWhere((c) => c.name == _country).code;
-      } catch (_) {}
-    }
-
-    final fromDateStr = _fromDate != null
-        ? '${_fromDate!.year}-${_fromDate!.month.toString().padLeft(2, '0')}-${_fromDate!.day.toString().padLeft(2, '0')}'
-        : null;
-    final toDateStr = _toDate != null
-        ? '${_toDate!.year}-${_toDate!.month.toString().padLeft(2, '0')}-${_toDate!.day.toString().padLeft(2, '0')}'
-        : null;
-
-    final filtered = await _homeService.filterWorkPermits(
-      countryCode: countryCode,
-      workType: _workType,
-      companyName: _companyController.text.trim(),
-      minAge: int.tryParse(_minAgeController.text.trim()),
-      maxAge: int.tryParse(_maxAgeController.text.trim()),
-      selectionType: _selectionType,
-      fromDate: fromDateStr,
-      toDate: toDateStr,
-    );
-
-    debugPrint(
-      "HOME SCREEN: Received ${filtered.length} filtered items from API.",
-    );
-
-    if (mounted) {
-      setState(() {
-        _filteredWorkPermits = filtered;
-        _isLoading = false;
-      });
-    }
+    _navigateToSearch();
   }
 
   @override
@@ -275,24 +252,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Working on this page')));
-  }
-
-  Future<void> _pickDate({required bool isFrom}) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 3),
-      initialDate: now,
-    );
-    if (picked == null) return;
-    setState(() {
-      if (isFrom) {
-        _fromDate = picked;
-      } else {
-        _toDate = picked;
-      }
-    });
   }
 
   Future<void> _showAdvancedFilterSheet() async {
@@ -396,34 +355,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   _dropdown(
                     value: _selectionType,
                     hint: 'Selection Type',
-                    items: const ['All', 'Direct', 'Lottery'],
+                    items: const ['All', 'DELEGATE', 'PUSHING', 'ZOOM INTERVIEW', 'CV SELECTION'],
                     height: responsive.size(56, min: 48, max: 56),
                     horizontalPadding: responsive.size(10, min: 8, max: 10),
                     fontSize: responsive.font(11, min: 10, max: 11),
                     onChanged: (v) =>
                         setState(() => _selectionType = v ?? 'All'),
-                  ),
-                  SizedBox(height: sheetGap),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _dateButton(
-                          label: _fromDate == null
-                              ? 'From Date'
-                              : '${_fromDate!.year}-${_fromDate!.month.toString().padLeft(2, '0')}-${_fromDate!.day.toString().padLeft(2, '0')}',
-                          onTap: () => _pickDate(isFrom: true),
-                        ),
-                      ),
-                      SizedBox(width: responsive.size(8, min: 6, max: 8)),
-                      Expanded(
-                        child: _dateButton(
-                          label: _toDate == null
-                              ? 'To Date'
-                              : '${_toDate!.year}-${_toDate!.month.toString().padLeft(2, '0')}-${_toDate!.day.toString().padLeft(2, '0')}',
-                          onTap: () => _pickDate(isFrom: false),
-                        ),
-                      ),
-                    ],
                   ),
                   SizedBox(height: responsive.size(12, min: 10, max: 12)),
                   SizedBox(
@@ -1001,16 +938,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () async {
-          final selected = await _showDropdownBottomSheet(
+        onTap: () {
+          _showDropdownBottomSheet(
             title: hint,
             items: items,
             selectedValue: value,
+            onChanged: onChanged,
             leadingBuilder: leadingBuilder,
           );
-          if (selected != null) {
-            onChanged(selected);
-          }
         },
         borderRadius: BorderRadius.circular(radius),
         child: Container(
@@ -1077,16 +1012,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<String?> _showDropdownBottomSheet({
+  void _showDropdownBottomSheet({
     required String title,
     required List<String> items,
     required String? selectedValue,
+    required ValueChanged<String?> onChanged,
     Widget Function(String, double)? leadingBuilder,
   }) {
     final responsive = HomeResponsive.of(context);
     final radius = responsive.size(24, min: 18, max: 24);
 
-    return showModalBottomSheet<String>(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -1121,7 +1057,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 orElse: () => filteredItems.first,
               );
 
-              Navigator.pop(context, matchedItem);
+              onChanged(matchedItem);
+              Navigator.pop(context);
             }
 
             return AnimatedPadding(
@@ -1325,7 +1262,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ),
                                             )
                                           : null,
-                                      onTap: () => Navigator.pop(context, item),
+                                      onTap: () {
+                                        onChanged(item);
+                                        Navigator.pop(context);
+                                      },
                                     );
                                   },
                                 ),
@@ -1387,31 +1327,6 @@ class _HomeScreenState extends State<HomeScreen> {
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
       ),
-    );
-  }
-
-  Widget _dateButton({required String label, required VoidCallback onTap}) {
-    final responsive = HomeResponsive.of(context);
-
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        alignment: Alignment.centerLeft,
-        padding: EdgeInsets.symmetric(
-          horizontal: responsive.size(10, min: 8, max: 10),
-          vertical: responsive.size(12, min: 9, max: 12),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            responsive.size(8, min: 7, max: 8),
-          ),
-        ),
-        textStyle: TextStyle(
-          fontSize: responsive.font(14, min: 11, max: 14),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }

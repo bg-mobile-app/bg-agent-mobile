@@ -14,6 +14,8 @@ import '../../../features/booking/passport_return_pp_sent_to_bg_screen.dart';
 import '../../../features/booking/passport_return_request_screen.dart';
 import '../../../features/booking/return_passport_screen.dart';
 import '../../../features/booking/success_flight_screen.dart';
+import '../../../features/booking/booking_documents_screen.dart';
+import '../../../features/booking/pp_sent_bg_add_screen.dart';
 import '../../../features/chat/chat_list_screen.dart';
 import '../../../features/home/change_password_screen.dart';
 import '../../../features/home/check_status_screen.dart';
@@ -46,10 +48,11 @@ import '../../../common/theme/app_palette.dart';
 import '../../../routes/navigation_history.dart';
 
 class AppScaffold extends StatelessWidget {
-  const AppScaffold({super.key, required this.tabIndex, this.dashboardPath});
+  const AppScaffold({super.key, required this.tabIndex, this.dashboardPath, this.queryParams});
 
   final int tabIndex;
   final String? dashboardPath;
+  final Map<String, String>? queryParams;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +61,7 @@ class AppScaffold extends StatelessWidget {
 
     final screens = [
       const HomeScreen(),
-      const WorkPermitListScreen(),
+      WorkPermitListScreen(queryParams: queryParams),
       _DashboardHostScreen(
         route: tabIndex == 2
             ? (dashboardPath ?? '/dashboard/ads/create')
@@ -404,6 +407,24 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return _buildLogoutScreen(context);
       default:
         final segments = Uri.parse(widget.route).pathSegments;
+        if (segments.length == 4 &&
+            segments[0] == 'dashboard' &&
+            segments[1] == 'booking' &&
+            segments[2] == 'documents') {
+          final bookingIdStr = segments[3];
+          final bookingId = int.tryParse(bookingIdStr) ?? 0;
+          return BookingDocumentsScreen(bookingId: bookingId);
+        }
+        if (segments.length == 6 &&
+            segments[0] == 'dashboard' &&
+            segments[1] == 'agency' &&
+            segments[2] == 'booking-file' &&
+            segments[3] == 'pp-sent-bg' &&
+            segments[4] == 'add') {
+          final bookingIdStr = segments[5];
+          final bookingId = int.tryParse(bookingIdStr) ?? 0;
+          return PPSentBGAddScreen(initialBookingId: bookingId);
+        }
         if (segments.length == 4 &&
             segments[0] == 'dashboard' &&
             segments[1] == 'receive-payment' &&

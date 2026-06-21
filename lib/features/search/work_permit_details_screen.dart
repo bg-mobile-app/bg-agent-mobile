@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../common/services/api_client.dart';
 import '../../routes/app_routes.dart';
@@ -45,6 +47,157 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     super.initState();
     _checkLoginStatus();
     _loadDetails();
+  }
+
+  Future<void> _showShareSheet() async {
+    final title = widget.item.title;
+    final country = widget.item.countryName;
+    final slug = widget.item.slug;
+    final shareUrl = 'https://bideshgami.com/work-permits/$slug';
+    final shareText = 'Check out this work permit: $title in $country. Price: BDT ${widget.item.customerPrice}. Learn more at: $shareUrl';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Share Work Permit',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: _text,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _shareOption(
+                    icon: FontAwesomeIcons.whatsapp,
+                    label: 'WhatsApp',
+                    color: const Color(0xFF25D366),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final url = Uri.parse('https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}');
+                      try {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        debugPrint('Could not launch WhatsApp: $e');
+                      }
+                    },
+                  ),
+                  _shareOption(
+                    icon: FontAwesomeIcons.facebook,
+                    label: 'Facebook',
+                    color: const Color(0xFF1877F2),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final url = Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(shareUrl)}');
+                      try {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        debugPrint('Could not launch Facebook: $e');
+                      }
+                    },
+                  ),
+                  _shareOption(
+                    icon: FontAwesomeIcons.telegram,
+                    label: 'Telegram',
+                    color: const Color(0xFF0088CC),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final url = Uri.parse('https://t.me/share/url?url=${Uri.encodeComponent(shareUrl)}&text=${Uri.encodeComponent(shareText)}');
+                      try {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        debugPrint('Could not launch Telegram: $e');
+                      }
+                    },
+                  ),
+                  _shareOption(
+                    icon: FontAwesomeIcons.twitter,
+                    label: 'Twitter',
+                    color: const Color(0xFF1DA1F2),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final url = Uri.parse('https://twitter.com/intent/tweet?text=${Uri.encodeComponent(shareText)}');
+                      try {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        debugPrint('Could not launch Twitter: $e');
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Divider(color: _outline, height: 1),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.copy_rounded, color: _brandBlue),
+                title: const Text('Copy Link', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Clipboard.setData(ClipboardData(text: shareUrl));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Link copied to clipboard!'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _shareOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: FaIcon(icon, color: color, size: 24),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _mutedText,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _checkLoginStatus() async {
@@ -221,10 +374,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
           IconButton(
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            onPressed: () => _showMessage(
-              context,
-              _tr('Share option coming soon', 'শেয়ার অপশন শীঘ্রই আসছে'),
-            ),
+            onPressed: _showShareSheet,
             icon: const FaIcon(
               FontAwesomeIcons.shareNodes,
               color: _mutedText,
