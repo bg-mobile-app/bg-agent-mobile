@@ -520,6 +520,11 @@ class BookingItem {
 
 List<String> _actionsFor(BookingItem row) {
   if (row.isReturn) return const ['File in Return'];
+  if (row.status == 'TICKET_DONE') {
+    debugPrint(
+      'TicketDone row id=${row.id}, passport=${row.passportNo}, hasBeforeFlightPayout=${row.hasBeforeFlightPayout}, paymentStepCount=${row.paymentStepCount}',
+    );
+  }
   final actions =
       <String, List<String>>{
         'APPLIED_FILE': ['View Post', 'Reject'],

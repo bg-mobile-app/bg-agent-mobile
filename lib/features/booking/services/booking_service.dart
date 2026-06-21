@@ -469,6 +469,25 @@ class ReceiveBookingItemDto {
     ]) ??
         _pickInt(returnFile, ['receivedAmount', 'received_amount']);
 
+    final payoutRequestsRaw = json['payoutRequests'] ?? json['payout_requests'];
+    final payoutRequests = payoutRequestsRaw is List
+        ? List<Map<String, dynamic>>.from(
+            payoutRequestsRaw.map((e) => Map<String, dynamic>.from(e as Map)),
+          )
+        : null;
+
+    final hasAdvancePayoutValue = payoutRequests != null
+        ? payoutRequests.any((i) => i['step'] == 'ADVANCE')
+        : _pickBool(json, ['hasAdvancePayout', 'has_advance_payout'], fallback: false);
+
+    final hasAfterVisaPayoutValue = payoutRequests != null
+        ? payoutRequests.any((i) => i['step'] == 'AFTER_VISA')
+        : _pickBool(json, ['hasAfterVisaPayout', 'has_after_visa_payout'], fallback: false);
+
+    final hasBeforeFlightPayoutValue = payoutRequests != null
+        ? payoutRequests.any((i) => i['step'] == 'BEFORE_FLIGHT')
+        : _pickBool(json, ['hasBeforeFlightPayout', 'has_before_flight_payout'], fallback: false);
+
     return ReceiveBookingItemDto(
       id: _toInt(json['id']),
       workPermitId: _pickString(json, [
@@ -514,18 +533,9 @@ class ReceiveBookingItemDto {
         'visaExpiryDate',
         'visa_expiry_date',
       ]),
-      hasAdvancePayout: _pickBool(json, [
-        'hasAdvancePayout',
-        'has_advance_payout',
-      ], fallback: false),
-      hasAfterVisaPayout: _pickBool(json, [
-        'hasAfterVisaPayout',
-        'has_after_visa_payout',
-      ], fallback: false),
-      hasBeforeFlightPayout: _pickBool(json, [
-        'hasBeforeFlightPayout',
-        'has_before_flight_payout',
-      ], fallback: false),
+      hasAdvancePayout: hasAdvancePayoutValue,
+      hasAfterVisaPayout: hasAfterVisaPayoutValue,
+      hasBeforeFlightPayout: hasBeforeFlightPayoutValue,
       paymentStepCount: _pickInt(json, [
         'paymentStepCount',
         'payment_step_count',
