@@ -461,7 +461,7 @@ class _PassportReturnRequestScreenState
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text('Reason for Return'),
-                          content: Text(item.returnFile?.reason ?? 'No reason provided.'),
+                          content: Text(item.returnFileReason.isNotEmpty ? item.returnFileReason : 'No reason provided.'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx),

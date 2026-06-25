@@ -449,6 +449,8 @@ class ReceiveBookingItemDto {
   final bool isReturn;
   /// Sourced from returnFile.requestedByType — 'CUSTOMER' or 'AGENCY'
   final String requestedByType;
+  /// Sourced from returnFile.reason
+  final String returnFileReason;
 
   const ReceiveBookingItemDto({
     required this.id,
@@ -473,6 +475,7 @@ class ReceiveBookingItemDto {
     this.paymentStepCount,
     required this.isReturn,
     this.requestedByType = '',
+    this.returnFileReason = '',
   });
 
   factory ReceiveBookingItemDto.fromJson(Map<String, dynamic> json) {
@@ -575,6 +578,7 @@ class ReceiveBookingItemDto {
         'requestedByType',
         'requested_by_type',
       ]),
+      returnFileReason: _pickString(returnFile, ['reason']),
     );
   }
 }
