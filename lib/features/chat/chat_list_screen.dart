@@ -6,6 +6,8 @@ import '../../common/theme/app_text_styles.dart';
 import '../../common/widgets/app_search_bar.dart';
 import '../home/dashboard_screen.dart';
 import 'chat_conversation_screen.dart';
+import 'models/chat_models.dart';
+import 'services/chat_service.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -19,55 +21,26 @@ class _ChatListScreenState extends State<ChatListScreen> {
   String _searchQuery = '';
   String _activeFilter = 'All';
 
-  final List<ChatItem> _chats = const [
-    ChatItem(
-      name: 'Rakib Hasan',
-      lastMessage: 'Brother, I uploaded my passport copy. Please check once.',
-      time: '10:45 AM',
-      unreadCount: 2,
-      isOnline: true,
-    ),
-    ChatItem(
-      name: 'Nusrat Jahan',
-      lastMessage: 'Thanks. I will complete the payment by tonight.',
-      time: '9:12 AM',
-      unreadCount: 0,
-      isOnline: false,
-    ),
-    ChatItem(
-      name: 'Mehedi Rahman',
-      lastMessage: 'When is my visa appointment date?',
-      time: 'Yesterday',
-      unreadCount: 4,
-      isOnline: true,
-    ),
-    ChatItem(
-      name: 'Farida Begum',
-      lastMessage: 'Received the ticket details, thank you so much.',
-      time: 'Yesterday',
-      unreadCount: 0,
-      isOnline: false,
-    ),
-    ChatItem(
-      name: 'Jahidul Islam',
-      lastMessage: 'Please call me when the BG sent passport is ready.',
-      time: 'Mon',
-      unreadCount: 1,
-      isOnline: true,
-    ),
-    ChatItem(
-      name: 'Tahmid Chowdhury',
-      lastMessage: 'I just sent the additional documents in email.',
-      time: 'Sun',
-      unreadCount: 0,
-      isOnline: false,
-    ),
-  ];
+  final ChatService _chatService = ChatService();
+  List<Conversation> _chats = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _fetchConversations();
+  }
+
+  Future<void> _fetchConversations() async {
+    setState(() => _isLoading = true);
+    final convos = await _chatService.getConversations();
+    if (mounted) {
+      setState(() {
+        _chats = convos;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -76,7 +49,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     super.dispose();
   }
 
-  List<ChatItem> get _filteredChats {
+  List<Conversation> get _filteredChats {
     final query = _searchQuery.trim().toLowerCase();
     var filtered = _chats;
 
@@ -88,8 +61,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     if (query.isNotEmpty) {
       filtered = filtered.where((chat) {
-        return chat.name.toLowerCase().contains(query) ||
-            chat.lastMessage.toLowerCase().contains(query);
+        return chat.participantName.toLowerCase().contains(query) ||
+            (chat.lastMessageContent?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
 
@@ -168,33 +141,34 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 Expanded(
                   child: Stack(
                     children: [
-                      _filteredChats.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No conversations found.',
-                                style: TextStyle(color: AppPalette.textMuted),
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.only(bottom: 80),
-                              itemCount: _filteredChats.length,
-                              separatorBuilder: (_, index) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final item = _filteredChats[index];
-                                return _ChatCard(
-                                  item: item,
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ChatConversationScreen(chat: item),
-                                      ),
-                                    );
-                                  },
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_filteredChats.isEmpty)
+                        const Center(
+                          child: Text(
+                            'No conversations found.',
+                            style: TextStyle(color: AppPalette.textMuted),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 80),
+                          itemCount: _filteredChats.length,
+                          separatorBuilder: (_, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _filteredChats[index];
+                            return _ChatCard(
+                              item: item,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatConversationScreen(chat: item),
+                                  ),
                                 );
                               },
-                            ),
+                            );
+                          },
+                        ),
                       Positioned(
                         bottom: 16,
                         right: 0,
@@ -204,10 +178,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Icon(
-                            Icons.edit_square,
+                            Icons.refresh,
                             color: Colors.white,
                           ),
-                          onPressed: () {},
+                          onPressed: _fetchConversations,
                         ),
                       ),
                     ],
@@ -295,8 +269,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
 class _ChatCard extends StatelessWidget {
   const _ChatCard({required this.item, required this.onTap});
 
-  final ChatItem item;
+  final Conversation item;
   final VoidCallback onTap;
+
+  String _formatTime(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(timeStr).toLocal();
+      final now = DateTime.now();
+      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+        return '${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}';
+      }
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return '';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -320,7 +308,7 @@ class _ChatCard extends StatelessWidget {
                   radius: 28,
                   backgroundColor: const Color(0xFFE2E8F0),
                   child: Text(
-                    _initials(item.name),
+                    _initials(item.participantName),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -353,7 +341,7 @@ class _ChatCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          item.name,
+                          item.participantName.isNotEmpty ? item.participantName : 'Conversation',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -365,7 +353,7 @@ class _ChatCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        item.time,
+                        _formatTime(item.lastMessageTime ?? item.updatedAt),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -376,7 +364,7 @@ class _ChatCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    item.lastMessage,
+                    item.lastMessageContent ?? 'No messages yet',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -421,20 +409,4 @@ class _ChatCard extends StatelessWidget {
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
-}
-
-class ChatItem {
-  const ChatItem({
-    required this.name,
-    required this.lastMessage,
-    required this.time,
-    required this.unreadCount,
-    required this.isOnline,
-  });
-
-  final String name;
-  final String lastMessage;
-  final String time;
-  final int unreadCount;
-  final bool isOnline;
 }

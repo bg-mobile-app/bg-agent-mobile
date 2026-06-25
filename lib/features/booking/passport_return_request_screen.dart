@@ -7,6 +7,8 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import 'widgets/return_request_card.dart';
 import '../home/dashboard_screen.dart';
+import 'dart:async';
+import 'services/booking_service.dart';
 
 class PassportReturnRequestScreen extends StatefulWidget {
   const PassportReturnRequestScreen({super.key});
@@ -18,70 +20,61 @@ class PassportReturnRequestScreen extends StatefulWidget {
 
 class _PassportReturnRequestScreenState
     extends State<PassportReturnRequestScreen> {
+  final BookingService _bookingService = BookingService();
+  bool _isLoading = false;
+  List<ReceiveBookingItemDto> _items = [];
+  Timer? _searchDebounce;
   bool _isCardView = false;
   bool _isMyReturn = false; // false = Customer Return, true = My Return
   late final TextEditingController _searchController;
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
 
-  final List<ReturnRequestItem> _items = const [
-    ReturnRequestItem(
-      workPermitId: 'WP-RET-1001',
-      id: 8801,
-      createdAt: '2026-05-15',
-      name: 'Rahim Uddin',
-      passportNo: 'A1234567',
-      fromCountry: 'Bangladesh',
-      toCountry: 'UAE',
-      agencyTotalCost: 75000,
-      paidAmount: 25000,
-      isMyReturn: false,
-    ),
-    ReturnRequestItem(
-      workPermitId: 'WP-RET-1002',
-      id: 8802,
-      createdAt: '2026-05-16',
-      name: 'Selim Reza',
-      passportNo: 'B9876543',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Qatar',
-      agencyTotalCost: 80000,
-      paidAmount: 40000,
-      isMyReturn: true,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _fetchData();
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<ReturnRequestItem> get _filteredItems {
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await _bookingService.getReturnRequests(
+        page: 1,
+        search: _searchQuery,
+      );
+      if (mounted) {
+        setState(() {
+          _items = res.results;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching return requests: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  List<ReceiveBookingItemDto> get _filteredItems {
     final filteredByType = _items
-        .where((item) => item.isMyReturn == _isMyReturn)
+        .where((item) => item.isReturn == _isMyReturn)
         .toList();
-    final query = _searchQuery.trim().toLowerCase();
 
     return filteredByType.where((item) {
-      final matchesQuery =
-          query.isEmpty ||
-          item.workPermitId.toLowerCase().contains(query) ||
-          item.id.toString().contains(query) ||
-          item.name.toLowerCase().contains(query) ||
-          item.passportNo.toLowerCase().contains(query);
-      final createdAt = DateTime.parse(item.createdAt);
+      final createdAt = DateTime.tryParse(item.createdAt) ?? DateTime.now();
       final matchesDate =
           _selectedDateRange == null ||
           (!createdAt.isBefore(_selectedDateRange!.start) &&
               !createdAt.isAfter(_selectedDateRange!.end));
-      return matchesQuery && matchesDate;
+      return matchesDate;
     }).toList();
   }
 
@@ -106,10 +99,18 @@ class _PassportReturnRequestScreenState
                       controller: _searchController,
                       hintText:
                           'Search by post ID, booking ID, name or passport',
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      onSearchTap: () =>
-                          setState(() => _searchQuery = _searchController.text),
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value);
+                        _searchDebounce?.cancel();
+                        _searchDebounce = Timer(
+                          const Duration(milliseconds: 400),
+                          _fetchData,
+                        );
+                      },
+                      onSearchTap: () {
+                        setState(() => _searchQuery = _searchController.text);
+                        _fetchData();
+                      },
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -122,7 +123,12 @@ class _PassportReturnRequestScreenState
                       ],
                     ),
                     const SizedBox(height: 16),
-                    if (_isCardView) _buildCardList() else _buildTableList(),
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_isCardView)
+                      _buildCardList()
+                    else
+                      _buildTableList(),
                   ],
                 ),
               ),
@@ -345,11 +351,11 @@ class _PassportReturnRequestScreenState
           DataCell(Text(item.id.toString())),
           DataCell(Text(_displayDate(item.createdAt))),
           DataCell(Text(item.name)),
-          DataCell(Text(item.passportNo)),
+          DataCell(Text(item.passportNo ?? 'N/A')),
           DataCell(Text(item.fromCountry)),
           DataCell(Text(item.toCountry)),
-          DataCell(Text('৳ ${_money(item.agencyTotalCost)}')),
-          DataCell(Text('৳ ${_money(item.paidAmount)}')),
+          DataCell(Text('৳ ${_money(item.agencyTotalCost ?? 0)}')),
+          DataCell(Text('৳ ${_money(item.paidAmount ?? 0)}')),
           DataCell(
             IconButton(
               icon: const Icon(
@@ -375,12 +381,12 @@ class _PassportReturnRequestScreenState
               ? item.name.substring(0, 2).toUpperCase()
               : item.name.toUpperCase(),
           customerName: item.name,
-          passportNo: item.passportNo,
+          passportNo: item.passportNo ?? 'N/A',
           applyDate: _displayDate(item.createdAt),
           fromCountry: item.fromCountry,
           toCountry: item.toCountry,
-          totalCostText: '৳ ${_money(item.agencyTotalCost)}',
-          paidAmountText: '৳ ${_money(item.paidAmount)}',
+          totalCostText: '৳ ${_money(item.agencyTotalCost ?? 0)}',
+          paidAmountText: '৳ ${_money(item.paidAmount ?? 0)}',
           onReasonTap: () => _openActionsSheet(context, item),
           onDocsTap: () => _openActionsSheet(context, item),
           onAcceptTap: () => _openActionsSheet(context, item),
@@ -436,7 +442,7 @@ class _PassportReturnRequestScreenState
     return '${date.year}-$m-$d';
   }
 
-  void _openActionsSheet(BuildContext context, ReturnRequestItem item) {
+  void _openActionsSheet(BuildContext context, ReceiveBookingItemDto item) {
     showModalBottomSheet<void>(
       context: context,
       builder: (context) => SafeArea(
@@ -475,30 +481,4 @@ class _PassportReturnRequestScreenState
       ),
     );
   }
-}
-
-class ReturnRequestItem {
-  const ReturnRequestItem({
-    required this.workPermitId,
-    required this.id,
-    required this.createdAt,
-    required this.name,
-    required this.passportNo,
-    required this.fromCountry,
-    required this.toCountry,
-    required this.agencyTotalCost,
-    required this.paidAmount,
-    required this.isMyReturn,
-  });
-
-  final String workPermitId;
-  final int id;
-  final String createdAt;
-  final String name;
-  final String passportNo;
-  final String fromCountry;
-  final String toCountry;
-  final int agencyTotalCost;
-  final int paidAmount;
-  final bool isMyReturn;
 }

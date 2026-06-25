@@ -224,6 +224,33 @@ class BookingService {
     await _apiClient.post('/booking/wp/return/file-request/', data: payload);
   }
 
+  Future<ReceiveBookingsResponse> getReturnRequests({
+    required int page,
+    String search = '',
+  }) async {
+    try {
+      final queryParameters = <String, dynamic>{
+        'search': search.trim(),
+        'page': page,
+      };
+
+      final response = await _apiClient.get(
+        '/booking/wp/return/file-request/',
+        queryParameters: queryParameters,
+      );
+
+      if (response.data is Map<String, dynamic>) {
+        return ReceiveBookingsResponse.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      throw Exception('Invalid response type: ${response.data.runtimeType}');
+    } catch (e, stacktrace) {
+      debugPrint('Error fetching return requests: $e\n$stacktrace');
+      rethrow;
+    }
+  }
+
   Future<void> submitSendPassportRequest({
     required String fullName,
     required String phone,

@@ -6,6 +6,8 @@ import '../../common/widgets/app_search_bar.dart';
 import '../../common/widgets/styled_data_table_card.dart';
 import '../../common/widgets/view_toggle_button.dart';
 import '../home/dashboard_screen.dart';
+import 'dart:async';
+import 'services/booking_service.dart';
 
 class PassportReturnBgCollectReturnPpScreen extends StatefulWidget {
   const PassportReturnBgCollectReturnPpScreen({super.key});
@@ -17,68 +19,62 @@ class PassportReturnBgCollectReturnPpScreen extends StatefulWidget {
 
 class _PassportReturnBgCollectReturnPpScreenState
     extends State<PassportReturnBgCollectReturnPpScreen> {
+  final BookingService _bookingService = BookingService();
+  bool _isLoading = false;
+  List<ReceiveBookingItemDto> _items = [];
+  Timer? _searchDebounce;
   bool _isCardView = false;
   bool _isMyReturn = false;
   late final TextEditingController _searchController;
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
 
-  final List<_ReturnBgCollectItem> _items = const [
-    _ReturnBgCollectItem(
-      workPermitId: 'WP-RET-4001',
-      id: 8831,
-      createdAt: '2026-05-03',
-      name: 'Mizanur Rahman',
-      passportNo: 'G1122334',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Kuwait',
-      agencyTotalCost: 72000,
-      paidAmount: 32000,
-      isMyReturn: false,
-    ),
-    _ReturnBgCollectItem(
-      workPermitId: 'WP-RET-4002',
-      id: 8832,
-      createdAt: '2026-05-04',
-      name: 'Farhana Akter',
-      passportNo: 'H9988776',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Bahrain',
-      agencyTotalCost: 69000,
-      paidAmount: 45000,
-      isMyReturn: true,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _fetchData();
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<_ReturnBgCollectItem> get _filteredItems {
-    final query = _searchQuery.trim().toLowerCase();
-    return _items.where((item) {
-      final createdAt = DateTime.parse(item.createdAt);
-      final matchesType = item.isMyReturn == _isMyReturn;
-      final matchesQuery =
-          query.isEmpty ||
-          item.workPermitId.toLowerCase().contains(query) ||
-          item.id.toString().contains(query) ||
-          item.name.toLowerCase().contains(query) ||
-          item.passportNo.toLowerCase().contains(query);
-      final matchesDate =
-          _selectedDateRange == null ||
-          (!createdAt.isBefore(_selectedDateRange!.start) &&
-              !createdAt.isAfter(_selectedDateRange!.end));
-      return matchesType && matchesQuery && matchesDate;
-    }).toList();
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await _bookingService.getReceiveBookings(
+        status: 'BG_COLLECT_RETURN_PP',
+        page: 1,
+        search: _searchQuery,
+        fromDate: _selectedDateRange != null
+            ? _formatDate(_selectedDateRange!.start)
+            : null,
+        toDate: _selectedDateRange != null
+            ? _formatDate(_selectedDateRange!.end)
+            : null,
+      );
+      if (mounted) {
+        setState(() {
+          _items = res.results;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching bg collect pp requests: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  List<ReceiveBookingItemDto> get _filteredItems {
+    final filteredByType = _items
+        .where((item) => item.isReturn == _isMyReturn)
+        .toList();
+
+    return filteredByType;
   }
 
   @override
@@ -102,10 +98,18 @@ class _PassportReturnBgCollectReturnPpScreenState
                       controller: _searchController,
                       hintText:
                           'Search by post ID, booking ID, name or passport',
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      onSearchTap: () =>
-                          setState(() => _searchQuery = _searchController.text),
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value);
+                        _searchDebounce?.cancel();
+                        _searchDebounce = Timer(
+                          const Duration(milliseconds: 400),
+                          _fetchData,
+                        );
+                      },
+                      onSearchTap: () {
+                        setState(() => _searchQuery = _searchController.text);
+                        _fetchData();
+                      },
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -122,7 +126,12 @@ class _PassportReturnBgCollectReturnPpScreenState
                       ],
                     ),
                     const SizedBox(height: 16),
-                    if (_isCardView) _buildCardList() else _buildTableList(),
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_isCardView)
+                      _buildCardList()
+                    else
+                      _buildTableList(),
                   ],
                 ),
               ),
@@ -253,7 +262,10 @@ class _PassportReturnBgCollectReturnPpScreenState
                   lastDate: DateTime(now.year + 3, 12, 31),
                   initialDateRange: _selectedDateRange,
                 );
-                if (picked != null) setState(() => _selectedDateRange = picked);
+                if (picked != null) {
+                  setState(() => _selectedDateRange = picked);
+                  _fetchData();
+                }
               },
               child: Row(
                 children: [
@@ -279,7 +291,10 @@ class _PassportReturnBgCollectReturnPpScreenState
           ),
           if (_selectedDateRange != null)
             InkWell(
-              onTap: () => setState(() => _selectedDateRange = null),
+              onTap: () {
+                setState(() => _selectedDateRange = null);
+                _fetchData();
+              },
               child: const Icon(
                 Icons.close_rounded,
                 size: 18,
@@ -314,11 +329,11 @@ class _PassportReturnBgCollectReturnPpScreenState
               DataCell(Text(item.id.toString())),
               DataCell(Text(_displayDate(item.createdAt))),
               DataCell(Text(item.name)),
-              DataCell(Text(item.passportNo)),
+              DataCell(Text(item.passportNo ?? 'N/A')),
               DataCell(Text(item.fromCountry)),
               DataCell(Text(item.toCountry)),
-              DataCell(Text('৳ ${_money(item.agencyTotalCost)}')),
-              DataCell(Text('৳ ${_money(item.paidAmount)}')),
+              DataCell(Text('৳ ${_money(item.agencyTotalCost ?? 0)}')),
+              DataCell(Text('৳ ${_money(item.paidAmount ?? 0)}')),
               DataCell(
                 IconButton(
                   icon: const Icon(
@@ -374,7 +389,7 @@ class _PassportReturnBgCollectReturnPpScreenState
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  'Passport: ${item.passportNo}',
+                  'Passport: ${item.passportNo ?? 'N/A'}',
                   style: const TextStyle(color: AppPalette.textMuted),
                 ),
                 const SizedBox(height: 10),
@@ -452,7 +467,7 @@ class _PassportReturnBgCollectReturnPpScreenState
   String _formatDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-  void _openActionsSheet(BuildContext context, _ReturnBgCollectItem item) {
+  void _openActionsSheet(BuildContext context, ReceiveBookingItemDto item) {
     showModalBottomSheet<void>(
       context: context,
       builder: (context) => SafeArea(
@@ -491,30 +506,4 @@ class _PassportReturnBgCollectReturnPpScreenState
       ),
     );
   }
-}
-
-class _ReturnBgCollectItem {
-  const _ReturnBgCollectItem({
-    required this.workPermitId,
-    required this.id,
-    required this.createdAt,
-    required this.name,
-    required this.passportNo,
-    required this.fromCountry,
-    required this.toCountry,
-    required this.agencyTotalCost,
-    required this.paidAmount,
-    required this.isMyReturn,
-  });
-
-  final String workPermitId;
-  final int id;
-  final String createdAt;
-  final String name;
-  final String passportNo;
-  final String fromCountry;
-  final String toCountry;
-  final int agencyTotalCost;
-  final int paidAmount;
-  final bool isMyReturn;
 }

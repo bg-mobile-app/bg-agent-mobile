@@ -9,6 +9,9 @@ import '../home/widgets/work_permit_card.dart';
 import 'work_permit_details_screen.dart';
 import 'widgets/filter_sidebar.dart';
 import 'services/work_permit_service.dart';
+import '../chat/models/chat_models.dart';
+import '../chat/services/chat_service.dart';
+import '../chat/chat_conversation_screen.dart';
 import '../../common/theme/app_palette.dart';
 import '../../common/theme/app_spacing.dart';
 import '../../common/theme/app_text_styles.dart';
@@ -168,6 +171,39 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => WorkPermitDetailsScreen(item: item)),
     );
+  }
+
+  Future<void> _handleChat(WorkPermitItem item) async {
+    if (!_isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to start a chat')),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    final chatService = ChatService();
+    final conversation = await chatService.createConversation(
+      workPermitId: item.id.toString(),
+      receiverRole: "AGENCY", // Assuming the receiver is the agency
+    );
+    if (mounted) {
+      Navigator.pop(context); // Close loading dialog
+      if (conversation != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatConversationScreen(chat: conversation),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create chat conversation')),
+        );
+      }
+    }
   }
 
   Future<void> _openFiltersBottomSheet() async {
@@ -452,6 +488,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                             brandBlue: _brandBlue,
                             onViewDetails: () =>
                                 _openDetailsBySlug(displayItems[index]),
+                            onChat: () => _handleChat(displayItems[index]),
                             formatBdt: _formatBdt,
                             timeAgo: _timeAgo,
                           ),

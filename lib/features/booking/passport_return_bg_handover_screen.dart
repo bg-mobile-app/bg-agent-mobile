@@ -7,6 +7,8 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/theme/app_palette.dart';
 import 'widgets/return_bg_handover_card.dart';
 import '../home/dashboard_screen.dart';
+import 'dart:async';
+import 'services/booking_service.dart';
 
 class PassportReturnBgHandoverScreen extends StatefulWidget {
   const PassportReturnBgHandoverScreen({super.key});
@@ -18,71 +20,62 @@ class PassportReturnBgHandoverScreen extends StatefulWidget {
 
 class _PassportReturnBgHandoverScreenState
     extends State<PassportReturnBgHandoverScreen> {
+  final BookingService _bookingService = BookingService();
+  bool _isLoading = false;
+  List<ReceiveBookingItemDto> _items = [];
+  Timer? _searchDebounce;
   bool _isCardView = false;
   bool _isMyReturn = false; // false = Customer Return, true = My Return
   late final TextEditingController _searchController;
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
 
-  final List<ReturnBgHandoverItem> _items = const [
-    ReturnBgHandoverItem(
-      workPermitId: 'WP-RET-4001',
-      id: 8831,
-      createdAt: '2026-05-02',
-      name: 'Azizul Hakim',
-      passportNo: 'G1122334',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Singapore',
-      agencyTotalCost: 95000,
-      paidAmount: 95000,
-      isMyReturn: false,
-    ),
-    ReturnBgHandoverItem(
-      workPermitId: 'WP-RET-4002',
-      id: 8832,
-      createdAt: '2026-05-06',
-      name: 'Habibullah',
-      passportNo: 'H9988776',
-      fromCountry: 'Bangladesh',
-      toCountry: 'Malaysia',
-      agencyTotalCost: 75000,
-      paidAmount: 50000,
-      isMyReturn: true,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _fetchData();
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<ReturnBgHandoverItem> get _filteredItems {
-    final filteredByType = _items
-        .where((item) => item.isMyReturn == _isMyReturn)
-        .toList();
-    final query = _searchQuery.trim().toLowerCase();
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await _bookingService.getReceiveBookings(
+        status: 'BG_HANDOVER_PP_TO_CUSTOMER',
+        page: 1,
+        search: _searchQuery,
+        fromDate: _selectedDateRange != null
+            ? _formatDate(_selectedDateRange!.start)
+            : null,
+        toDate: _selectedDateRange != null
+            ? _formatDate(_selectedDateRange!.end)
+            : null,
+      );
+      if (mounted) {
+        setState(() {
+          _items = res.results;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching bg handover pp requests: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
-    return filteredByType.where((item) {
-      final matchesQuery =
-          query.isEmpty ||
-          item.workPermitId.toLowerCase().contains(query) ||
-          item.id.toString().contains(query) ||
-          item.name.toLowerCase().contains(query) ||
-          item.passportNo.toLowerCase().contains(query);
-      final createdAt = DateTime.parse(item.createdAt);
-      final matchesDate =
-          _selectedDateRange == null ||
-          (!createdAt.isBefore(_selectedDateRange!.start) &&
-              !createdAt.isAfter(_selectedDateRange!.end));
-      return matchesQuery && matchesDate;
-    }).toList();
+  List<ReceiveBookingItemDto> get _filteredItems {
+    final filteredByType = _items
+        .where((item) => item.isReturn == _isMyReturn)
+        .toList();
+
+    return filteredByType;
   }
 
   @override
@@ -106,10 +99,18 @@ class _PassportReturnBgHandoverScreenState
                       controller: _searchController,
                       hintText:
                           'Search by post ID, booking ID, name or passport',
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      onSearchTap: () =>
-                          setState(() => _searchQuery = _searchController.text),
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value);
+                        _searchDebounce?.cancel();
+                        _searchDebounce = Timer(
+                          const Duration(milliseconds: 400),
+                          _fetchData,
+                        );
+                      },
+                      onSearchTap: () {
+                        setState(() => _searchQuery = _searchController.text);
+                        _fetchData();
+                      },
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -122,7 +123,12 @@ class _PassportReturnBgHandoverScreenState
                       ],
                     ),
                     const SizedBox(height: 16),
-                    if (_isCardView) _buildCardList() else _buildTableList(),
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_isCardView)
+                      _buildCardList()
+                    else
+                      _buildTableList(),
                   ],
                 ),
               ),
@@ -281,7 +287,10 @@ class _PassportReturnBgHandoverScreenState
                   lastDate: DateTime(now.year + 3, 12, 31),
                   initialDateRange: _selectedDateRange,
                 );
-                if (picked != null) setState(() => _selectedDateRange = picked);
+                if (picked != null) {
+                  setState(() => _selectedDateRange = picked);
+                  _fetchData();
+                }
               },
               child: Row(
                 children: [
@@ -307,7 +316,10 @@ class _PassportReturnBgHandoverScreenState
           ),
           if (_selectedDateRange != null)
             InkWell(
-              onTap: () => setState(() => _selectedDateRange = null),
+              onTap: () {
+                setState(() => _selectedDateRange = null);
+                _fetchData();
+              },
               borderRadius: BorderRadius.circular(999),
               child: const Padding(
                 padding: EdgeInsets.all(4),
@@ -345,11 +357,11 @@ class _PassportReturnBgHandoverScreenState
           DataCell(Text(item.id.toString())),
           DataCell(Text(_displayDate(item.createdAt))),
           DataCell(Text(item.name)),
-          DataCell(Text(item.passportNo)),
+          DataCell(Text(item.passportNo ?? 'N/A')),
           DataCell(Text(item.fromCountry)),
           DataCell(Text(item.toCountry)),
-          DataCell(Text('৳ ${_money(item.agencyTotalCost)}')),
-          DataCell(Text('৳ ${_money(item.paidAmount)}')),
+          DataCell(Text('৳ ${_money(item.agencyTotalCost ?? 0)}')),
+          DataCell(Text('৳ ${_money(item.paidAmount ?? 0)}')),
           DataCell(
             IconButton(
               icon: const Icon(
@@ -375,12 +387,12 @@ class _PassportReturnBgHandoverScreenState
               ? item.name.substring(0, 2).toUpperCase()
               : item.name.toUpperCase(),
           customerName: item.name,
-          passportNo: item.passportNo,
+          passportNo: item.passportNo ?? 'N/A',
           applyDate: _displayDate(item.createdAt),
           fromCountry: item.fromCountry,
           toCountry: item.toCountry,
-          totalCostText: '৳ ${_money(item.agencyTotalCost)}',
-          paidAmountText: '৳ ${_money(item.paidAmount)}',
+          totalCostText: '৳ ${_money(item.agencyTotalCost ?? 0)}',
+          paidAmountText: '৳ ${_money(item.paidAmount ?? 0)}',
           onReasonTap: () => _openActionsSheet(context, item),
           onDocsTap: () => _openActionsSheet(context, item),
           onReceiptTap: () => _openActionsSheet(context, item),
@@ -436,7 +448,7 @@ class _PassportReturnBgHandoverScreenState
     return '${date.year}-$m-$d';
   }
 
-  void _openActionsSheet(BuildContext context, ReturnBgHandoverItem item) {
+  void _openActionsSheet(BuildContext context, ReceiveBookingItemDto item) {
     showModalBottomSheet<void>(
       context: context,
       builder: (context) => SafeArea(
@@ -475,30 +487,4 @@ class _PassportReturnBgHandoverScreenState
       ),
     );
   }
-}
-
-class ReturnBgHandoverItem {
-  const ReturnBgHandoverItem({
-    required this.workPermitId,
-    required this.id,
-    required this.createdAt,
-    required this.name,
-    required this.passportNo,
-    required this.fromCountry,
-    required this.toCountry,
-    required this.agencyTotalCost,
-    required this.paidAmount,
-    required this.isMyReturn,
-  });
-
-  final String workPermitId;
-  final int id;
-  final String createdAt;
-  final String name;
-  final String passportNo;
-  final String fromCountry;
-  final String toCountry;
-  final int agencyTotalCost;
-  final int paidAmount;
-  final bool isMyReturn;
 }

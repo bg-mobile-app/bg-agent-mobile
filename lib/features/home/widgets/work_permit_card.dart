@@ -9,6 +9,7 @@ class WorkPermitCard extends StatelessWidget {
     required this.item,
     required this.brandBlue,
     required this.onViewDetails,
+    this.onChat,
     required this.formatBdt,
     required this.timeAgo,
   });
@@ -16,6 +17,7 @@ class WorkPermitCard extends StatelessWidget {
   final WorkPermitItem item;
   final Color brandBlue;
   final VoidCallback onViewDetails;
+  final VoidCallback? onChat;
   final String Function(int) formatBdt;
   final String Function(DateTime) timeAgo;
 
@@ -208,6 +210,17 @@ class WorkPermitCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
+                              if (onChat != null) ...[
+                                SizedBox(width: responsive.size(8, min: 6, max: 8)),
+                                IconButton(
+                                  onPressed: onChat,
+                                  icon: const Icon(Icons.chat_bubble_outline),
+                                  color: brandBlue,
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: brandBlue.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],
