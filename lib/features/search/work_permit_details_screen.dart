@@ -64,6 +64,17 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     final shareText = 'Check out this work permit: $title in $country. Price: BDT ${widget.item.customerPrice}. Learn more at: $shareUrl';
     final imageUrl = _details?.image.isNotEmpty == true ? _details!.image : widget.item.image;
 
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [SHARE] Share sheet opened');
+    debugPrint('║  source      = WorkPermitDetailsScreen._showShareSheet()');
+    debugPrint('║  title       = $title');
+    debugPrint('║  country     = $country');
+    debugPrint('║  slug        = $slug');
+    debugPrint('║  shareUrl    = $shareUrl');
+    debugPrint('║  shareText   = $shareText');
+    debugPrint('║  imageUrl    = $imageUrl');
+    debugPrint('╚══════════════════════════════════════════════════════');
+
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -96,10 +107,13 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                     onTap: () async {
                       Navigator.pop(context);
                       final url = Uri.parse('https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}');
+                      debugPrint('║ [SHARE] WhatsApp launch requested');
+                      debugPrint('║  url = $url');
                       try {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+                        debugPrint('║  launch result = $launched');
                       } catch (e) {
-                        debugPrint('Could not launch WhatsApp: $e');
+                        debugPrint('║  ❌ Could not launch WhatsApp: $e');
                       }
                     },
                   ),
@@ -110,10 +124,13 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                     onTap: () async {
                       Navigator.pop(context);
                       final url = Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(shareUrl)}');
+                      debugPrint('║ [SHARE] Facebook launch requested');
+                      debugPrint('║  url = $url');
                       try {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+                        debugPrint('║  launch result = $launched');
                       } catch (e) {
-                        debugPrint('Could not launch Facebook: $e');
+                        debugPrint('║  ❌ Could not launch Facebook: $e');
                       }
                     },
                   ),
@@ -124,10 +141,13 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                     onTap: () async {
                       Navigator.pop(context);
                       final url = Uri.parse('https://t.me/share/url?url=${Uri.encodeComponent(shareUrl)}&text=${Uri.encodeComponent(shareText)}');
+                      debugPrint('║ [SHARE] Telegram launch requested');
+                      debugPrint('║  url = $url');
                       try {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+                        debugPrint('║  launch result = $launched');
                       } catch (e) {
-                        debugPrint('Could not launch Telegram: $e');
+                        debugPrint('║  ❌ Could not launch Telegram: $e');
                       }
                     },
                   ),
@@ -138,10 +158,13 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                     onTap: () async {
                       Navigator.pop(context);
                       final url = Uri.parse('https://twitter.com/intent/tweet?text=${Uri.encodeComponent(shareText)}');
+                      debugPrint('║ [SHARE] Twitter launch requested');
+                      debugPrint('║  url = $url');
                       try {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+                        debugPrint('║  launch result = $launched');
                       } catch (e) {
-                        debugPrint('Could not launch Twitter: $e');
+                        debugPrint('║  ❌ Could not launch Twitter: $e');
                       }
                     },
                   ),
@@ -158,6 +181,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                   subtitle: const Text('Opens native share sheet with image', style: TextStyle(fontSize: 12)),
                   onTap: () async {
                     Navigator.pop(context);
+                    debugPrint('║ [SHARE] Native share with image requested');
                     await _shareWithImage(
                       imageUrl: imageUrl,
                       shareText: shareText,
@@ -172,9 +196,15 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                 subtitle: const Text('Opens native share sheet', style: TextStyle(fontSize: 12)),
                 onTap: () async {
                   Navigator.pop(context);
-                  await SharePlus.instance.share(
-                    ShareParams(text: shareText),
-                  );
+                  debugPrint('║ [SHARE] Native share link requested');
+                  try {
+                    await SharePlus.instance.share(
+                      ShareParams(text: shareText),
+                    );
+                    debugPrint('║  ✅ Native share completed');
+                  } catch (e) {
+                    debugPrint('║  ❌ Native share failed: $e');
+                  }
                 },
               ),
               ListTile(
@@ -182,7 +212,9 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                 title: const Text('Copy Link', style: TextStyle(fontWeight: FontWeight.w600)),
                 onTap: () {
                   Navigator.pop(context);
+                  debugPrint('║ [SHARE] Copy link requested');
                   Clipboard.setData(ClipboardData(text: shareUrl));
+                  debugPrint('║  ✅ Link copied to clipboard');
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Link copied to clipboard!'),
@@ -204,6 +236,13 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     required String shareUrl,
   }) async {
     try {
+      debugPrint('╔══════════════════════════════════════════════════════');
+      debugPrint('║ [SHARE] Preparing image-based share');
+      debugPrint('║  imageUrl = $imageUrl');
+      debugPrint('║  shareText = $shareText');
+      debugPrint('║  shareUrl = $shareUrl');
+      debugPrint('╚══════════════════════════════════════════════════════');
+
       // Show loading indicator
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -225,7 +264,9 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       );
 
       // Download image bytes
+      debugPrint('║ [SHARE] Downloading share image');
       final response = await http.get(Uri.parse(imageUrl));
+      debugPrint('║  image download status = ${response.statusCode}');
       if (response.statusCode != 200) {
         throw Exception('Failed to download image: ${response.statusCode}');
       }
@@ -235,19 +276,22 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
       final ext = imageUrl.contains('.png') ? 'png' : 'jpg';
       final file = File('${tempDir.path}/wp_share_image.$ext');
       await file.writeAsBytes(response.bodyBytes);
+      debugPrint('║  image saved to = ${file.path}');
 
       // Dismiss loading snackbar
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       // Share with image using share_plus
+      debugPrint('║ [SHARE] Invoking native share with image');
       await SharePlus.instance.share(
         ShareParams(
           text: shareText,
           files: [XFile(file.path)],
         ),
       );
+      debugPrint('║  ✅ Image share completed');
     } catch (e) {
-      debugPrint('Error sharing with image: $e');
+      debugPrint('║  ❌ Error sharing with image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
