@@ -16,17 +16,7 @@ class AuthService {
     );
   }
 
-  Future<Response> registerRecruitingAgency(FormData formData) async {
-    return registerAgency(formData);
-  }
 
-  Future<Response> registerAgency(FormData formData) async {
-    return _apiClient.post(
-      '/user/register/agency/',
-      data: formData,
-      options: Options(contentType: 'multipart/form-data'),
-    );
-  }
 
   Future<Response> resendOtp({required String username}) async {
     return _apiClient.post('/auth/otp/resend/', data: {'username': username});

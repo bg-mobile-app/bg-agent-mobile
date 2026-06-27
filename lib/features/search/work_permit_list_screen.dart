@@ -230,56 +230,72 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
     final chips = <Widget>[];
 
     if (_currentFilter.query.isNotEmpty) {
-      chips.add(_filterChip('Keyword: ${_currentFilter.query}', () {
-        _searchController.clear();
-        _applyFilters(FilterValue(
-          query: '',
-          country: _currentFilter.country,
-          workType: _currentFilter.workType,
-          selectionType: _currentFilter.selectionType,
-          minAge: _currentFilter.minAge,
-          maxAge: _currentFilter.maxAge,
-        ));
-      }));
+      chips.add(
+        _filterChip('Keyword: ${_currentFilter.query}', () {
+          _searchController.clear();
+          _applyFilters(
+            FilterValue(
+              query: '',
+              country: _currentFilter.country,
+              workType: _currentFilter.workType,
+              selectionType: _currentFilter.selectionType,
+              minAge: _currentFilter.minAge,
+              maxAge: _currentFilter.maxAge,
+            ),
+          );
+        }),
+      );
     }
 
     if (_currentFilter.country != null) {
-      chips.add(_filterChip('Country: ${_currentFilter.country}', () {
-        _applyFilters(FilterValue(
-          query: _currentFilter.query,
-          country: null,
-          workType: _currentFilter.workType,
-          selectionType: _currentFilter.selectionType,
-          minAge: _currentFilter.minAge,
-          maxAge: _currentFilter.maxAge,
-        ));
-      }));
+      chips.add(
+        _filterChip('Country: ${_currentFilter.country}', () {
+          _applyFilters(
+            FilterValue(
+              query: _currentFilter.query,
+              country: null,
+              workType: _currentFilter.workType,
+              selectionType: _currentFilter.selectionType,
+              minAge: _currentFilter.minAge,
+              maxAge: _currentFilter.maxAge,
+            ),
+          );
+        }),
+      );
     }
 
     if (_currentFilter.workType != null) {
-      chips.add(_filterChip('Work: ${_currentFilter.workType}', () {
-        _applyFilters(FilterValue(
-          query: _currentFilter.query,
-          country: _currentFilter.country,
-          workType: null,
-          selectionType: _currentFilter.selectionType,
-          minAge: _currentFilter.minAge,
-          maxAge: _currentFilter.maxAge,
-        ));
-      }));
+      chips.add(
+        _filterChip('Work: ${_currentFilter.workType}', () {
+          _applyFilters(
+            FilterValue(
+              query: _currentFilter.query,
+              country: _currentFilter.country,
+              workType: null,
+              selectionType: _currentFilter.selectionType,
+              minAge: _currentFilter.minAge,
+              maxAge: _currentFilter.maxAge,
+            ),
+          );
+        }),
+      );
     }
 
     if (_currentFilter.selectionType != null) {
-      chips.add(_filterChip('Selection: ${_currentFilter.selectionType}', () {
-        _applyFilters(FilterValue(
-          query: _currentFilter.query,
-          country: _currentFilter.country,
-          workType: _currentFilter.workType,
-          selectionType: null,
-          minAge: _currentFilter.minAge,
-          maxAge: _currentFilter.maxAge,
-        ));
-      }));
+      chips.add(
+        _filterChip('Selection: ${_currentFilter.selectionType}', () {
+          _applyFilters(
+            FilterValue(
+              query: _currentFilter.query,
+              country: _currentFilter.country,
+              workType: _currentFilter.workType,
+              selectionType: null,
+              minAge: _currentFilter.minAge,
+              maxAge: _currentFilter.maxAge,
+            ),
+          );
+        }),
+      );
     }
 
     if (_currentFilter.minAge != null || _currentFilter.maxAge != null) {
@@ -288,18 +304,22 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
       final ageText = minStr.isNotEmpty && maxStr.isNotEmpty
           ? 'Age: $minStr-$maxStr'
           : minStr.isNotEmpty
-              ? 'Age: >=$minStr'
-              : 'Age: <=$maxStr';
-      chips.add(_filterChip(ageText, () {
-        _applyFilters(FilterValue(
-          query: _currentFilter.query,
-          country: _currentFilter.country,
-          workType: _currentFilter.workType,
-          selectionType: _currentFilter.selectionType,
-          minAge: null,
-          maxAge: null,
-        ));
-      }));
+          ? 'Age: >=$minStr'
+          : 'Age: <=$maxStr';
+      chips.add(
+        _filterChip(ageText, () {
+          _applyFilters(
+            FilterValue(
+              query: _currentFilter.query,
+              country: _currentFilter.country,
+              workType: _currentFilter.workType,
+              selectionType: _currentFilter.selectionType,
+              minAge: null,
+              maxAge: null,
+            ),
+          );
+        }),
+      );
     }
 
     if (chips.isEmpty) return const SizedBox.shrink();
@@ -320,7 +340,13 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12),
             ),
-            child: const Text('Clear all', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Clear all',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -331,13 +357,23 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: InputChip(
-        label: Text(label, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         backgroundColor: _brandBlue,
         deleteIconColor: Colors.white,
         onDeleted: onDeleted,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide.none,
+        ),
       ),
     );
   }
@@ -355,7 +391,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
           final result = await context.push('/login');
           if (result == true && mounted) setState(() => _isLoggedIn = true);
         },
-        onSignUp: () => context.push(AppRoutes.agencySignUp),
+        onSignUp: () => context.push(AppRoutes.agentSignUp),
         onNotifications: () => context.push('/dashboard/notifications'),
         onProfile: () => context.push('/dashboard/customer/profile'),
         profileImageUrl: _profileImageUrl,
@@ -420,7 +456,7 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Work Permit', style: AppTextStyles.headline2),
+            const Text('Work Abroad', style: AppTextStyles.headline2),
             if (width < 1024)
               InkWell(
                 onTap: _openFiltersBottomSheet,
@@ -457,68 +493,70 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
           )
         else
           LayoutBuilder(
-          builder: (context, constraints) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (width >= 1024) ...[
-                  SizedBox(
-                    width: 320,
-                    child: FilterSidebar(
-                      initialValue: _currentFilter,
-                      onApply: _applyFilters,
+            builder: (context, constraints) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (width >= 1024) ...[
+                    SizedBox(
+                      width: 320,
+                      child: FilterSidebar(
+                        initialValue: _currentFilter,
+                        onApply: _applyFilters,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                ],
-                Expanded(
-                  child: Skeletonizer(
-                    enabled: _isLoading,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: displayItems.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 16),
-                          itemBuilder: (context, index) => WorkPermitCard(
-                            item: displayItems[index],
-                            brandBlue: _brandBlue,
-                            onViewDetails: () =>
-                                _openDetailsBySlug(displayItems[index]),
-                            onChat: () => _handleChat(displayItems[index]),
-                            formatBdt: _formatBdt,
-                            timeAgo: _timeAgo,
-                          ),
-                        ),
-                        if (!_isLoading && _nextCursor != null) ...[
-                          const SizedBox(height: 24),
-                          if (_isMoreLoading)
-                            const Center(child: CircularProgressIndicator())
-                          else
-                            ElevatedButton(
-                              onPressed: _loadMore,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _brandBlue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text('Load More'),
+                    const SizedBox(width: 16),
+                  ],
+                  Expanded(
+                    child: Skeletonizer(
+                      enabled: _isLoading,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: displayItems.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) => WorkPermitCard(
+                              item: displayItems[index],
+                              brandBlue: _brandBlue,
+                              onViewDetails: () =>
+                                  _openDetailsBySlug(displayItems[index]),
+                              onChat: () => _handleChat(displayItems[index]),
+                              formatBdt: _formatBdt,
+                              timeAgo: _timeAgo,
                             ),
+                          ),
+                          if (!_isLoading && _nextCursor != null) ...[
+                            const SizedBox(height: 24),
+                            if (_isMoreLoading)
+                              const Center(child: CircularProgressIndicator())
+                            else
+                              ElevatedButton(
+                                onPressed: _loadMore,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _brandBlue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text('Load More'),
+                              ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
-        ),
+                ],
+              );
+            },
+          ),
       ],
     );
   }
@@ -583,12 +621,18 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
                             ],
                     ),
                     child: Center(
-                      child: FUI(
-                        item.icon,
-                        color: isSelected ? Colors.white : _brandBlue,
-                        width: 24,
-                        height: 24,
-                      ),
+                      child: item.customIconData != null
+                          ? Icon(
+                              item.customIconData,
+                              color: isSelected ? Colors.white : _brandBlue,
+                              size: 24,
+                            )
+                          : FUI(
+                              item.icon,
+                              color: isSelected ? Colors.white : _brandBlue,
+                              width: 24,
+                              height: 24,
+                            ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm + 2),

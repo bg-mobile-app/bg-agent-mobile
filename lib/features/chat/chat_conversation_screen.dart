@@ -37,8 +37,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     if (mounted) {
       setState(() {
         if (history != null) {
-          // The API returns newest first. Let's reverse to show oldest top, newest bottom
-          _messages = history.messages.reversed.toList();
+          _messages = history.messages;
         }
         _isLoading = false;
       });
@@ -113,6 +112,19 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     // Message will come back via WS 'chat_message' event
   }
 
+  String _getChatTitle(Conversation item) {
+    if (item.workPermitId > 0 && item.workPermitRef?.isNotEmpty == true) {
+      return 'WP#${item.workPermitId} (${item.workPermitRef})';
+    } else if (item.workPermitId > 0) {
+      return 'WP#${item.workPermitId}';
+    } else if (item.workPermitRef?.isNotEmpty == true) {
+      return 'WP: ${item.workPermitRef}';
+    } else if (item.participantName.isNotEmpty) {
+      return item.participantName;
+    }
+    return 'Conversation';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,7 +136,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
             Column(
               children: [
                 _TopBar(
-                  name: widget.chat.participantName.isNotEmpty ? widget.chat.participantName : 'Customer', 
+                  name: _getChatTitle(widget.chat), 
                   isOnline: _isOnline,
                   onBack: () => Navigator.pop(context),
                 ),
@@ -432,76 +444,79 @@ class _InputDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: const BoxDecoration(
-        color: Color(0xFFDCE7F7),
-        border: Border(top: BorderSide(color: Color(0xFFC3C6D7))),
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 12,
+            offset: Offset(0, -4),
+          ),
+        ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.add_circle, color: Color(0xFF004AC6)),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: IconButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Attachment feature coming soon')),
+                );
+              },
+              icon: const Icon(Icons.attach_file_rounded, color: Color(0xFF64748B)),
+            ),
           ),
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: const Color(0xFF737686)),
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(24),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      onChanged: (_) => onTyping(),
-                      onSubmitted: (_) => onSend(),
-                      decoration: const InputDecoration(
-                        hintText: 'Type a message...',
-                        hintStyle: TextStyle(color: Color(0xFF737686), fontSize: 16),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {},
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.sentiment_satisfied_alt_outlined,
-                      size: 20,
-                      color: Color(0xFF737686),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () {},
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.attach_file,
-                      size: 20,
-                      color: Color(0xFF737686),
-                    ),
-                  ),
-                ],
+              child: TextField(
+                controller: controller,
+                onChanged: (_) => onTyping(),
+                onSubmitted: (_) => onSend(),
+                minLines: 1,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  hintText: 'Type a message...',
+                  hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 15),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2563EB),
-              borderRadius: BorderRadius.circular(999),
-              boxShadow: AppPalette.cardShadow,
-            ),
-            child: IconButton(
-              onPressed: onSend,
-              icon: const Icon(Icons.send, color: Color(0xFFEEEFFF)),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: onSend,
+                icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              ),
             ),
           ),
         ],

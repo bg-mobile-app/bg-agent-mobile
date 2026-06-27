@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../common/services/api_client.dart';
 import '../common/widgets/layout/app_scaffold.dart';
+import '../features/auth/agent_sign_up_screen.dart';
 import '../features/auth/agent_sign_up_thank_you_screen.dart';
-import '../features/auth/recruiting_sign_up_screen.dart';
 import '../features/auth/sign_in_screen.dart';
 import '../features/auth/otp_verification_screen.dart';
 import '../features/onboarding/get_started_screen.dart';
@@ -13,14 +13,6 @@ import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-Widget _recruitingAgencySignUpScreen(
-  BuildContext context,
-  GoRouterState state,
-) {
-  return RecruitingSignUpScreen(
-    agencyType: state.uri.queryParameters['type'] ?? 'recruiting',
-  );
-}
 
 CustomTransitionPage _slideTransition(
   BuildContext context,
@@ -49,10 +41,7 @@ Future<String?> _authRedirect(BuildContext context, GoRouterState state) async {
   final isAuthRoute = location == AppRoutes.splash ||
       location == AppRoutes.login ||
       location == AppRoutes.getStarted ||
-      location == AppRoutes.signUpCustomer ||
       location == AppRoutes.agentSignUp ||
-      location == AppRoutes.agencySignUp ||
-      location == AppRoutes.recruitingSignUp ||
       location == AppRoutes.agentSignUpThankYou ||
       location == AppRoutes.otpVerify;
 
@@ -81,22 +70,8 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SignInScreen(),
     ),
     GoRoute(
-      path: AppRoutes.signUpCustomer,
-      // Keep legacy paths, but send users directly to recruiting agency sign up.
-      builder: _recruitingAgencySignUpScreen,
-    ),
-    GoRoute(
       path: AppRoutes.agentSignUp,
-      // Keep legacy paths, but send users directly to recruiting agency sign up.
-      builder: _recruitingAgencySignUpScreen,
-    ),
-    GoRoute(
-      path: AppRoutes.agencySignUp,
-      builder: _recruitingAgencySignUpScreen,
-    ),
-    GoRoute(
-      path: AppRoutes.recruitingSignUp,
-      builder: _recruitingAgencySignUpScreen,
+      builder: (context, state) => const AgentSignUpScreen(),
     ),
     GoRoute(
       path: AppRoutes.agentSignUpThankYou,
@@ -123,22 +98,6 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.tabBooking,
       pageBuilder: (c, s) =>
           _slideTransition(c, s, const AppScaffold(tabIndex: 2)),
-    ),
-    GoRoute(
-      path: '/dashboard/ads/create',
-      pageBuilder: (c, s) => _slideTransition(
-        c,
-        s,
-        const AppScaffold(dashboardPath: '/dashboard/ads/create', tabIndex: 2),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/ads/edit/:lang/:id',
-      pageBuilder: (c, s) => _slideTransition(
-        c,
-        s,
-        AppScaffold(dashboardPath: s.uri.path, tabIndex: 2),
-      ),
     ),
     GoRoute(
       path: AppRoutes.tabChat,

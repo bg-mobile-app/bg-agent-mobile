@@ -91,7 +91,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final sanitizedUrl = linkUrl.trim();
     if (sanitizedUrl.startsWith('/')) {
       if (!mounted) return;
-      await context.push(sanitizedUrl);
+      context.go(sanitizedUrl);
       return;
     }
 
@@ -340,7 +340,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    if (n.linkUrl != null)
+                    if (n.linkUrl != null && n.linkUrl!.trim().isNotEmpty)
                       OutlinedButton.icon(
                         onPressed: _loading ? null : () => _takeAction(n),
                         style: OutlinedButton.styleFrom(

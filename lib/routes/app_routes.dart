@@ -5,10 +5,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String getStarted = '/get-started';
   static const String login = '/login';
-  static const String signUpCustomer = '/sign-up/customer';
   static const String agentSignUp = '/sign-up/agent';
-  static const String agencySignUp = '/sign-up/agency';
-  static const String recruitingSignUp = '/sign-up/agency/recruiting';
   static const String otpVerify = '/auth/otp-verify';
   static const String agentSignUpThankYou = '/sign-up/agent/thank-you';
 

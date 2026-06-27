@@ -2,36 +2,28 @@ class AgencyAccess {
   AgencyAccess._();
 
   static const accessDeniedMessage =
-      'Only agency or agency staff accounts can log in to this app.';
+      'Only agent accounts can log in to this app.';
 
-  static const Set<String> _agencyRoles = {
-    'AGENCY',
-    'AGENCY_ADMIN',
-    'AGENCY_OWNER',
-    'AGENCY_STAFF',
-    'RECRUITING_AGENCY',
-    'RECRUITING_AGENCY_ADMIN',
-    'RECRUITING_AGENCY_OWNER',
-    'RECRUITING_AGENCY_STAFF',
+  static const Set<String> _agentRoles = {
+    'AGENT',
   };
 
-  static const Set<String> _agencyStaffRoles = {
-    'AGENCY_STAFF',
-    'RECRUITING_AGENCY_STAFF',
+  static const Set<String> _agentStaffRoles = {
+    // If agent staff exists in the future, add here
   };
 
   static bool isAgencyAccount(Object? authPayload) {
     final role = roleFrom(authPayload);
     if (role == null) return false;
 
-    return _agencyRoles.contains(_normalizeRole(role));
+    return _agentRoles.contains(_normalizeRole(role));
   }
 
   static bool isAgencyStaffAccount(Object? authPayload) {
     final role = roleFrom(authPayload);
     if (role == null) return false;
 
-    return _agencyStaffRoles.contains(_normalizeRole(role));
+    return _agentStaffRoles.contains(_normalizeRole(role));
   }
 
   static bool hasPermission(Object? authPayload, String permission) {

@@ -32,6 +32,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   int _currentPage = 1;
   int _totalPages = 1;
   Timer? _searchDebounce;
+  String? _errorMessage;
 
   final List<AppointmentBookingItem> _dummyItems = const [
     AppointmentBookingItem(
@@ -106,6 +107,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
@@ -123,39 +125,33 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         toDate: toDate,
       );
 
-      final mapped = response.results.map((dto) {
+      // Only show bookings that have an appointmentDate set —
+      // this matches web behaviour where only appointment-confirmed rows appear.
+      final withAppointment = response.results
+          .where((dto) => (dto.appointmentDate ?? '').trim().isNotEmpty)
+          .toList();
+
+      final mapped = withAppointment.map((dto) {
         String dateStr = 'N/A';
         String timeStr = 'N/A';
-        if ((dto.appointmentDate ?? '').isNotEmpty) {
-          try {
-            final dt = DateTime.parse(dto.appointmentDate!).toLocal();
-            final months = [
-              'Jan',
-              'Feb',
-              'Mar',
-              'Apr',
-              'May',
-              'Jun',
-              'Jul',
-              'Aug',
-              'Sep',
-              'Oct',
-              'Nov',
-              'Dec',
-            ];
-            final month = months[dt.month - 1];
-            final day = dt.day.toString().padLeft(2, '0');
-            dateStr = '$month $day, ${dt.year}';
+        try {
+          final dt = DateTime.parse(dto.appointmentDate!).toLocal();
+          const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          ];
+          final month = months[dt.month - 1];
+          final day = dt.day.toString().padLeft(2, '0');
+          dateStr = '$month $day, ${dt.year}';
 
-            final hour = dt.hour == 0
-                ? 12
-                : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
-            final amPm = dt.hour >= 12 ? 'PM' : 'AM';
-            final minute = dt.minute.toString().padLeft(2, '0');
-            timeStr = '${hour.toString().padLeft(2, '0')}:$minute $amPm';
-          } catch (e) {
-            dateStr = dto.appointmentDate ?? 'N/A';
-          }
+          final hour = dt.hour == 0
+              ? 12
+              : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+          final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+          final minute = dt.minute.toString().padLeft(2, '0');
+          timeStr = '${hour.toString().padLeft(2, '0')}:$minute $amPm';
+        } catch (_) {
+          dateStr = dto.appointmentDate ?? 'N/A';
         }
 
         final initials = dto.name
@@ -166,22 +162,24 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             .join()
             .toUpperCase();
 
-        final colors = [
-          const Color(0xFF2563EB),
-          const Color(0xFF10B981),
-          const Color(0xFFF59E0B),
-          const Color(0xFFEF4444),
-          const Color(0xFF8B5CF6),
-          const Color(0xFFEC4899),
+        const colors = [
+          Color(0xFF2563EB),
+          Color(0xFF10B981),
+          Color(0xFFF59E0B),
+          Color(0xFFEF4444),
+          Color(0xFF8B5CF6),
+          Color(0xFFEC4899),
         ];
         final color = colors[dto.id % colors.length];
 
+        // workPermitSlug is the human-readable ID like "WP-001".
+        // Prefer slug when available, fall back to numeric workPermitId.
+        final postId = dto.workPermitSlug.isNotEmpty
+            ? dto.workPermitSlug.toUpperCase()
+            : (dto.workPermitId > 0 ? dto.workPermitId.toString() : 'N/A');
+
         return AppointmentBookingItem(
-          postId: dto.workPermitId > 0
-              ? dto.workPermitId.toString()
-              : (dto.workPermitSlug.isNotEmpty
-                    ? dto.workPermitSlug.toUpperCase()
-                    : 'N/A'),
+          postId: postId,
           bookingId: dto.id,
           fullName: dto.name,
           country: dto.toCountry,
@@ -204,16 +202,15 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
           _items = mapped;
           _totalPages = response.totalPages;
           _isLoading = false;
+          _errorMessage = null;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _errorMessage = 'Failed to load appointments. Please try again.';
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading appointments: $e')),
-        );
       }
     }
   }
@@ -262,30 +259,58 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                 ),
                 const SizedBox(height: 14),
                 Expanded(
-                  child: Skeletonizer(
-                    enabled: _isLoading && _items.isEmpty,
-                    child: _displayItems.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No Appointments Found',
-                              style: TextStyle(
-                                color: AppPalette.textMuted,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
+                  child: _errorMessage != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.redAccent,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(color: Colors.red),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _fetchAppointments,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Retry'),
+                                ),
+                              ],
                             ),
-                          )
-                        : Column(
-                            children: [
-                              Expanded(
-                                child: _isCardView
-                                    ? _buildCardView()
-                                    : _buildListView(),
-                              ),
-                              _buildPagination(),
-                            ],
                           ),
-                  ),
+                        )
+                      : Skeletonizer(
+                          enabled: _isLoading && _items.isEmpty,
+                          child: _displayItems.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No Appointments Found',
+                                    style: TextStyle(
+                                      color: AppPalette.textMuted,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  children: [
+                                    Expanded(
+                                      child: _isCardView
+                                          ? _buildCardView()
+                                          : _buildListView(),
+                                    ),
+                                    _buildPagination(),
+                                  ],
+                                ),
+                        ),
                 ),
               ],
             ),

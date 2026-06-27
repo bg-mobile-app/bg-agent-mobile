@@ -341,7 +341,15 @@ class _ChatCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          item.participantName.isNotEmpty ? item.participantName : 'Conversation',
+                          (item.workPermitId > 0 && item.workPermitRef?.isNotEmpty == true)
+                              ? 'WP#${item.workPermitId} (${item.workPermitRef})'
+                              : (item.workPermitId > 0
+                                  ? 'WP#${item.workPermitId}'
+                                  : (item.workPermitRef?.isNotEmpty == true
+                                      ? 'WP: ${item.workPermitRef}'
+                                      : (item.participantName.isNotEmpty
+                                          ? item.participantName
+                                          : 'Conversation'))),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

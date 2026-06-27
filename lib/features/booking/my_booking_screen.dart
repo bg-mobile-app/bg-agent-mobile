@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
+import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/theme/app_palette.dart';
@@ -18,6 +19,7 @@ class MyBookingScreen extends StatefulWidget {
     this.pageTitle = 'All Booking',
     this.initialStatus = '',
     this.availableStatuses = _allStatuses,
+    this.hideStatusDropdown = false,
   });
 
   final String currentHref;
@@ -25,6 +27,7 @@ class MyBookingScreen extends StatefulWidget {
   final String pageTitle;
   final String initialStatus;
   final List<String> availableStatuses;
+  final bool hideStatusDropdown;
 
   static const List<String> _allStatuses = [
     '',
@@ -68,6 +71,8 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
   late String _status;
   late final TextEditingController _searchController;
   List<_BookingItem> _bookings = const [];
+  int _currentPage = 1;
+  int _totalPages = 1;
 
   @override
   void initState() {
@@ -86,6 +91,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
       _searchController.clear();
       _search = '';
       _dateRange = null;
+      _currentPage = 1;
       _loadBookings();
     }
   }
@@ -117,14 +123,17 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
       final response = await _bookingService.getMyBookings(
         status: _status,
         search: _search,
-        page: 1,
+        page: _currentPage,
         fromDate: _dateRange == null ? null : _apiDate(_dateRange!.start),
         toDate: _dateRange == null ? null : _apiDate(_dateRange!.end),
       );
       if (!mounted) return;
-      setState(
-        () => _bookings = response.results.map(_BookingItem.fromDto).toList(),
-      );
+      setState(() {
+        final ps = response.pageSize > 0 ? response.pageSize : 10;
+        _totalPages = (response.count / ps).ceil();
+        if (_totalPages < 1) _totalPages = 1;
+        _bookings = response.results.map(_BookingItem.fromDto).toList();
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = 'Failed to load bookings. Please try again.');
@@ -189,7 +198,12 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                 AppSearchBar(
                   controller: _searchController,
                   hintText: 'Search by booking ID, name, passport or status',
-                  onChanged: (v) => setState(() => _search = v),
+                  onChanged: (v) {
+                    setState(() {
+                      _search = v;
+                      _currentPage = 1;
+                    });
+                  },
                   onSearchTap: _loadBookings,
                 ),
                 const SizedBox(height: 14),
@@ -204,14 +218,88 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                _statusDropdown(),
-                const SizedBox(height: 16),
+                if (!widget.hideStatusDropdown) ...[
+                  Row(
+                    children: [
+                      Expanded(child: _statusDropdown()),
+                      if (_search.isNotEmpty || _dateRange != null || _status.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _search = '';
+                                _searchController.clear();
+                                _dateRange = null;
+                                _status = widget.initialStatus;
+                                _currentPage = 1;
+                              });
+                              _loadBookings();
+                            },
+                            child: const Text('Clear'),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (_error != null)
-                  Text(_error!, style: const TextStyle(color: Colors.red))
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                          const SizedBox(height: 16),
+                          Text(_error!, style: const TextStyle(color: Colors.red)),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _loadBookings,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          )
+                        ],
+                      ),
+                    ),
+                  )
                 else
                   Skeletonizer(
                     enabled: _isLoading,
-                    child: _isCardView ? _card(items) : _table(items),
+                    child: Column(
+                      children: [
+                        _isCardView ? _card(items) : _table(items),
+                        if (_totalPages > 1) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chevron_left),
+                                onPressed: _currentPage > 1
+                                    ? () {
+                                        setState(() => _currentPage--);
+                                        _loadBookings();
+                                      }
+                                    : null,
+                              ),
+                              Text(
+                                'Page $_currentPage of $_totalPages',
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: _currentPage < _totalPages
+                                    ? () {
+                                        setState(() => _currentPage++);
+                                        _loadBookings();
+                                      }
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ]
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -252,7 +340,10 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
             .toList(),
         onChanged: (v) {
           if (v == null) return;
-          setState(() => _status = v);
+          setState(() {
+            _status = v;
+            _currentPage = 1;
+          });
           _loadBookings();
         },
       ),
@@ -283,7 +374,10 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                 initialDateRange: _dateRange,
               );
               if (picked == null) return;
-              setState(() => _dateRange = picked);
+              setState(() {
+                _dateRange = picked;
+                _currentPage = 1;
+              });
               _loadBookings();
             },
             child: Row(
@@ -308,7 +402,10 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
           if (_dateRange != null)
             InkWell(
               onTap: () {
-                setState(() => _dateRange = null);
+                setState(() {
+                  _dateRange = null;
+                  _currentPage = 1;
+                });
                 _loadBookings();
               },
               borderRadius: BorderRadius.circular(999),
@@ -336,6 +433,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
       DataColumn(label: Text('Package Price')),
       DataColumn(label: Text('Paid Amount')),
       DataColumn(label: Text('Status')),
+      DataColumn(label: Text('Actions')),
     ],
     rows: items
         .map(
@@ -349,8 +447,13 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
               DataCell(Text('৳ ${e.packagePrice}')),
               DataCell(Text('৳ ${e.paidAmount}')),
               DataCell(Text(e.statusLabel)),
+              DataCell(
+                IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () => _showActions(e),
+                ),
+              ),
             ],
-            onLongPress: () => _showActions(e),
           ),
         )
         .toList(),
@@ -386,9 +489,29 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   child: const Text(
-                    'Reject File',
+                    'Reject',
                     style: TextStyle(color: Colors.white),
                   ),
+                ),
+              if (item.isReturn && item.returnFileReason.isNotEmpty)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    showDialog<void>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Return Reason'),
+                        content: Text(item.returnFileReason),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Close'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('View Return Reason'),
                 ),
               if (!_hiddenReturnStatuses.contains(item.status))
                 OutlinedButton(
@@ -402,8 +525,15 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                     );
                     await _loadBookings();
                   },
-                  child: const Text('Request Return Passport'),
+                  child: const Text('Return Passport'),
                 ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.push('/dashboard/booking/documents/${item.bookingId}');
+                },
+                child: const Text('View Document'),
+              ),
             ],
           ),
         ),
@@ -449,7 +579,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
             packagePrice: e.packagePrice,
             paidAmount: e.paidAmount,
             dateText: _prettyDate(e.date),
-            onLongPress: () => _showActions(e),
+            onActionTap: () => _showActions(e),
           ),
         )
         .toList(),
@@ -495,6 +625,8 @@ class _BookingItem {
     required this.paidAmount,
     required this.statusLabel,
     required this.status,
+    required this.isReturn,
+    required this.returnFileReason,
   });
   final String postId;
   final int bookingId;
@@ -507,6 +639,9 @@ class _BookingItem {
   final int paidAmount;
   final String statusLabel;
   final String status;
+  final bool isReturn;
+  final String returnFileReason;
+  
   factory _BookingItem.fromDto(ReceiveBookingItemDto dto) => _BookingItem(
     postId: dto.workPermitId,
     bookingId: dto.id,
@@ -519,7 +654,10 @@ class _BookingItem {
     paidAmount: dto.paidAmount ?? 0,
     statusLabel: dto.statusLabel,
     status: dto.status,
+    isReturn: dto.isReturn,
+    returnFileReason: dto.returnFileReason,
   );
+  
   factory _BookingItem.skeleton(int i, String status) => _BookingItem(
     postId: 'WP-XXXX',
     bookingId: 1000 + i,
@@ -532,5 +670,7 @@ class _BookingItem {
     paidAmount: 0,
     statusLabel: status.isEmpty ? 'Loading' : status,
     status: status,
+    isReturn: false,
+    returnFileReason: '',
   );
 }

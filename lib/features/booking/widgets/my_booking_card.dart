@@ -15,6 +15,7 @@ class MyBookingCard extends StatelessWidget {
     required this.paidAmount,
     required this.dateText,
     this.onLongPress,
+    this.onActionTap,
   });
 
   final String postId;
@@ -27,6 +28,7 @@ class MyBookingCard extends StatelessWidget {
   final int paidAmount;
   final String dateText;
   final VoidCallback? onLongPress;
+  final VoidCallback? onActionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -64,11 +66,19 @@ class MyBookingCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Icon(
-                    Icons.more_vert,
-                    color: AppPalette.textMuted,
-                    size: 20,
-                  ),
+                  if (onActionTap != null)
+                    InkWell(
+                      onTap: onActionTap,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.more_vert,
+                          color: AppPalette.textMuted,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 10),

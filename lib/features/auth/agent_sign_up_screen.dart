@@ -34,6 +34,17 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  final _fullNameFocus = FocusNode();
+  final _agencyNameFocus = FocusNode();
+  final _agencyAddressFocus = FocusNode();
+  final _addressFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _phoneFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmPasswordFocus = FocusNode();
+
+  Map<String, String> _fieldErrors = {};
+
   String? _gender;
   DistrictOption? _selectedDistrict;
   PoliceStationOption? _selectedPoliceStation;
@@ -67,6 +78,14 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _fullNameFocus.dispose();
+    _agencyNameFocus.dispose();
+    _agencyAddressFocus.dispose();
+    _addressFocus.dispose();
+    _emailFocus.dispose();
+    _phoneFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     super.dispose();
   }
 
@@ -156,7 +175,10 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _fieldErrors.clear();
+    });
     try {
       final formData = FormData.fromMap({
         'fullName': _fullNameController.text.trim(),
@@ -190,13 +212,47 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
       String message = 'Registration failed. Please try again.';
       final data = e.response?.data;
       if (data is Map) {
-        if (data['detail'] != null) {
+        if (data['errors'] is Map) {
+          final errors = data['errors'] as Map;
+          setState(() {
+            errors.forEach((key, value) {
+              if (value is List) {
+                _fieldErrors[key.toString()] = value.join(', ');
+              } else {
+                _fieldErrors[key.toString()] = value.toString();
+              }
+            });
+          });
+          
+          if (_fieldErrors.containsKey('fullName')) {
+            _fullNameFocus.requestFocus();
+          } else if (_fieldErrors.containsKey('email')) {
+            _emailFocus.requestFocus();
+          } else if (_fieldErrors.containsKey('phone')) {
+            _phoneFocus.requestFocus();
+          } else if (_fieldErrors.containsKey('password')) {
+            _passwordFocus.requestFocus();
+          } else if (_fieldErrors.containsKey('agencyName')) {
+            _agencyNameFocus.requestFocus();
+          } else if (_fieldErrors.containsKey('agencyAddress')) {
+            _agencyAddressFocus.requestFocus();
+          } else if (_fieldErrors.containsKey('address')) {
+            _addressFocus.requestFocus();
+          } else {
+            message = _fieldErrors.values.first;
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+          }
+          setState(() => _loading = false);
+          return;
+        } else if (data['detail'] != null) {
           message = data['detail'].toString();
         } else if (data['message'] != null) {
           message = data['message'].toString();
-        } else if (data['errors'] != null) {
-          message = data['errors'].toString();
+        } else {
+          message = data.toString();
         }
+      } else if (data is String) {
+        message = data;
       }
       ScaffoldMessenger.of(
         context,
@@ -281,14 +337,21 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                                                 'Full Name',
                                                 _fullNameController,
                                                 hint: 'Enter your full name',
+                                                focusNode: _fullNameFocus,
+                                                errorText: _fieldErrors['fullName'],
+                                                onChanged: (_) => setState(() => _fieldErrors.remove('fullName')),
                                               ),
                                               _dropdownField(
                                                 label: 'Gender',
                                                 value: _gender,
                                                 items: _genderOptions,
                                                 hint: 'Select gender',
+                                                errorText: _fieldErrors['gender'],
                                                 onChanged: (v) =>
-                                                    setState(() => _gender = v),
+                                                    setState(() {
+                                                      _gender = v;
+                                                      _fieldErrors.remove('gender');
+                                                    }),
                                               ),
                                               _textField(
                                                 'Agency Name',
@@ -296,6 +359,9 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                                                 hint:
                                                     'Your registered business name',
                                                 spanTwoColumns: true,
+                                                focusNode: _agencyNameFocus,
+                                                errorText: _fieldErrors['agencyName'],
+                                                onChanged: (_) => setState(() => _fieldErrors.remove('agencyName')),
                                               ),
                                               _textField(
                                                 'Agency Address',
@@ -304,6 +370,9 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                                                     'Business location details...',
                                                 maxLines: 2,
                                                 spanTwoColumns: true,
+                                                focusNode: _agencyAddressFocus,
+                                                errorText: _fieldErrors['agencyAddress'],
+                                                onChanged: (_) => setState(() => _fieldErrors.remove('agencyAddress')),
                                               ),
                                             ],
                                           ),
@@ -325,6 +394,9 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                                                     'Street name, house number, etc.',
                                                 maxLines: 3,
                                                 spanTwoColumns: true,
+                                                focusNode: _addressFocus,
+                                                errorText: _fieldErrors['address'],
+                                                onChanged: (_) => setState(() => _fieldErrors.remove('address')),
                                               ),
                                             ],
                                           ),
@@ -341,23 +413,33 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                                                 'Email Address',
                                                 _emailController,
                                                 hint: 'agent@company.com',
+                                                focusNode: _emailFocus,
+                                                errorText: _fieldErrors['email'],
+                                                onChanged: (_) => setState(() => _fieldErrors.remove('email')),
                                               ),
                                               _textField(
                                                 'Phone Number',
                                                 _phoneController,
                                                 hint: '+880 1XXX XXXXXX',
+                                                focusNode: _phoneFocus,
+                                                errorText: _fieldErrors['phone'],
+                                                onChanged: (_) => setState(() => _fieldErrors.remove('phone')),
                                               ),
                                               _textField(
                                                 'Password',
                                                 _passwordController,
                                                 hint: '••••••••',
                                                 obscure: true,
+                                                focusNode: _passwordFocus,
+                                                errorText: _fieldErrors['password'],
+                                                onChanged: (_) => setState(() => _fieldErrors.remove('password')),
                                               ),
                                               _textField(
                                                 'Confirm Password',
                                                 _confirmPasswordController,
                                                 hint: '••••••••',
                                                 obscure: true,
+                                                focusNode: _confirmPasswordFocus,
                                               ),
                                             ],
                                           ),
@@ -569,6 +651,9 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
     bool obscure = false,
     int maxLines = 1,
     bool spanTwoColumns = false,
+    FocusNode? focusNode,
+    String? errorText,
+    ValueChanged<String>? onChanged,
   }) {
     final field = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,8 +670,11 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
           controller: controller,
           obscureText: obscure,
           maxLines: maxLines,
+          focusNode: focusNode,
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
+            errorText: errorText,
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
             border: OutlineInputBorder(
@@ -601,13 +689,23 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: _brandBlue),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 14,
             ),
           ),
-          validator: (value) =>
-              (value == null || value.trim().isEmpty) ? 'Required' : null,
+          validator: (value) {
+            if (errorText != null) return errorText;
+            return (value == null || value.trim().isEmpty) ? 'Required' : null;
+          },
         ),
       ],
     );
@@ -643,8 +741,11 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
                   setState(() => _selectedDistrict = v);
                   _loadPoliceStations(v.id);
                 },
-          decoration: _dropdownDecoration('Select district'),
-          validator: (v) => v == null ? 'Required' : null,
+          decoration: _dropdownDecoration('Select district', errorText: _fieldErrors['district']),
+          validator: (v) {
+            if (_fieldErrors['district'] != null) return _fieldErrors['district'];
+            return v == null ? 'Required' : null;
+          },
         ),
       ],
     );
@@ -678,8 +779,12 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
               : null,
           decoration: _dropdownDecoration(
             enabled ? 'Select police station' : 'Select district first',
+            errorText: _fieldErrors['policeStation'],
           ),
-          validator: (v) => v == null ? 'Required' : null,
+          validator: (v) {
+            if (_fieldErrors['policeStation'] != null) return _fieldErrors['policeStation'];
+            return v == null ? 'Required' : null;
+          },
         ),
       ],
     );
@@ -691,6 +796,7 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
     String hint = 'Select an option',
+    String? errorText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -709,15 +815,19 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
               .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
               .toList(),
           onChanged: onChanged,
-          decoration: _dropdownDecoration(hint),
-          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+          decoration: _dropdownDecoration(hint, errorText: errorText),
+          validator: (v) {
+            if (errorText != null) return errorText;
+            return (v == null || v.isEmpty) ? 'Required' : null;
+          },
         ),
       ],
     );
   }
 
-  InputDecoration _dropdownDecoration(String hint) => InputDecoration(
+  InputDecoration _dropdownDecoration(String hint, {String? errorText}) => InputDecoration(
     hintText: hint,
+    errorText: errorText,
     filled: true,
     fillColor: const Color(0xFFF8FAFC),
     border: OutlineInputBorder(
@@ -731,6 +841,14 @@ class _AgentSignUpScreenState extends State<AgentSignUpScreen> {
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: _brandBlue),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Colors.red),
     ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
   );

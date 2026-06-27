@@ -13,6 +13,7 @@ class SuccessFlightScreen extends StatelessWidget {
       pageTitle: 'Success Flight',
       initialStatus: 'SUCCESS_FLIGHT',
       availableStatuses: ['SUCCESS_FLIGHT'],
+      hideStatusDropdown: true,
     );
   }
 }

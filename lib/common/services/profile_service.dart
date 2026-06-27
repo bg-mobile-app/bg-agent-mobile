@@ -26,7 +26,7 @@ class ProfileService {
     }
 
     try {
-      final response = await _apiClient.get('/profile/agency/me/');
+      final response = await _apiClient.get('/profile/agents/me/');
       if (response.statusCode == 200 && response.data != null) {
         _cachedProfile = _profileFromResponseData(response.data);
         _cachedAt = now;
@@ -49,7 +49,7 @@ class ProfileService {
   ) async {
     try {
       final response = await _apiClient.patch(
-        '/profile/agency/me/',
+        '/profile/agents/me/',
         data: formData,
         options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );

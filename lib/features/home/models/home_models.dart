@@ -1,15 +1,19 @@
 import 'package:fui_kit/fui_kit.dart';
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class NavLinkItem {
   const NavLinkItem({
     required this.name,
     required this.href,
-    required this.icon,
+    this.icon,
+    this.customIconData,
   });
 
   final String name;
   final String href;
   final dynamic icon;
+  final IconData? customIconData;
 }
 
 class CountryItem {
@@ -89,7 +93,7 @@ class WorkTypeItem {
   final int totalAds;
 }
 
-const List<NavLinkItem> navLinkData = [
+final List<NavLinkItem> navLinkData = [
   NavLinkItem(name: 'Home', href: '/', icon: RegularRounded.HOME),
   NavLinkItem(name: 'Flight Booking', href: '', icon: RegularRounded.PLANE),
   NavLinkItem(
@@ -98,7 +102,11 @@ const List<NavLinkItem> navLinkData = [
     icon: RegularRounded.BRIEFCASE,
   ),
   NavLinkItem(name: 'Study Abroad', href: '', icon: RegularRounded.BOOK),
-  NavLinkItem(name: 'Hajj & Umrah', href: '', icon: RegularRounded.PYRAMID),
+  NavLinkItem(
+    name: 'Hajj & Umrah',
+    href: '',
+    customIconData: Icons.mosque_outlined,
+  ),
   NavLinkItem(name: 'Visa Services', href: '', icon: RegularRounded.ID_BADGE),
   NavLinkItem(name: 'Tour Packages', href: '', icon: RegularRounded.GLOBE),
   NavLinkItem(name: 'Hotel Booking', href: '', icon: RegularRounded.BUILDING),

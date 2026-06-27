@@ -11,16 +11,13 @@ import '../../common/widgets/view_toggle_button.dart';
 import '../../common/widgets/styled_data_table_card.dart';
 import 'dashboard_screen.dart';
 import 'services/payment_service.dart';
-import '../../common/services/api_client.dart';
 
-const List<String> bookingStatus = [
-  'PENDING',
-  'PAID',
+// Payment step filter values from agentpayment.md
+const List<String> _paymentSteps = [
   'ADVANCE',
   'AFTER_VISA',
   'BEFORE_FLIGHT',
   'RETURN',
-  'COMPLETED',
 ];
 
 class PaymentsScreen extends StatefulWidget {
@@ -42,6 +39,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   bool _isInitialLoading = true;
   String? _error;
   List<PaymentsHistory> _payments = [];
+  int _currentPage = 1;
+  int _totalPages = 1;
+  int _totalCount = 0;
 
   @override
   void initState() {
@@ -77,79 +77,34 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       setState(() {
         _isInitialLoading = true;
         _error = null;
+        _currentPage = 1;
       });
     }
 
     try {
-      final cookies = await ApiClient().tokenStorage.getCookies();
-      if (cookies == null || cookies.isEmpty) {
-        if (!mounted) return;
-        var list = _skeletonPayments;
-        if (_status.isNotEmpty) {
-          list = list.where((p) => p.step == _status).toList();
-        }
-        if (_debouncedSearch.isNotEmpty) {
-          list = list
-              .where(
-                (p) =>
-                    p.passportNo.toLowerCase().contains(
-                      _debouncedSearch.toLowerCase(),
-                    ) ||
-                    p.bookingId.toLowerCase().contains(
-                      _debouncedSearch.toLowerCase(),
-                    ),
-              )
-              .toList();
-        }
-        setState(() {
-          _payments = list;
-          _error = null;
-          _isInitialLoading = false;
-        });
-        return;
-      }
-
       final response = await _paymentService.getPaymentsHistory(
         status: _status,
         search: _debouncedSearch,
-        currentPage: 1,
+        currentPage: _currentPage,
       );
 
       if (!mounted) return;
 
+      final ps = response.pageSize > 0 ? response.pageSize : 10;
       setState(() {
         _payments = response.results;
+        _totalCount = response.count;
+        _totalPages = (response.count / ps).ceil();
+        if (_totalPages < 1) _totalPages = 1;
         _error = null;
+        _isInitialLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
-      var list = _skeletonPayments;
-      if (_status.isNotEmpty) {
-        list = list.where((p) => p.step == _status).toList();
-      }
-      if (_debouncedSearch.isNotEmpty) {
-        list = list
-            .where(
-              (p) =>
-                  p.passportNo.toLowerCase().contains(
-                    _debouncedSearch.toLowerCase(),
-                  ) ||
-                  p.bookingId.toLowerCase().contains(
-                    _debouncedSearch.toLowerCase(),
-                  ),
-            )
-            .toList();
-      }
       setState(() {
-        _payments = list;
-        _error = null;
+        _error = 'Failed to load payment history. Please try again.';
+        _isInitialLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isInitialLoading = false;
-        });
-      }
     }
   }
 
@@ -170,7 +125,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 _breadcrumb(),
                 const SizedBox(height: 8),
                 Text(
-                  'Payments History',
+                  'Payments History($_totalCount)',
                   style: AppTextStyles.headline2.copyWith(
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
@@ -179,9 +134,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _isInitialLoading
-                      ? 'Loading your payment history...'
-                      : 'See history of your payment plan invoice (${_payments.length})',
+                  'See history of your payment plan invoice',
                   style: AppTextStyles.body2.copyWith(
                     color: AppPalette.textMuted,
                   ),
@@ -201,10 +154,38 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                         : _tableContent(displayItems),
                   ),
                 const SizedBox(height: 16),
-                Skeletonizer(
-                  enabled: _isInitialLoading,
-                  child: _statsSection(displayItems),
-                ),
+                if (!_isInitialLoading && _error == null)
+                  _statsSection(displayItems),
+                if (_totalPages > 1) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded),
+                        onPressed: _currentPage > 1
+                            ? () {
+                                setState(() => _currentPage--);
+                                _loadPayments();
+                              }
+                            : null,
+                      ),
+                      Text(
+                        'Page $_currentPage of $_totalPages',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded),
+                        onPressed: _currentPage < _totalPages
+                            ? () {
+                                setState(() => _currentPage++);
+                                _loadPayments();
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -291,7 +272,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: DropdownButtonFormField<String>(
-          initialValue: _status.isEmpty ? null : _status,
+          initialValue: _status.isEmpty ? '' : _status,
           isExpanded: true,
           style: const TextStyle(
             color: Colors.black,
@@ -303,17 +284,18 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           decoration: const InputDecoration(
             filled: true,
             fillColor: Colors.white,
-            hintText: 'All Status',
-            hintStyle: TextStyle(color: AppPalette.textMuted, fontSize: 13),
             contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
           ),
           items: [
-            const DropdownMenuItem(value: '', child: Text('All Status')),
-            ...bookingStatus.map(
-              (e) => DropdownMenuItem(value: e, child: Text(e)),
+            const DropdownMenuItem(value: '', child: Text('All Steps')),
+            ..._paymentSteps.map(
+              (e) => DropdownMenuItem(
+                value: e,
+                child: Text(e.replaceAll('_', ' ')),
+              ),
             ),
           ],
           onChanged: (value) {
@@ -328,21 +310,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Widget _tableContent(List<PaymentsHistory> items) {
-    if (items.isEmpty) {
-      return _emptyState();
-    }
-
+    if (items.isEmpty) return _emptyState();
     return StyledDataTableCard(
       columns: const [
         DataColumn(label: Text('Payment Invoice')),
-        DataColumn(label: Text('Service Type')),
         DataColumn(label: Text('Booking ID')),
         DataColumn(label: Text('Post ID')),
         DataColumn(label: Text('Payment Date')),
         DataColumn(label: Text('Passport No')),
         DataColumn(label: Text('Amount')),
-        DataColumn(label: Text('Transaction Type')),
-        DataColumn(label: Text('Step')),
         DataColumn(label: Text('Status')),
       ],
       rows: items
@@ -351,11 +327,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               cells: [
                 DataCell(
                   Text(
-                    '#INV-${item.id}',
+                    '#${item.id}',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                DataCell(Text(item.terminal)),
                 DataCell(Text(item.bookingId)),
                 DataCell(Text(item.postId)),
                 DataCell(Text(_formatListDate(item.collectedAt))),
@@ -367,13 +342,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   ),
                 ),
                 DataCell(
-                  Text(
-                    item.transactionType.isEmpty ? '-' : item.transactionType,
-                  ),
-                ),
-                DataCell(Text(item.step.isEmpty ? '-' : item.step)),
-                DataCell(
-                  _statusChip(item.status.isEmpty ? item.step : item.status),
+                  _statusChip(item.step.replaceAll('_', ' ')),
                 ),
               ],
             ),

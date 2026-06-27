@@ -57,7 +57,7 @@ class ChatService {
   Future<ChatHistoryResponse?> getMessageHistory(String conversationId, {int limit = 40}) async {
     try {
       final response = await _apiClient.get(
-        '/conversations/$conversationId/messages/',
+        '/chat/conversations/$conversationId/messages/',
         queryParameters: {'limit': limit},
         useCache: false,
       );
@@ -72,7 +72,7 @@ class ChatService {
 
   Future<bool> markMessagesAsRead(String conversationId) async {
     try {
-      final response = await _apiClient.post('/conversations/$conversationId/mark_read/');
+      final response = await _apiClient.post('/chat/conversations/$conversationId/mark_read/');
       return response.statusCode == 200;
     } catch (e) {
       debugPrint("Error marking messages as read: $e");

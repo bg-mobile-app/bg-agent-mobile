@@ -87,10 +87,11 @@ class CommissionService {
     String? search,
     String? fromDate,
     String? toDate,
+    int page = 1,
   }) async {
     final queryParams = <String, dynamic>{
-      'status':
-          '', // In this specific component, status is always an empty string
+      'status': '',
+      'page': page,
     };
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;

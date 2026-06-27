@@ -267,29 +267,19 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           const SizedBox(height: 16),
                           _ProfileHeaderCard(
                             profile: profile,
-                            onEditProfile: () async {
-                              final updated = await context.push<bool>(
-                                '/dashboard/customer/profile/edit',
-                              );
-                              if (updated == true && mounted) {
-                                await _fetchProfile();
-                              }
-                            },
                           ),
                           const SizedBox(height: 18),
                           const _SectionTitle(
                             title: 'Profile Details',
                             subtitle:
-                                'Personal and agency information for your profile',
+                                'Personal and contact information for your profile',
                           ),
                           const SizedBox(height: 12),
-                          _OwnerInfoCard(profile: profile),
+                          _BasicInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _AgencyInfoCard(profile: profile),
+                          _ContactInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _BankInfoCard(profile: profile),
-                          const SizedBox(height: 12),
-                          _DocumentsInfoCard(profile: profile),
+                          _DocumentGalleryCard(profile: profile),
                           const SizedBox(height: 24),
                           const _LogoutButton(),
                         ],
@@ -360,11 +350,9 @@ class _PageHeading extends StatelessWidget {
 
 class _ProfileHeaderCard extends StatelessWidget {
   final RecruitingAgencyMeDetailsProps profile;
-  final VoidCallback onEditProfile;
 
   const _ProfileHeaderCard({
     required this.profile,
-    required this.onEditProfile,
   });
 
   @override
@@ -452,23 +440,6 @@ class _ProfileHeaderCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: 170,
-            child: FilledButton.icon(
-              onPressed: onEditProfile,
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Edit Profile'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppPalette.brandBlue,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(46),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -508,24 +479,45 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _AgencyInfoCard extends StatelessWidget {
+class _BasicInfoCard extends StatelessWidget {
   final RecruitingAgencyMeDetailsProps profile;
-  const _AgencyInfoCard({required this.profile});
+  const _BasicInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
     return _InfoCard(
-      icon: Icons.business_outlined,
-      title: 'Agency Info',
+      icon: Icons.person_outline,
+      title: 'Basic Info',
       rows: [
-        _InfoRow(label: 'AGENCY ID', value: _display(profile.id)),
+        _InfoRow(label: 'STATUS', value: _display(profile.owner?.status)),
+        _InfoRow(label: 'AGENT ID', value: _display(profile.owner?.userCode)),
+        _InfoRow(label: 'NAME', value: _display(profile.owner?.fullName)),
+        _InfoRow(label: 'GENDER', value: _display(profile.gender)),
+        _InfoRow(label: 'DATE OF BIRTH', value: _formatDob(profile.dob)),
         _InfoRow(label: 'AGENCY NAME', value: _display(profile.agencyName)),
-        _InfoRow(label: 'AGENCY PHONE', value: _display(profile.agencyPhone)),
-        _InfoRow(label: 'RL NUMBER', value: _display(_primaryRlNo(profile))),
         _InfoRow(
           label: 'AGENCY ADDRESS',
           value: _display(profile.agencyAddress),
+          isLast: true,
         ),
+      ],
+    );
+  }
+}
+
+class _ContactInfoCard extends StatelessWidget {
+  final RecruitingAgencyMeDetailsProps profile;
+  const _ContactInfoCard({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      icon: Icons.contact_mail_outlined,
+      title: 'Contact Info',
+      rows: [
+        _InfoRow(label: 'EMAIL ADDRESS', value: _display(profile.owner?.email)),
+        _InfoRow(label: 'PHONE NUMBER', value: _display(profile.owner?.phone)),
+        _InfoRow(label: 'ADDRESS', value: _display(profile.address)),
         _InfoRow(
           label: 'POLICE STATION',
           value: _locationLabel(profile.policeStation),
@@ -540,155 +532,25 @@ class _AgencyInfoCard extends StatelessWidget {
   }
 }
 
-class _OwnerInfoCard extends StatelessWidget {
+class _DocumentGalleryCard extends StatelessWidget {
   final RecruitingAgencyMeDetailsProps profile;
-  const _OwnerInfoCard({required this.profile});
+  const _DocumentGalleryCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
+    final doc = profile.documents.isNotEmpty ? profile.documents.first : null;
     return _InfoCard(
-      icon: Icons.badge_outlined,
-      title: 'Personal Details',
+      icon: Icons.photo_library_outlined,
+      title: 'Image Gallery',
       rows: [
-        _InfoRow(label: 'USER CODE', value: _display(profile.owner?.userCode)),
-        _InfoRow(label: 'FULL NAME', value: _display(profile.owner?.fullName)),
-        _InfoRow(label: 'EMAIL', value: _display(profile.owner?.email)),
-        _InfoRow(label: 'PHONE', value: _display(profile.owner?.phone)),
-        _InfoRow(label: 'STATUS', value: _display(profile.owner?.status)),
-        _InfoRow(label: 'GENDER', value: _display(profile.gender)),
-        _InfoRow(
-          label: 'DATE OF BIRTH',
-          value: _formatDob(profile.dob),
+        _DocumentImageRow(label: 'NID IMAGE', imageUrl: doc?.nidImage),
+        _DocumentImageRow(
+          label: 'TRADE LICENSE IMAGE',
+          imageUrl: doc?.tradeLicenseImage,
           isLast: true,
         ),
       ],
     );
-  }
-}
-
-class _BankInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
-  const _BankInfoCard({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    final banks = profile.bankInformation;
-
-    return _InfoCard(
-      icon: Icons.account_balance_outlined,
-      title: 'Bank Info',
-      rows: banks.isEmpty ? _emptyBankRows() : _bankRows(banks),
-    );
-  }
-
-  List<Widget> _emptyBankRows() {
-    return const [
-      _InfoRow(label: 'BANK NAME', value: 'N/A'),
-      _InfoRow(label: 'BRANCH NAME', value: 'N/A'),
-      _InfoRow(label: 'ACCOUNT NAME', value: 'N/A'),
-      _InfoRow(label: 'ACCOUNT NO', value: 'N/A'),
-      _InfoRow(label: 'ROUTING NO', value: 'N/A', isLast: true),
-    ];
-  }
-
-  List<Widget> _bankRows(List<RecruitingAgencyBankInformation> banks) {
-    final rows = <Widget>[];
-    for (var i = 0; i < banks.length; i++) {
-      final bank = banks[i];
-      final prefix = banks.length == 1 ? '' : 'BANK ${i + 1} ';
-      rows.add(
-        _InfoRow(label: '${prefix}NAME', value: _display(bank.bankName)),
-      );
-      rows.add(
-        _InfoRow(label: '${prefix}BRANCH', value: _display(bank.branchName)),
-      );
-      rows.add(
-        _InfoRow(
-          label: '${prefix}ACCOUNT NAME',
-          value: _display(bank.accountName),
-        ),
-      );
-      rows.add(
-        _InfoRow(label: '${prefix}ACCOUNT NO', value: _display(bank.accountNo)),
-      );
-      rows.add(
-        _InfoRow(
-          label: '${prefix}ROUTING NO',
-          value: _display(bank.routingNo),
-          isLast: i == banks.length - 1,
-        ),
-      );
-    }
-    return rows;
-  }
-}
-
-class _DocumentsInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
-  const _DocumentsInfoCard({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    final documents = profile.documents;
-
-    return _InfoCard(
-      icon: Icons.description_outlined,
-      title: 'Documents Info',
-      rows: documents.isEmpty ? _emptyDocumentRows() : _documentRows(documents),
-    );
-  }
-
-  List<Widget> _emptyDocumentRows() {
-    return const [
-      _InfoRow(label: 'DOCUMENT ID', value: 'N/A'),
-      _InfoRow(label: 'RL NO', value: 'N/A'),
-      _DocumentImageRow(label: 'NID IMAGE', imageUrl: null),
-      _DocumentImageRow(label: 'TRADE LICENSE IMAGE', imageUrl: null),
-      _DocumentImageRow(label: 'RL LICENSE IMAGE', imageUrl: null),
-      _DocumentImageRow(
-        label: 'CIVIL AVIATION LICENSE IMAGE',
-        imageUrl: null,
-        isLast: true,
-      ),
-    ];
-  }
-
-  List<Widget> _documentRows(List<RecruitingAgencyDocument> documents) {
-    final rows = <Widget>[];
-    for (var i = 0; i < documents.length; i++) {
-      final document = documents[i];
-      final prefix = documents.length == 1 ? '' : 'DOCUMENT ${i + 1} ';
-      rows.add(_InfoRow(label: '${prefix}ID', value: _display(document.id)));
-      rows.add(
-        _InfoRow(label: '${prefix}RL NO', value: _display(document.rlNo)),
-      );
-      rows.add(
-        _DocumentImageRow(
-          label: '${prefix}NID IMAGE',
-          imageUrl: document.nidImage,
-        ),
-      );
-      rows.add(
-        _DocumentImageRow(
-          label: '${prefix}TRADE LICENSE IMAGE',
-          imageUrl: document.tradeLicenseImage,
-        ),
-      );
-      rows.add(
-        _DocumentImageRow(
-          label: '${prefix}RL LICENSE IMAGE',
-          imageUrl: document.rlLicenseImage,
-        ),
-      );
-      rows.add(
-        _DocumentImageRow(
-          label: '${prefix}CIVIL AVIATION LICENSE IMAGE',
-          imageUrl: document.civilAviationLicenseImage,
-          isLast: i == documents.length - 1,
-        ),
-      );
-    }
-    return rows;
   }
 }
 
@@ -1026,9 +888,9 @@ class _LogoutButton extends StatelessWidget {
             await ApiClient().tokenStorage.clearCookies();
             final rootCtx = rootNavigatorKey.currentContext;
             if (rootCtx != null) {
-              GoRouter.of(rootCtx).go(AppRoutes.login);
+              if (rootCtx.mounted) GoRouter.of(rootCtx).go(AppRoutes.login);
             } else {
-              router.go(AppRoutes.login);
+              if (context.mounted) router.go(AppRoutes.login);
             }
           }
         },
@@ -1060,13 +922,7 @@ String _display(String? value) {
   return trimmed;
 }
 
-String? _primaryRlNo(RecruitingAgencyMeDetailsProps profile) {
-  for (final document in profile.documents) {
-    final rlNo = document.rlNo?.trim();
-    if (rlNo != null && rlNo.isNotEmpty) return rlNo;
-  }
-  return null;
-}
+
 
 String _locationLabel(RecruitingAgencyLocation? location) {
   if (location == null) return 'N/A';

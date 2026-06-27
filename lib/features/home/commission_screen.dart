@@ -32,6 +32,9 @@ class _CommissionScreenState extends State<CommissionScreen> {
   bool _isInitialLoading = true;
   String? _error;
   List<WPMyBookingGETProps> _commissions = [];
+  int _currentPage = 1;
+  int _totalPages = 1;
+  int _totalCount = 0;
 
   @override
   void initState() {
@@ -67,91 +70,42 @@ class _CommissionScreenState extends State<CommissionScreen> {
       setState(() {
         _isInitialLoading = true;
         _error = null;
+        _currentPage = 1;
       });
     }
 
     try {
-      final cookies = await ApiClient().tokenStorage.getCookies();
-
       String? fromDateStr = _selectedDateRange == null
           ? null
-          : "${_selectedDateRange!.start.year}-${_selectedDateRange!.start.month.toString().padLeft(2, '0')}-${_selectedDateRange!.start.day.toString().padLeft(2, '0')}";
+          : '${_selectedDateRange!.start.year}-${_selectedDateRange!.start.month.toString().padLeft(2, '0')}-${_selectedDateRange!.start.day.toString().padLeft(2, '0')}';
       String? toDateStr = _selectedDateRange == null
           ? null
-          : "${_selectedDateRange!.end.year}-${_selectedDateRange!.end.month.toString().padLeft(2, '0')}-${_selectedDateRange!.end.day.toString().padLeft(2, '0')}";
-
-      if (cookies == null || cookies.isEmpty) {
-        if (!mounted) return;
-        var list = _skeletonCommissions;
-        if (_debouncedSearch.isNotEmpty) {
-          list = list.where((c) {
-            final q = _debouncedSearch.toLowerCase();
-            return c.name.toLowerCase().contains(q) ||
-                c.passportNo.toLowerCase().contains(q) ||
-                c.workPermitId.toLowerCase().contains(q);
-          }).toList();
-        }
-        if (_selectedDateRange != null) {
-          list = list.where((c) {
-            return c.createdAt.isAfter(
-                  _selectedDateRange!.start.subtract(const Duration(days: 1)),
-                ) &&
-                c.createdAt.isBefore(
-                  _selectedDateRange!.end.add(const Duration(days: 1)),
-                );
-          }).toList();
-        }
-        setState(() {
-          _commissions = list;
-          _error = null;
-          _isInitialLoading = false;
-        });
-        return;
-      }
+          : '${_selectedDateRange!.end.year}-${_selectedDateRange!.end.month.toString().padLeft(2, '0')}-${_selectedDateRange!.end.day.toString().padLeft(2, '0')}';
 
       final response = await _commissionService.getCommissions(
         search: _debouncedSearch,
         fromDate: fromDateStr,
         toDate: toDateStr,
+        page: _currentPage,
       );
 
       if (!mounted) return;
 
+      final ps = response.pageSize > 0 ? response.pageSize : 10;
       setState(() {
         _commissions = response.results;
+        _totalCount = response.count;
+        _totalPages = (response.count / ps).ceil();
+        if (_totalPages < 1) _totalPages = 1;
         _error = null;
+        _isInitialLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
-      var list = _skeletonCommissions;
-      if (_debouncedSearch.isNotEmpty) {
-        list = list.where((c) {
-          final q = _debouncedSearch.toLowerCase();
-          return c.name.toLowerCase().contains(q) ||
-              c.passportNo.toLowerCase().contains(q) ||
-              c.workPermitId.toLowerCase().contains(q);
-        }).toList();
-      }
-      if (_selectedDateRange != null) {
-        list = list.where((c) {
-          return c.createdAt.isAfter(
-                _selectedDateRange!.start.subtract(const Duration(days: 1)),
-              ) &&
-              c.createdAt.isBefore(
-                _selectedDateRange!.end.add(const Duration(days: 1)),
-              );
-        }).toList();
-      }
       setState(() {
-        _commissions = list;
-        _error = null;
+        _error = 'Failed to load commissions. Please try again.';
+        _isInitialLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isInitialLoading = false;
-        });
-      }
     }
   }
 
@@ -204,7 +158,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                 _breadcrumb(),
                 const SizedBox(height: 8),
                 Text(
-                  'Agency Commissions',
+                  'Commission List',
                   style: AppTextStyles.headline2.copyWith(
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
@@ -215,7 +169,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                 Text(
                   _isInitialLoading
                       ? 'Loading your commission details...'
-                      : 'Track earnings and booking commission statements (${_commissions.length})',
+                      : 'Showing $_totalCount commission record(s)',
                   style: AppTextStyles.body2.copyWith(
                     color: AppPalette.textMuted,
                   ),
@@ -235,10 +189,41 @@ class _CommissionScreenState extends State<CommissionScreen> {
                         : _tableContent(displayItems),
                   ),
                 const SizedBox(height: 16),
-                Skeletonizer(
-                  enabled: _isInitialLoading,
-                  child: _statsSection(displayItems),
-                ),
+                if (!_isInitialLoading && _error == null)
+                  Skeletonizer(
+                    enabled: _isInitialLoading,
+                    child: _statsSection(displayItems),
+                  ),
+                if (_totalPages > 1) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded),
+                        onPressed: _currentPage > 1
+                            ? () {
+                                setState(() => _currentPage--);
+                                _loadCommissions();
+                              }
+                            : null,
+                      ),
+                      Text(
+                        'Page $_currentPage of $_totalPages',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded),
+                        onPressed: _currentPage < _totalPages
+                            ? () {
+                                setState(() => _currentPage++);
+                                _loadCommissions();
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -382,20 +367,17 @@ class _CommissionScreenState extends State<CommissionScreen> {
   }
 
   Widget _tableContent(List<WPMyBookingGETProps> items) {
-    if (items.isEmpty) {
-      return _emptyState();
-    }
-
+    if (items.isEmpty) return _emptyState();
     return StyledDataTableCard(
       columns: const [
-        DataColumn(label: Text('WP ID')),
-        DataColumn(label: Text('Candidate')),
-        DataColumn(label: Text('Passport No')),
-        DataColumn(label: Text('Date Created')),
-        DataColumn(label: Text('Route / Service')),
-        DataColumn(label: Text('Customer Paid')),
+        DataColumn(label: Text('Post ID')),
+        DataColumn(label: Text('Booking ID')),
+        DataColumn(label: Text('From / To / Service')),
+        DataColumn(label: Text('Apply Date & Status')),
+        DataColumn(label: Text('Customer Info')),
+        DataColumn(label: Text('Package Price')),
+        DataColumn(label: Text('Paid Amount')),
         DataColumn(label: Text('Commission')),
-        DataColumn(label: Text('Status')),
       ],
       rows: items
           .map(
@@ -407,19 +389,37 @@ class _CommissionScreenState extends State<CommissionScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                DataCell(Text(item.name)),
-                DataCell(Text(item.passportNo)),
-                DataCell(Text(_formatListDate(item.createdAt))),
+                DataCell(Text(item.id.toString())),
                 DataCell(
                   Text(
-                    '${item.fromCountry} ➔ ${item.toCountry}\n(${item.serviceType})',
+                    '${item.fromCountry} → ${item.toCountry}\n${item.serviceType}',
                   ),
                 ),
                 DataCell(
-                  Text(
-                    '৳ ${_money(item.paidAmount)} / ৳ ${_money(item.customerTotal)}',
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_formatListDate(item.createdAt),
+                          style: const TextStyle(fontSize: 12)),
+                      _statusChip(item.statusLabel),
+                    ],
                   ),
                 ),
+                DataCell(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(item.name),
+                      Text(item.passportNo,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppPalette.textMuted)),
+                    ],
+                  ),
+                ),
+                DataCell(Text('৳ ${_money(item.customerTotal)}')),
+                DataCell(Text('৳ ${_money(item.paidAmount)}')),
                 DataCell(
                   Text(
                     '৳ ${_money(item.commission)}',
@@ -429,7 +429,6 @@ class _CommissionScreenState extends State<CommissionScreen> {
                     ),
                   ),
                 ),
-                DataCell(_statusChip(item.statusLabel)),
               ],
             ),
           )
@@ -612,7 +611,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                         color: const Color(0xFFD8F3DE),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: const Color(0xFF1C7A3B).withOpacity(0.3),
+                          color: const Color(0x4D1C7A3B),
                         ),
                       ),
                       child: Column(

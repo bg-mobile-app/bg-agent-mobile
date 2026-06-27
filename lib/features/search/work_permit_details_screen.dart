@@ -11,7 +11,8 @@ import '../home/models/home_models.dart';
 import '../home/widgets/work_permit_card.dart';
 import 'models/work_permit_details.dart';
 import 'services/work_permit_service.dart';
-import '../booking/bulk_booking_form_screen.dart';
+import '../chat/services/chat_service.dart';
+import '../chat/chat_conversation_screen.dart';
 
 const Color _brandBlue = Color(0xFF2563EB);
 const Color _primary = Color(0xFF004AC6);
@@ -1367,10 +1368,24 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                 _ActionIconButton(
                   icon: const FaIcon(FontAwesomeIcons.commentDots, size: 18),
                   semanticLabel: _tr('Chat', 'চ্যাট'),
-                  onPressed: () => _showMessage(
-                    context,
-                    _tr('Chat option coming soon', 'চ্যাট অপশন শীঘ্রই আসছে'),
-                  ),
+                  onPressed: () async {
+                    if (!_isLoggedIn) {
+                      _showMessage(context, _tr('Please login first', 'দয়া করে আগে লগইন করুন'));
+                      return;
+                    }
+                    final service = ChatService();
+                    final chat = await service.createConversation(
+                        workPermitId: _details?.id.toString() ?? widget.item.id.toString());
+                    if (chat != null && mounted) {
+                       Navigator.of(context).push(
+                         MaterialPageRoute(
+                           builder: (_) => ChatConversationScreen(chat: chat),
+                         ),
+                       );
+                    } else if (mounted) {
+                       _showMessage(context, _tr('Failed to start chat', 'চ্যাট শুরু করতে ব্যর্থ'));
+                    }
+                  },
                 ),
                 SizedBox(width: compact ? 8 : 12),
                 _ActionIconButton(
@@ -1397,11 +1412,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
 
   Future<void> _onApplyNowPressed(BuildContext context) async {
     if (_isLoggedIn) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => BulkBookingFormScreen(item: widget.item),
-        ),
-      );
+      context.push('/dashboard/booking/appointment');
       return;
     }
 
@@ -1429,7 +1440,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                context.push(AppRoutes.agencySignUp);
+                context.push(AppRoutes.agentSignUp);
               },
               child: Text(_tr('Sign Up', 'সাইন আপ')),
             ),
@@ -1464,7 +1475,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 420,
+          height: 375,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: displaySimilar.length,
@@ -1485,13 +1496,21 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                   );
                 },
                 formatBdt: _formatMoney,
-                timeAgo: (date) => '', // Fallback or format actual date
+                timeAgo: _timeAgo,
               ),
             ),
           ),
         ),
       ],
     );
+  }
+
+  String _timeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${(diff.inDays / 7).floor()}w ago';
   }
 }
 

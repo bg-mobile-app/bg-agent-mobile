@@ -278,121 +278,134 @@ class _HomeScreenState extends State<HomeScreen> {
           max: AppSpacing.md,
         );
 
-        void submitAdvancedFilters() {
-          Navigator.pop(context);
-          _applyFilters();
-        }
+        String sheetServiceType = _serviceType;
+        String sheetSelectionType = _selectionType;
 
-        return AnimatedPadding(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          padding: EdgeInsets.only(
-            left: horizontalInset,
-            right: horizontalInset,
-            bottom: mediaQuery.viewInsets.bottom + bottomInset,
-          ),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: responsive.size(AppSpacing.sm + 2, min: 10, max: 14),
-              vertical: responsive.size(
-                AppSpacing.md,
-                min: 12,
-                max: AppSpacing.md,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void submitAdvancedFilters() {
+              setState(() {
+                _serviceType = sheetServiceType;
+                _selectionType = sheetSelectionType;
+              });
+              Navigator.pop(context);
+              _applyFilters();
+            }
+
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(
+                left: horizontalInset,
+                right: horizontalInset,
+                bottom: mediaQuery.viewInsets.bottom + bottomInset,
               ),
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(
-                responsive.size(16, min: 12, max: 16),
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x26000000),
-                  blurRadius: 18,
-                  offset: Offset(0, 8),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.size(AppSpacing.sm + 2, min: 10, max: 14),
+                  vertical: responsive.size(
+                    AppSpacing.md,
+                    min: 12,
+                    max: AppSpacing.md,
+                  ),
                 ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _dropdown(
-                    value: _serviceType,
-                    hint: 'Service Type',
-                    items: const ['WORK_PERMIT'],
-                    height: responsive.size(56, min: 48, max: 56),
-                    horizontalPadding: responsive.size(10, min: 8, max: 10),
-                    fontSize: responsive.font(11, min: 10, max: 11),
-                    onChanged: (v) =>
-                        setState(() => _serviceType = v ?? 'WORK_PERMIT'),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(
+                    responsive.size(16, min: 12, max: 16),
                   ),
-                  SizedBox(height: sheetGap),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _textField(
-                          _minAgeController,
-                          'Min Age',
-                          onSubmitted: submitAdvancedFilters,
-                        ),
-                      ),
-                      SizedBox(width: responsive.size(8, min: 6, max: 8)),
-                      Expanded(
-                        child: _textField(
-                          _maxAgeController,
-                          'Max Age',
-                          onSubmitted: submitAdvancedFilters,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: sheetGap),
-                  _textField(
-                    _companyController,
-                    'Company Name',
-                    onSubmitted: submitAdvancedFilters,
-                  ),
-                  SizedBox(height: sheetGap),
-                  _dropdown(
-                    value: _selectionType,
-                    hint: 'Selection Type',
-                    items: const [
-                      'All',
-                      'DELEGATE',
-                      'PUSHING',
-                      'ZOOM INTERVIEW',
-                      'CV SELECTION',
-                    ],
-                    height: responsive.size(56, min: 48, max: 56),
-                    horizontalPadding: responsive.size(10, min: 8, max: 10),
-                    fontSize: responsive.font(11, min: 10, max: 11),
-                    onChanged: (v) =>
-                        setState(() => _selectionType = v ?? 'All'),
-                  ),
-                  SizedBox(height: responsive.size(12, min: 10, max: 12)),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: submitAdvancedFilters,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _brandBlue,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(
-                        'Search',
-                        style: TextStyle(
-                          fontSize: responsive.font(14, min: 12, max: 14),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x26000000),
+                      blurRadius: 18,
+                      offset: Offset(0, 8),
                     ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _dropdown(
+                        value: sheetServiceType,
+                        hint: 'Service Type',
+                        items: const ['WORK_PERMIT'],
+                        height: responsive.size(56, min: 48, max: 56),
+                        horizontalPadding: responsive.size(10, min: 8, max: 10),
+                        fontSize: responsive.font(11, min: 10, max: 11),
+                        onChanged: (v) => setSheetState(
+                          () => sheetServiceType = v ?? 'WORK_PERMIT',
+                        ),
+                      ),
+                      SizedBox(height: sheetGap),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _textField(
+                              _minAgeController,
+                              'Min Age',
+                              onSubmitted: submitAdvancedFilters,
+                            ),
+                          ),
+                          SizedBox(width: responsive.size(8, min: 6, max: 8)),
+                          Expanded(
+                            child: _textField(
+                              _maxAgeController,
+                              'Max Age',
+                              onSubmitted: submitAdvancedFilters,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: sheetGap),
+                      _textField(
+                        _companyController,
+                        'Company Name',
+                        onSubmitted: submitAdvancedFilters,
+                      ),
+                      SizedBox(height: sheetGap),
+                      _dropdown(
+                        value: sheetSelectionType,
+                        hint: 'Selection Type',
+                        items: const [
+                          'All',
+                          'DELEGATE',
+                          'PUSHING',
+                          'ZOOM INTERVIEW',
+                          'CV SELECTION',
+                        ],
+                        height: responsive.size(56, min: 48, max: 56),
+                        horizontalPadding: responsive.size(10, min: 8, max: 10),
+                        fontSize: responsive.font(11, min: 10, max: 11),
+                        onChanged: (v) => setSheetState(
+                          () => sheetSelectionType = v ?? 'All',
+                        ),
+                      ),
+                      SizedBox(height: responsive.size(12, min: 10, max: 12)),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: submitAdvancedFilters,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _brandBlue,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            'Search',
+                            style: TextStyle(
+                              fontSize: responsive.font(14, min: 12, max: 14),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -411,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() => _isLoggedIn = true);
           }
         },
-        onSignUp: () => context.push(AppRoutes.agencySignUp),
+        onSignUp: () => context.push(AppRoutes.agentSignUp),
         onNotifications: () => context.push('/dashboard/notifications'),
         onProfile: () => context.push('/dashboard/customer/profile'),
         profileImageUrl: _profileImageUrl,
@@ -616,12 +629,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                         ),
                         child: Center(
-                          child: FUI(
-                            item.icon,
-                            color: index == 0 ? Colors.white : _brandBlue,
-                            width: iconSize,
-                            height: iconSize,
-                          ),
+                          child: item.customIconData != null
+                              ? Icon(
+                                  item.customIconData,
+                                  color: index == 0 ? Colors.white : _brandBlue,
+                                  size: iconSize,
+                                )
+                              : FUI(
+                                  item.icon,
+                                  color: index == 0 ? Colors.white : _brandBlue,
+                                  width: iconSize,
+                                  height: iconSize,
+                                ),
                         ),
                       ),
                       SizedBox(height: itemGap),
@@ -720,7 +739,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           _sectionHeader(
-            'Work Aboard',
+            'Work Abroad',
             actionLabel: 'See More',
             onActionTap: () => context.push('/search'),
           ),

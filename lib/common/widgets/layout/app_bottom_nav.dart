@@ -103,7 +103,7 @@ class AppBottomNav extends StatelessWidget {
                                     ),
                                   ),
                                   child: Icon(
-                                    Icons.add_rounded,
+                                    Icons.edit_calendar_rounded,
                                     color: Colors.white,
                                     size: prominentIconSize,
                                   ),
@@ -257,7 +257,7 @@ const List<_BottomNavItem> _items = [
     selectedIcon: RegularStraight.SEARCH,
   ),
   _BottomNavItem(
-    label: 'Create Ad',
+    label: 'Appointment',
     icon: '',
     selectedIcon: '',
     isProminent: true,

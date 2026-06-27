@@ -124,23 +124,25 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } on DioException catch (e) {
       if (mounted) {
-        String errMsg = 'Invalid username or password.';
-        if (e.response?.statusCode == 401) {
-          errMsg = 'No active account found with the given credentials.';
-        }
+        String errMsg = e.message ?? 'An error occurred during login.';
         if (e.response?.data != null) {
           try {
             final data = e.response!.data;
-            if (data is Map && data['detail'] != null) {
-              errMsg = data['detail'].toString();
-            } else if (data is Map && data['errors'] != null) {
-              if (data['errors']['detail'] is List) {
-                errMsg = (data['errors']['detail'] as List).join(', ');
-              } else if (data['errors']['detail'] != null) {
-                errMsg = data['errors']['detail'].toString();
-              } else {
-                errMsg = data['errors'].toString();
+            if (data is Map) {
+              if (data['detail'] != null) {
+                errMsg = data['detail'].toString();
+              } else if (data['message'] != null) {
+                errMsg = data['message'].toString();
+              } else if (data['errors'] != null) {
+                if (data['errors'] is Map && data['errors']['detail'] != null) {
+                  final errDetail = data['errors']['detail'];
+                  errMsg = errDetail is List ? errDetail.join(', ') : errDetail.toString();
+                } else {
+                  errMsg = data['errors'].toString();
+                }
               }
+            } else if (data is String && data.isNotEmpty) {
+              errMsg = data;
             }
           } catch (_) {}
         }
@@ -168,9 +170,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
   String _loginErrorMessage(ApiException exception) {
     final data = exception.data;
-    if (exception.statusCode == 401) {
-      return 'No active account found with the given credentials.';
-    }
     if (data is Map) {
       final detail = data['detail'] ?? data['message'];
       if (detail != null) return detail.toString();
@@ -185,7 +184,7 @@ class _SignInScreenState extends State<SignInScreen> {
     }
     return exception.message.isNotEmpty
         ? exception.message
-        : 'Invalid username or password.';
+        : 'An error occurred during login.';
   }
 
   static const Color _brandBlue = Color(0xFF2563EB);
@@ -407,7 +406,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   style: TextStyle(color: Color(0xFF64748B)),
                 ),
                 TextButton(
-                  onPressed: () => context.push(AppRoutes.recruitingSignUp),
+                  onPressed: () => context.push(AppRoutes.agentSignUp),
                   child: const Text(
                     'Create an account',
                     style: TextStyle(fontWeight: FontWeight.w700),
