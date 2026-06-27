@@ -174,9 +174,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
 
         // workPermitSlug is the human-readable ID like "WP-001".
         // Prefer slug when available, fall back to numeric workPermitId.
-        final postId = dto.workPermitSlug.isNotEmpty
-            ? dto.workPermitSlug.toUpperCase()
-            : (dto.workPermitId > 0 ? dto.workPermitId.toString() : 'N/A');
+        final postId = dto.workPermitId > 0 ? 'WP-${dto.workPermitId}' : 'N/A';
 
         return AppointmentBookingItem(
           postId: postId,
@@ -800,7 +798,26 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
-  void _openTicket(AppointmentBookingItem item) {
+  Future<void> _openTicket(AppointmentBookingItem item) async {
+    // Show a loading indicator while we fetch the ticket (which includes the QR).
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    String? qr;
+    try {
+      final ticket = await _bookingService.getAppointmentTicket(item.bookingId);
+      qr = ticket.qr;
+    } catch (e) {
+      // Silently continue — the ticket screen handles a null qr gracefully.
+      debugPrint('Could not fetch ticket QR for booking ${item.bookingId}: $e');
+    } finally {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    }
+
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => AppointmentTicketScreen(
@@ -810,6 +827,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
           appointmentDate: '${item.date} ${item.time}',
           toCountry: item.country,
           meetingType: item.meeting,
+          qr: qr,
         ),
       ),
     );

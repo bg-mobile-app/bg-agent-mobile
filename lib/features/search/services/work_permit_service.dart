@@ -8,9 +8,22 @@ class WorkPermitService {
 
   Future<WorkPermitDetails?> getWorkPermitDetails(String slug) async {
     try {
-      final response = await _apiClient.get('/work-permits/$slug/');
+      final endpoint = '/work-permits/$slug/';
+      debugPrint('╔══════════════════════════════════════════════════════');
+      debugPrint('║ [API CALL] WorkPermitService.getWorkPermitDetails');
+      debugPrint('║  endpoint = $endpoint');
+      debugPrint('║  source   = WorkPermitDetailsScreen -> _loadDetails()');
+      final response = await _apiClient.get(endpoint);
+      debugPrint('║  response status = ${response.statusCode ?? 'unknown'}');
+      debugPrint('║  raw response data = ${response.data}');
+      debugPrint('╚══════════════════════════════════════════════════════');
       final details = WorkPermitDetails.fromJson(response.data);
-      debugPrint('Payment Steps from API: ${details.paymentSteps}');
+      debugPrint('║ [MODEL] Parsed work permit details from $endpoint');
+      debugPrint('║  title = ${details.title}');
+      debugPrint('║  isBn = ${details.isBn}');
+      debugPrint('║  paymentSystem = ${details.paymentSystem}');
+      debugPrint('║  paymentSteps = ${details.paymentSteps}');
+      debugPrint('╚══════════════════════════════════════════════════════');
       return details;
     } catch (e) {
       debugPrint("Error fetching work permit details: $e");
@@ -20,18 +33,21 @@ class WorkPermitService {
 
   Future<List<WorkPermitItem>> getSimilarWorkPermits(String slug) async {
     try {
-      final response = await _apiClient.get(
-        '/work-permits/$slug/related-permits/',
-      );
+      final endpoint = '/work-permits/$slug/related-permits/';
+      debugPrint('╔══════════════════════════════════════════════════════');
+      debugPrint('║ [API CALL] WorkPermitService.getSimilarWorkPermits');
+      debugPrint('║  endpoint = $endpoint');
+      debugPrint('║  source   = WorkPermitDetailsScreen -> _loadDetails()');
+      final response = await _apiClient.get(endpoint);
 
       final related = _extractWorkPermitList(
         response.data,
       ).where((item) => item.slug != slug).toList();
       if (related.isNotEmpty) return related;
 
-      final fallbackResponse = await _apiClient.get(
-        '/work-permits/home-permits/',
-      );
+      final fallbackEndpoint = '/work-permits/home-permits/';
+      final fallbackResponse = await _apiClient.get(fallbackEndpoint);
+      debugPrint('║  fallback endpoint = $fallbackEndpoint');
       return _extractWorkPermitList(
         fallbackResponse.data,
       ).where((item) => item.slug != slug).toList();

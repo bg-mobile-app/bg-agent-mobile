@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +14,7 @@ import '../../common/services/api_client.dart';
 import '../../routes/app_routes.dart';
 import '../home/models/home_models.dart';
 import '../home/widgets/work_permit_card.dart';
+import '../booking/bulk_booking_form_screen.dart';
 import 'models/work_permit_details.dart';
 import 'services/work_permit_service.dart';
 import '../chat/services/chat_service.dart';
@@ -56,6 +62,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     final slug = widget.item.slug;
     final shareUrl = 'https://bideshgami.com/work-permits/$slug';
     final shareText = 'Check out this work permit: $title in $country. Price: BDT ${widget.item.customerPrice}. Learn more at: $shareUrl';
+    final imageUrl = _details?.image.isNotEmpty == true ? _details!.image : widget.item.image;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -142,7 +149,34 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
               ),
               const SizedBox(height: 20),
               const Divider(color: _outline, height: 1),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              // Share with Image — uses platform native share sheet
+              if (imageUrl.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.image_rounded, color: _brandBlue),
+                  title: const Text('Share with Image', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Opens native share sheet with image', style: TextStyle(fontSize: 12)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _shareWithImage(
+                      imageUrl: imageUrl,
+                      shareText: shareText,
+                      shareUrl: shareUrl,
+                    );
+                  },
+                ),
+              // Share text only via native share sheet
+              ListTile(
+                leading: const Icon(Icons.share_rounded, color: _brandBlue),
+                title: const Text('Share Link', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Opens native share sheet', style: TextStyle(fontSize: 12)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await SharePlus.instance.share(
+                    ShareParams(text: shareText),
+                  );
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.copy_rounded, color: _brandBlue),
                 title: const Text('Copy Link', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -162,6 +196,76 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
         );
       },
     );
+  }
+
+  Future<void> _shareWithImage({
+    required String imageUrl,
+    required String shareText,
+    required String shareUrl,
+  }) async {
+    try {
+      // Show loading indicator
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Preparing image...'),
+            ],
+          ),
+          duration: Duration(seconds: 10),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Download image bytes
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download image: ${response.statusCode}');
+      }
+
+      // Save to temp file
+      final tempDir = await getTemporaryDirectory();
+      final ext = imageUrl.contains('.png') ? 'png' : 'jpg';
+      final file = File('${tempDir.path}/wp_share_image.$ext');
+      await file.writeAsBytes(response.bodyBytes);
+
+      // Dismiss loading snackbar
+      if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      // Share with image using share_plus
+      await SharePlus.instance.share(
+        ShareParams(
+          text: shareText,
+          files: [XFile(file.path)],
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error sharing with image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not share image. Sharing link only.'),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Share Link',
+              onPressed: () async {
+                await SharePlus.instance.share(
+                  ShareParams(text: shareText),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Widget _shareOption({
@@ -225,6 +329,26 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
   List<WorkPermitItem> get displaySimilar =>
       _isLoading ? [widget.item, widget.item] : _similarPermits;
   String _tr(String english, String bangla) => _isBangla ? bangla : english;
+
+  String _paymentStepLabel(String name, int index) {
+    final normalized = name.trim().toLowerCase();
+    if (!_isBangla) return name;
+
+    if (normalized.contains('advance') || normalized.contains('অগ্রিম')) {
+      return 'অগ্রিম';
+    }
+    if (normalized.contains('after visa') || normalized.contains('ভিসার পর')) {
+      return 'ভিসার পর';
+    }
+    if (normalized.contains('before flight') || normalized.contains('ফ্লাইটের আগে')) {
+      return 'ফ্লাইটের আগে';
+    }
+
+    if (index == 0) return 'অগ্রিম';
+    if (index == 1) return 'ভিসার পর';
+    if (index == 2) return 'ফ্লাইটের আগে';
+    return name;
+  }
 
   WorkPermitDetails _getDummyDetails() {
     return WorkPermitDetails(
@@ -1118,6 +1242,21 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
   Widget _priceCard() {
     final agentSpending = _isLoggedIn ? displayDetails.agentPrice : null;
 
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [UI] Price card rendered from work permit details');
+    debugPrint('║  source             = WorkPermitDetailsScreen._priceCard()');
+    debugPrint('║  slug               = ${displayDetails.slug}');
+    debugPrint('║  isBn               = ${displayDetails.isBn}');
+    debugPrint('║  customerPrice      = ${displayDetails.customerPrice}');
+    debugPrint('║  agentPrice         = ${agentSpending ?? 'n/a'}');
+    debugPrint('║  paymentSystem      = ${displayDetails.paymentSystem}');
+    debugPrint('║  paymentSteps count = ${displayDetails.paymentSteps.length}');
+    for (var i = 0; i < displayDetails.paymentSteps.length; i++) {
+      final step = displayDetails.paymentSteps[i];
+      debugPrint('║  step[$i] name=${step.name} amount=${step.amount}');
+    }
+    debugPrint('╚══════════════════════════════════════════════════════');
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1183,7 +1322,7 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _PriceTimelineStep(
-                      title: displayDetails.paymentSteps[i].name,
+                      title: _paymentStepLabel(displayDetails.paymentSteps[i].name, i),
                       amount:
                           'BDT ${_formatMoney(displayDetails.paymentSteps[i].amount.toInt())}',
                       active: i == 0,
@@ -1369,20 +1508,46 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                   icon: const FaIcon(FontAwesomeIcons.commentDots, size: 18),
                   semanticLabel: _tr('Chat', 'চ্যাট'),
                   onPressed: () async {
+                    debugPrint('╔══════════════════════════════════════════════════════');
+                    debugPrint('║ [DETAILS] Chat button tapped');
+                    debugPrint('║  _isLoggedIn      = $_isLoggedIn');
+                    debugPrint('║  _details loaded? = ${_details != null}');
+                    debugPrint('║  workPermitId     = ${_details?.id ?? widget.item.id}');
+                    debugPrint('║  title            = ${_details?.title ?? widget.item.title}');
+                    debugPrint('║  slug             = ${_details?.slug ?? widget.item.slug}');
+                    debugPrint('╠══════════════════════════════════════════════════════');
+
                     if (!_isLoggedIn) {
+                      debugPrint('║  ⛔ User not logged in — aborting chat');
+                      debugPrint('╚══════════════════════════════════════════════════════');
                       _showMessage(context, _tr('Please login first', 'দয়া করে আগে লগইন করুন'));
                       return;
                     }
                     final service = ChatService();
+                    debugPrint('║  Calling createConversation...');
                     final chat = await service.createConversation(
-                        workPermitId: _details?.id.toString() ?? widget.item.id.toString());
+                      workPermitId: _details?.id.toString() ?? widget.item.id.toString(),
+                      receiverRole: "CALL_CENTER",
+                    );
                     if (chat != null && mounted) {
+                       final title = _details?.title ?? widget.item.title;
+                       final slug = _details?.slug ?? widget.item.slug;
+                       final initialMessage = "Hi, I need help with my work permit: $title\n🔗 https://bideshgami.com/work-permit/$slug";
+                       debugPrint('║  ✅ Conversation created: id=${chat.id}');
+                       debugPrint('║  Navigating to ChatConversationScreen');
+                       debugPrint('║  initialMessage = $initialMessage');
+                       debugPrint('╚══════════════════════════════════════════════════════');
                        Navigator.of(context).push(
                          MaterialPageRoute(
-                           builder: (_) => ChatConversationScreen(chat: chat),
+                           builder: (_) => ChatConversationScreen(
+                             chat: chat,
+                             initialMessage: initialMessage,
+                           ),
                          ),
                        );
                     } else if (mounted) {
+                       debugPrint('║  ❌ createConversation returned null — showing error');
+                       debugPrint('╚══════════════════════════════════════════════════════');
                        _showMessage(context, _tr('Failed to start chat', 'চ্যাট শুরু করতে ব্যর্থ'));
                     }
                   },
@@ -1411,10 +1576,47 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
   }
 
   Future<void> _onApplyNowPressed(BuildContext context) async {
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [ACTION] Apply now tapped');
+    debugPrint('║  source             = WorkPermitDetailsScreen._onApplyNowPressed()');
+    debugPrint('║  slug               = ${displayDetails.slug}');
+    debugPrint('║  title              = ${displayDetails.title}');
+    debugPrint('║  customerPrice      = ${displayDetails.customerPrice}');
+    debugPrint('║  isBn               = ${displayDetails.isBn}');
+    debugPrint('║  paymentSteps count = ${displayDetails.paymentSteps.length}');
+    debugPrint('║  isLoggedIn         = $_isLoggedIn');
+    debugPrint('╚══════════════════════════════════════════════════════');
+
     if (_isLoggedIn) {
-      context.push('/dashboard/booking/appointment');
+      debugPrint('║ [APPLY] User is logged in — navigating to bulk booking screen');
+      
+      // Convert WorkPermitDetails into WorkPermitItem to feed the BulkBookingFormScreen
+      final workPermitItem = WorkPermitItem(
+        id: displayDetails.id,
+        title: displayDetails.title,
+        slug: displayDetails.slug,
+        image: displayDetails.image,
+        customerPrice: displayDetails.customerPrice,
+        agentPrice: displayDetails.agentPrice ?? displayDetails.packagePrice ?? 0,
+        countryName: displayDetails.countryName,
+        countryFlag: displayDetails.countryFlag,
+        workType: displayDetails.workType?.name ?? 'Work Permit',
+        selectionType: displayDetails.selectionType,
+        createdAt: displayDetails.createdAt,
+      );
+
+      debugPrint('║ [APPLY] Converted details to WorkPermitItem: id=${workPermitItem.id}, title="${workPermitItem.title}", country="${workPermitItem.countryName}"');
+      debugPrint('║ [APPLY] Pushing BulkBookingFormScreen onto navigation stack');
+
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => BulkBookingFormScreen(item: workPermitItem),
+        ),
+      );
       return;
     }
+
+    debugPrint('║ [APPLY] User is not logged in — showing sign-in dialog');
 
     await showDialog<void>(
       context: context,
@@ -1859,13 +2061,8 @@ class _PriceTimelineStep extends StatelessWidget {
               children: [
                 Text(
                   title.toUpperCase(),
-                  style: TextStyle(
-                    color:
-                        (title.toLowerCase().contains('advance') ||
-                            title.toLowerCase().contains('after visa') ||
-                            title.toLowerCase().contains('before flight'))
-                        ? Colors.white
-                        : (active ? _brandBlue : _mutedText),
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 11,
                     letterSpacing: 0.6,
                     fontWeight: FontWeight.w900,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -28,20 +29,129 @@ class AppointmentTicketScreen extends StatelessWidget {
 
   ImageProvider? _qrImageProvider() {
     final value = qr?.trim();
-    if (value == null || value.isEmpty) return null;
+    debugPrint('[QR DEBUG] Raw qr value: "$value"');
+    if (value == null || value.isEmpty) {
+      debugPrint('[QR DEBUG] qr value is null or empty. Generating QR server image provider fallback using booking ID: $id');
+      // Generate QR Code using a public QR generation API containing the booking details
+      final fallbackQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=SL-BG-$id-$passportNo';
+      return NetworkImage(fallbackQrUrl);
+    }
     if (value.startsWith('data:image')) {
       final comma = value.indexOf(',');
-      if (comma == -1) return null;
-      return MemoryImage(base64Decode(value.substring(comma + 1)));
+      if (comma == -1) {
+        debugPrint('[QR DEBUG] qr starts with data:image but lacks a comma separator. Falling back...');
+        final fallbackQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=SL-BG-$id-$passportNo';
+        return NetworkImage(fallbackQrUrl);
+      }
+      try {
+        final decodedBytes = base64Decode(value.substring(comma + 1));
+        debugPrint('[QR DEBUG] Successfully decoded base64 memory image. Length: ${decodedBytes.length} bytes');
+        return MemoryImage(decodedBytes);
+      } catch (e) {
+        debugPrint('[QR DEBUG] Failed to decode base64 memory image: $e. Falling back...');
+        final fallbackQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=SL-BG-$id-$passportNo';
+        return NetworkImage(fallbackQrUrl);
+      }
     }
     if (value.startsWith('http://') || value.startsWith('https://')) {
+      debugPrint('[QR DEBUG] Loading network image from absolute URL: "$value"');
       return NetworkImage(value);
     }
-    return null;
+    debugPrint('[QR DEBUG] qr value does not match known prefix. Falling back...');
+    final fallbackQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=SL-BG-$id-$passportNo';
+    return NetworkImage(fallbackQrUrl);
   }
 
   Future<Uint8List> _buildPdf() async {
     final doc = pw.Document();
+
+    // Build QR image for PDF if available.
+    pw.ImageProvider? pdfQrImage;
+    var qrValue = qr?.trim();
+    if (qrValue == null || qrValue.isEmpty) {
+      qrValue = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=SL-BG-$id-$passportNo';
+    }
+    try {
+      Uint8List? qrBytes;
+      if (qrValue.startsWith('data:image')) {
+        final comma = qrValue.indexOf(',');
+        if (comma != -1) {
+          qrBytes = base64Decode(qrValue.substring(comma + 1));
+        } else {
+          // fallback to qrserver
+          final fallbackUri = Uri.parse('https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=SL-BG-$id-$passportNo');
+          final req = await HttpClient().getUrl(fallbackUri);
+          final resp = await req.close();
+          qrBytes = await resp
+              .fold<List<int>>([], (acc, chunk) => acc..addAll(chunk))
+              .then((list) => Uint8List.fromList(list));
+        }
+      } else if (qrValue.startsWith('http://') || qrValue.startsWith('https://')) {
+        final uri = Uri.parse(qrValue);
+        final req = await HttpClient().getUrl(uri);
+        final resp = await req.close();
+        qrBytes = await resp
+            .fold<List<int>>([], (acc, chunk) => acc..addAll(chunk))
+            .then((list) => Uint8List.fromList(list));
+      }
+      if (qrBytes != null) {
+        pdfQrImage = pw.MemoryImage(qrBytes);
+      }
+    } catch (_) {
+      // Fallback request
+      try {
+        final uri = Uri.parse('https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=SL-BG-$id-$passportNo');
+        final req = await HttpClient().getUrl(uri);
+        final resp = await req.close();
+        final qrBytes = await resp
+            .fold<List<int>>([], (acc, chunk) => acc..addAll(chunk))
+            .then((list) => Uint8List.fromList(list));
+        pdfQrImage = pw.MemoryImage(qrBytes);
+      } catch (e) {
+        // QR image unavailable — continue without it.
+      }
+    }
+
+    final detailsColumn = pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          name.toUpperCase(),
+          style: pw.TextStyle(
+            color: PdfColors.white,
+            fontSize: 24,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Text(
+          'Passport Number: $passportNo',
+          style: const pw.TextStyle(color: PdfColors.white, fontSize: 13),
+        ),
+        pw.Text(
+          'Country: $toCountry',
+          style: const pw.TextStyle(color: PdfColors.white, fontSize: 13),
+        ),
+        pw.Text(
+          'Date & Time: $appointmentDate',
+          style: const pw.TextStyle(color: PdfColors.white, fontSize: 13),
+        ),
+        pw.Text(
+          'Service: Visa Consultancy',
+          style: const pw.TextStyle(color: PdfColors.white, fontSize: 13),
+        ),
+        pw.Text(
+          'Meeting: $meetingType',
+          style: const pw.TextStyle(color: PdfColors.white, fontSize: 13),
+        ),
+        pw.SizedBox(height: 10),
+        pw.Text(
+          'Office Address: House No-27 (3rd Floor), Road No-10, Block-E, Banani, Dhaka-1213',
+          style: const pw.TextStyle(color: PdfColors.white, fontSize: 11),
+        ),
+      ],
+    );
+
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4.landscape,
@@ -63,40 +173,29 @@ class AppointmentTicketScreen extends StatelessWidget {
                 'SL-BG-$id',
                 style: pw.TextStyle(
                   color: PdfColors.white,
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
               pw.SizedBox(height: 16),
-              pw.Text(
-                name.toUpperCase(),
-                style: pw.TextStyle(
-                  color: PdfColors.white,
-                  fontSize: 28,
-                  fontWeight: pw.FontWeight.bold,
+              pw.Expanded(
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    if (pdfQrImage != null) ...[  
+                      pw.Container(
+                        padding: const pw.EdgeInsets.all(10),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(10),
+                        ),
+                        child: pw.Image(pdfQrImage, width: 150, height: 150),
+                      ),
+                      pw.SizedBox(width: 20),
+                    ],
+                    pw.Expanded(child: detailsColumn),
+                  ],
                 ),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'Passport Number: $passportNo',
-                style: const pw.TextStyle(color: PdfColors.white, fontSize: 14),
-              ),
-              pw.Text(
-                'Country: $toCountry',
-                style: const pw.TextStyle(color: PdfColors.white, fontSize: 14),
-              ),
-              pw.Text(
-                'Date: $appointmentDate',
-                style: const pw.TextStyle(color: PdfColors.white, fontSize: 14),
-              ),
-              pw.Text(
-                'Time: 10:00 AM - 06:00 PM',
-                style: const pw.TextStyle(color: PdfColors.white, fontSize: 14),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                'Office Address: House No-27 (3rd Floor), Road No-10, Block-E, Banani, Dhaka-1213',
-                style: const pw.TextStyle(color: PdfColors.white, fontSize: 12),
               ),
             ],
           ),
@@ -178,6 +277,22 @@ class AppointmentTicketScreen extends StatelessWidget {
                                         width: 170,
                                         height: 170,
                                         fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          debugPrint('[QR DEBUG] Image widget failed to load or render: $error\n$stackTrace');
+                                          return Container(
+                                            width: 170,
+                                            height: 170,
+                                            color: Colors.red.shade900,
+                                            padding: const EdgeInsets.all(8),
+                                            child: Center(
+                                              child: Text(
+                                                'Failed to render image:\n$error',
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(color: Colors.white, fontSize: 10),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     )
                                   : const SizedBox(

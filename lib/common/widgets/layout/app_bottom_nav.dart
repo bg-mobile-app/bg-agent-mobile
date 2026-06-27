@@ -103,7 +103,7 @@ class AppBottomNav extends StatelessWidget {
                                     ),
                                   ),
                                   child: Icon(
-                                    Icons.edit_calendar_rounded,
+                                    Icons.calendar_month_rounded,
                                     color: Colors.white,
                                     size: prominentIconSize,
                                   ),

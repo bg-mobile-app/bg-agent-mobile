@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AgencyProps {
   final int id;
   final String name;
@@ -66,18 +68,73 @@ class PaymentStepProps {
     required this.percentage,
   });
 
-  factory PaymentStepProps.fromJson(Map<String, dynamic> json) {
-    final rawName = (json['name'] ?? json['step'] ?? '').toString();
+  factory PaymentStepProps.fromJson(
+    Map<String, dynamic> json, {
+    bool isBn = false,
+  }) {
+    final rawName = (
+      json['name'] ??
+      json['step'] ??
+      json['title'] ??
+      json['label'] ??
+      json['paymentStepName'] ??
+      json['stepName'] ??
+      json['payment_step_name'] ??
+      json['payment_step'] ??
+      ''
+    ).toString();
+    final amountValue =
+        json['amount'] ??
+        json['price'] ??
+        json['value'] ??
+        json['total'] ??
+        json['priceAmount'] ??
+        json['price_amount'] ??
+        json['sequence'];
+    final percentageValue = json['percentage'] ?? json['percent'] ?? '';
     return PaymentStepProps(
-      name: _formatEnumLabel(rawName),
-      amount: double.tryParse(json['amount']?.toString() ?? '0') ?? 0.0,
-      percentage: json['percentage']?.toString() ?? '',
+      name: _formatEnumLabel(rawName, isBn: isBn),
+      amount: _parseAmount(amountValue),
+      percentage: percentageValue.toString(),
     );
   }
 
-  static String _formatEnumLabel(String value) {
+  factory PaymentStepProps.fromFallback({
+    required String name,
+    required double amount,
+    String percentage = '',
+    bool isBn = false,
+  }) {
+    return PaymentStepProps(
+      name: _formatEnumLabel(name, isBn: isBn),
+      amount: amount,
+      percentage: percentage,
+    );
+  }
+
+  static double _parseAmount(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  static String _formatEnumLabel(String value, {bool isBn = false}) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return '';
+
+    final normalized = trimmed.toLowerCase();
+    if (isBn) {
+      if (normalized.contains('advance') || normalized.contains('অগ্রিম')) {
+        return 'অগ্রিম';
+      }
+      if (normalized.contains('after') && normalized.contains('visa')) {
+        return 'ভিসার পর';
+      }
+      if (normalized.contains('before') && normalized.contains('flight')) {
+        return 'ফ্লাইটের আগে';
+      }
+    }
 
     return trimmed
         .split(RegExp(r'[_\s-]+'))
@@ -198,6 +255,51 @@ class WorkPermitDetails {
   });
 
   factory WorkPermitDetails.fromJson(Map<String, dynamic> json) {
+    final isBn = _parseBool(json['isBn'] ?? json['is_bn']);
+    final rawPaymentSteps =
+        json['paymentSteps'] ??
+        json['payment_steps'] ??
+        json['paymentStep'] ??
+        json['payment_step'];
+    debugPrint('[WorkPermitDetails] Raw paymentSteps payload: $rawPaymentSteps');
+    final parsedPaymentSteps = _parsePaymentSteps(rawPaymentSteps, isBn: isBn);
+    final hasFallbackPaymentSteps = parsedPaymentSteps.isEmpty;
+
+    final fallbackSteps = hasFallbackPaymentSteps
+        ? <PaymentStepProps>[
+            PaymentStepProps.fromFallback(
+              name: 'Advance',
+              amount: _parseInt(
+                json['advancePrice'] ??
+                    json['advance_price'] ??
+                    json['advance'] ??
+                    json['initialPayment'],
+              ).toDouble(),
+              isBn: isBn,
+            ),
+            PaymentStepProps.fromFallback(
+              name: 'After Visa',
+              amount: _parseInt(
+                json['afterVisa'] ??
+                    json['after_visa'] ??
+                    json['afterVisaPrice'] ??
+                    json['after_visa_price'],
+              ).toDouble(),
+              isBn: isBn,
+            ),
+            PaymentStepProps.fromFallback(
+              name: 'Before Flight',
+              amount: _parseInt(
+                json['beforeFlight'] ??
+                    json['before_flight'] ??
+                    json['beforeFlightPrice'] ??
+                    json['before_flight_price'],
+              ).toDouble(),
+              isBn: isBn,
+            ),
+          ]
+        : parsedPaymentSteps;
+
     return WorkPermitDetails(
       id: json['id'] ?? 0,
       slug: json['slug'] ?? '',
@@ -283,11 +385,9 @@ class WorkPermitDetails {
         json['agentPercentage'] ?? json['agent_percentage'],
       ),
       paymentSystem: json['paymentSystem'] ?? json['payment_system'] ?? '',
-      isBn: _parseBool(json['isBn'] ?? json['is_bn']),
+      isBn: isBn,
       description: json['description'] ?? '',
-      paymentSteps: _parsePaymentSteps(
-        json['paymentSteps'] ?? json['payment_steps'],
-      ),
+      paymentSteps: fallbackSteps,
       advancePrice: _parseInt(json['advancePrice'] ?? json['advance_price']),
       afterVisa: _parseInt(json['afterVisa'] ?? json['after_visa']),
       beforeFlight: _parseInt(json['beforeFlight'] ?? json['before_flight']),
@@ -345,20 +445,32 @@ class WorkPermitDetails {
     return [];
   }
 
-  static List<PaymentStepProps> _parsePaymentSteps(dynamic value) {
+  static List<PaymentStepProps> _parsePaymentSteps(
+    dynamic value, {
+    bool isBn = false,
+  }) {
     if (value == null) {
-      print('Payment steps is null');
       return [];
     }
     if (value is List) {
-      print('Payment steps count: ${value.length}');
       final parsed = value
-          .map((e) => PaymentStepProps.fromJson(e as Map<String, dynamic>))
+          .whereType<Map>()
+          .map(
+            (e) => PaymentStepProps.fromJson(
+              Map<String, dynamic>.from(e),
+              isBn: isBn,
+            ),
+          )
           .toList();
-      print('Parsed payment steps: $parsed');
+      debugPrint('[WorkPermitDetails] Parsed paymentSteps: ${parsed.map((s) => '${s.name}:${s.amount}').toList()}');
       return parsed;
     }
-    print('Payment steps not a list: ${value.runtimeType}');
+    if (value is Map) {
+      final nested = value['results'] ?? value['items'] ?? value['data'];
+      if (nested is List) {
+        return _parsePaymentSteps(nested, isBn: isBn);
+      }
+    }
     return [];
   }
 }

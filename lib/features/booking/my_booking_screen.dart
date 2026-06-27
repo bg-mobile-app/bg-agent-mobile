@@ -63,7 +63,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
     'REJECT_FILE',
     'SUCCESS_FLIGHT',
   };
-  bool _isCardView = false;
+  bool _isCardView = true;
   bool _isLoading = false;
   String? _error;
   String _search = '';

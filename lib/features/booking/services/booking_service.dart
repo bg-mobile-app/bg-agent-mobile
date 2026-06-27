@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -270,6 +271,85 @@ class BookingService {
         'bookingIds': bookingIds,
       },
     );
+  }
+
+  /// Fetches the ticket details for an appointment booking, including the QR
+  /// code image string as documented in agentqrcode.md.
+  /// Endpoint: GET /booking/appointments/{id}/ticket/pdf/
+  Future<WPBTicketDto> getAppointmentTicket(int bookingId) async {
+    final path = '/booking/appointments/$bookingId/ticket/pdf/';
+    debugPrint('[QR DEBUG] Requesting ticket details from primary: "$path"');
+    try {
+      final response = await _apiClient.get(path);
+      debugPrint('[QR DEBUG] Response received: status=${response.statusCode}, data=${response.data}');
+      if (response.data is Map<String, dynamic>) {
+        return WPBTicketDto.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw Exception('Invalid ticket response type: ${response.data.runtimeType}');
+    } catch (e) {
+      debugPrint('[QR DEBUG] Primary endpoint failed: $e. Trying alternate path suffix "/ticket/" instead of "/ticket/pdf/"...');
+      
+      try {
+        final altPath = '/booking/appointments/$bookingId/ticket/';
+        debugPrint('[QR DEBUG] Requesting from alt: "$altPath"');
+        final response = await _apiClient.get(altPath);
+        debugPrint('[QR DEBUG] Alt response received: status=${response.statusCode}, data=${response.data}');
+        if (response.data is Map<String, dynamic>) {
+          return WPBTicketDto.fromJson(response.data as Map<String, dynamic>);
+        }
+      } catch (altError) {
+        debugPrint('[QR DEBUG] Alt path also failed: $altError. Trying clean /api fallback...');
+        
+        // Let's try fallback without /api/r prefix
+        try {
+          final cleanBaseUrl = _apiClient.baseUrl.replaceAll('/api/r', '/api');
+          debugPrint('[QR DEBUG] Fallback check: using base URL "$cleanBaseUrl"');
+          final fallbackDio = Dio(
+            BaseOptions(
+              baseUrl: cleanBaseUrl,
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 15),
+            )
+          );
+          
+          // Attach authentication cookies/headers
+          final cookies = await _apiClient.tokenStorage.getCookies();
+          final apiKey = await _apiClient.tokenStorage.getApiKey();
+          final headers = <String, dynamic>{
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          };
+          if (cookies != null && cookies.isNotEmpty) {
+            headers['Cookie'] = cookies;
+            final pairs = cookies.split(';');
+            for (var pair in pairs) {
+              final trimmed = pair.trim();
+              if (trimmed.startsWith('csrftoken=')) {
+                headers['X-CSRFToken'] = trimmed.substring('csrftoken='.length);
+              }
+            }
+          }
+          if (apiKey != null) {
+            headers['X-API-KEY'] = apiKey;
+          }
+
+          final fallbackPath = '/booking/appointments/$bookingId/ticket/pdf/';
+          debugPrint('[QR DEBUG] Attempting GET request to "$cleanBaseUrl$fallbackPath"');
+          final response = await fallbackDio.get(
+            fallbackPath,
+            options: Options(headers: headers),
+          );
+          debugPrint('[QR DEBUG] Fallback response: status=${response.statusCode}, data=${response.data}');
+          if (response.data is Map<String, dynamic>) {
+            return WPBTicketDto.fromJson(response.data as Map<String, dynamic>);
+          }
+        } catch (fallbackError) {
+          debugPrint('[QR DEBUG] Fallback also failed: $fallbackError');
+        }
+      }
+      
+      rethrow;
+    }
   }
 
   Future<MyAppointmentsResponse> getMyAppointments({
@@ -782,6 +862,37 @@ class ReceivedBookingItemDto {
       ]),
       paidAmount: _pickInt(json, ['paidAmount', 'paid_amount']),
       meeting: json['meeting']?.toString(),
+    );
+  }
+}
+
+/// Matches the WPBTicketGETProps shape from the web frontend (agentqrcode.md).
+/// The `qr` field is an image URL or data URL provided by the backend.
+class WPBTicketDto {
+  final int id;
+  final String name;
+  final String passportNo;
+  final String toCountry;
+  final String appointmentDate;
+  final String? qr;
+
+  const WPBTicketDto({
+    required this.id,
+    required this.name,
+    required this.passportNo,
+    required this.toCountry,
+    required this.appointmentDate,
+    this.qr,
+  });
+
+  factory WPBTicketDto.fromJson(Map<String, dynamic> json) {
+    return WPBTicketDto(
+      id: _toInt(json['id']),
+      name: _pickString(json, ['name'], fallback: 'Unknown'),
+      passportNo: _pickString(json, ['passportNo', 'passport_no']),
+      toCountry: _pickString(json, ['toCountry', 'to_country']),
+      appointmentDate: _pickString(json, ['appointmentDate', 'appointment_date']),
+      qr: _pickNullableString(json, ['qr']),
     );
   }
 }

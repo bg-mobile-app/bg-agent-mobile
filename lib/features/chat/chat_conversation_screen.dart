@@ -1,15 +1,15 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 
-import '../../common/theme/app_palette.dart';
 import '../../common/services/api_client.dart';
 import 'models/chat_models.dart';
 import 'services/chat_service.dart';
 
 class ChatConversationScreen extends StatefulWidget {
-  const ChatConversationScreen({super.key, required this.chat});
+  const ChatConversationScreen({super.key, required this.chat, this.initialMessage});
 
   final Conversation chat;
+  final String? initialMessage;
 
   @override
   State<ChatConversationScreen> createState() => _ChatConversationScreenState();
@@ -32,55 +32,111 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   }
 
   Future<void> _initChat() async {
-    // Load history
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [CONVO] _initChat START');
+    debugPrint('║  conversationId = ${widget.chat.id}');
+    debugPrint('║  workPermitId   = ${widget.chat.workPermitId}');
+    debugPrint('║  workPermitRef  = ${widget.chat.workPermitRef}');
+    debugPrint('║  receiverRole   = ${widget.chat.receiverRole}');
+    debugPrint('║  status         = ${widget.chat.status}');
+    debugPrint('║  initialMessage = ${widget.initialMessage}');
+    debugPrint('╠══════════════════════════════════════════════════════');
+
+    // Step 1: Load message history
+    debugPrint('║  STEP 1: Loading message history...');
     final history = await _chatService.getMessageHistory(widget.chat.id);
     if (mounted) {
       setState(() {
         if (history != null) {
           _messages = history.messages;
+          debugPrint('║  History loaded: ${_messages.length} messages');
+          for (int i = 0; i < _messages.length; i++) {
+            final m = _messages[i];
+            debugPrint('║    [$i] sender=${m.senderName} role=${m.senderRole} content="${m.content?.substring(0, (m.content?.length ?? 0).clamp(0, 60))}"');
+          }
+        } else {
+          debugPrint('║  History returned null — starting fresh conversation');
         }
         _isLoading = false;
       });
-      // Mark as read
+
+      // Step 2: Mark as read
+      debugPrint('║  STEP 2: Marking messages as read...');
       _chatService.markMessagesAsRead(widget.chat.id);
       _scrollToBottom();
     }
 
-    // Connect WebSocket
-    final token = await ApiClient().tokenStorage.getCookies(); 
-    // Wait, WebSocket token via getCookies is usually not JWT token. 
-    // The chatapi.md says "token={access_token}". 
-    // We can just connect without passing token in URL if we rely on interceptor/headers, 
-    // but WS might not use interceptor. If `token` is not JWT, it might just connect as guest.
-    // Let's connect without token first as the app uses cookies, or pass cookies?
-    // Actually `web_socket_channel` doesn't use Dio, so we'd need to pass cookies manually in headers if possible.
-    // For now, we call connectWebSocket with null token so it connects natively.
-    
+    // Step 3: Get cookies for WS (informational)
+    debugPrint('║  STEP 3: Checking stored cookies for WS auth...');
+    final cookieStr = await ApiClient().tokenStorage.getCookies();
+    debugPrint('║  Cookies present? = ${cookieStr != null && cookieStr.isNotEmpty}');
+    debugPrint('║  NOTE: web_socket_channel does not use Dio interceptors.');
+    debugPrint('║        Connecting WS without token — relies on cookie-based session.');
+    debugPrint('║        If WS gets close code 4003, the session is not valid for this conversation.');
+
+    // Step 4: Connect WebSocket
+    debugPrint('║  STEP 4: Connecting WebSocket...');
     final channel = _chatService.connectWebSocket(widget.chat.id);
+
+    if (channel == null) {
+      debugPrint('║  ❌ WebSocket channel is null — connection failed immediately');
+    } else {
+      debugPrint('║  ✅ channel obtained — waiting for handshake...');
+    }
+
+    // Step 5: Send initial message if history is empty
+    if (_messages.isEmpty && widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
+      debugPrint('║  STEP 5: Sending initial message (history was empty)...');
+      debugPrint('║  initialMessage = "${widget.initialMessage}"');
+      _chatService.sendChatMessage(widget.initialMessage!);
+    } else {
+      debugPrint('║  STEP 5: Skipping initial message');
+      debugPrint('║    _messages.isEmpty = ${_messages.isEmpty}');
+      debugPrint('║    initialMessage    = ${widget.initialMessage}');
+    }
+
+    debugPrint('║  STEP 6: Listening to WebSocket stream...');
     channel?.stream.listen(
       (messageStr) {
+        debugPrint('[CONVO WS ←] Raw event: $messageStr');
         try {
           final data = jsonDecode(messageStr);
           final type = data['type'];
+          debugPrint('[CONVO WS ←] type="$type"');
           if (type == 'chat_message') {
             final msg = ChatMessage.fromJson(data['message']);
+            debugPrint('[CONVO WS ←] chat_message: sender=${msg.senderName} role=${msg.senderRole} content="${msg.content}"');
             setState(() {
               _messages.add(msg);
             });
             _scrollToBottom();
             _chatService.sendReadReceipt();
           } else if (type == 'user_status') {
-             setState(() {
-               _isOnline = data['is_online'] == true;
-             });
+            final isOnline = data['is_online'] == true;
+            debugPrint('[CONVO WS ←] user_status: is_online=$isOnline user_id=${data['user_id']} role=${data['role']}');
+            setState(() {
+              _isOnline = isOnline;
+            });
+          } else if (type == 'typing') {
+            debugPrint('[CONVO WS ←] typing: user_name=${data['user_name']} role=${data['role']}');
+          } else if (type == 'read_receipt') {
+            debugPrint('[CONVO WS ←] read_receipt: reader_id=${data['reader_id']} role=${data['role']}');
+          } else {
+            debugPrint('[CONVO WS ←] UNKNOWN type: $type — full data: $data');
           }
         } catch (e) {
-          debugPrint("Error parsing ws message: $e");
+          debugPrint('[CONVO WS ←] ❌ Error parsing ws message: $e | raw: $messageStr');
         }
       },
-      onDone: () => debugPrint('WebSocket Closed'),
-      onError: (e) => debugPrint('WebSocket Error: $e'),
+      onDone: () {
+        debugPrint('[CONVO WS] ⚠️  WebSocket stream closed (onDone)');
+        debugPrint('[CONVO WS]    This may be a close code 4003 (access denied) or normal disconnect.');
+      },
+      onError: (e) {
+        debugPrint('[CONVO WS] ❌ WebSocket Error: $e');
+      },
     );
+    debugPrint('╚══════════════════════════════════════════════════════');
   }
 
   @override

@@ -9,7 +9,7 @@ import '../home/widgets/work_permit_card.dart';
 import 'work_permit_details_screen.dart';
 import 'widgets/filter_sidebar.dart';
 import 'services/work_permit_service.dart';
-import '../chat/models/chat_models.dart';
+
 import '../chat/services/chat_service.dart';
 import '../chat/chat_conversation_screen.dart';
 import '../../common/theme/app_palette.dart';
@@ -174,31 +174,56 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
   }
 
   Future<void> _handleChat(WorkPermitItem item) async {
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [LIST] Chat button tapped');
+    debugPrint('║  work permit id    = ${item.id}');
+    debugPrint('║  work permit title = ${item.title}');
+    debugPrint('║  work permit slug  = ${item.slug}');
+    debugPrint('║  _isLoggedIn       = $_isLoggedIn');
+    debugPrint('╠══════════════════════════════════════════════════════');
+
     if (!_isLoggedIn) {
+      debugPrint('║  ⛔ User not logged in — aborting chat');
+      debugPrint('╚══════════════════════════════════════════════════════');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in to start a chat')),
       );
       return;
     }
+
+    debugPrint('║  ✅ User is logged in — showing loading dialog');
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
     final chatService = ChatService();
+    debugPrint('║  Calling createConversation...');
     final conversation = await chatService.createConversation(
       workPermitId: item.id.toString(),
-      receiverRole: "AGENCY", // Assuming the receiver is the agency
+      receiverRole: "CALL_CENTER",
     );
+
     if (mounted) {
       Navigator.pop(context); // Close loading dialog
       if (conversation != null) {
+        final initialMessage = "Hi, I need help with my work permit: ${item.title}\n🔗 https://bideshgami.com/work-permit/${item.slug}";
+        debugPrint('║  ✅ Conversation created: id=${conversation.id}');
+        debugPrint('║  Navigating to ChatConversationScreen');
+        debugPrint('║  initialMessage = $initialMessage');
+        debugPrint('╚══════════════════════════════════════════════════════');
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ChatConversationScreen(chat: conversation),
+            builder: (_) => ChatConversationScreen(
+              chat: conversation,
+              initialMessage: initialMessage,
+            ),
           ),
         );
       } else {
+        debugPrint('║  ❌ createConversation returned null — showing error snackbar');
+        debugPrint('╚══════════════════════════════════════════════════════');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Permission is not allowed')),
         );

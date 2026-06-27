@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:dio/dio.dart';
 
 import '../../../common/services/api_client.dart';
 import '../models/chat_models.dart';
@@ -21,61 +20,104 @@ class ChatService {
     String participantRole = "CUSTOMER",
     String receiverRole = "CALL_CENTER",
   }) async {
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [CHAT] createConversation START');
+    debugPrint('║  workPermitId   = $workPermitId');
+    debugPrint('║  participantName = $participantName');
+    debugPrint('║  participantRole = $participantRole');
+    debugPrint('║  receiverRole    = $receiverRole');
+    debugPrint('║  API endpoint    = POST ${_apiClient.baseUrl}/chat/conversations/');
+    debugPrint('╠══════════════════════════════════════════════════════');
     try {
+      final payload = {
+        "participant_name": participantName,
+        "participant_role": participantRole,
+        "receiver_role": receiverRole,
+        "work_permit_id": workPermitId,
+      };
+      debugPrint('║  Request body: $payload');
+
       final response = await _apiClient.post(
         '/chat/conversations/',
-        data: {
-          "participant_name": participantName,
-          "participant_role": participantRole,
-          "receiver_role": receiverRole,
-          "work_permit_id": workPermitId,
-        },
+        data: payload,
       );
-      if (response.statusCode == 201 && response.data != null) {
-        return Conversation.fromJson(response.data);
+      debugPrint('║  Response status: ${response.statusCode}');
+      debugPrint('║  Response data: ${response.data}');
+
+      // 201 = new conversation created
+      // 200 = existing conversation returned (server found one for this work permit already)
+      if ((response.statusCode == 201 || response.statusCode == 200) && response.data != null) {
+        final conv = Conversation.fromJson(response.data);
+        final isNew = response.statusCode == 201 ? 'NEW' : 'EXISTING (reopened)';
+        debugPrint('║  ✅ Conversation $isNew: id=${conv.id}');
+        debugPrint('║  status=${conv.status} participantRole=${conv.participantRole}');
+        debugPrint('╚══════════════════════════════════════════════════════');
+        return conv;
+      } else {
+        debugPrint('║  ❌ Unexpected status: ${response.statusCode} — expected 200 or 201');
+        debugPrint('╚══════════════════════════════════════════════════════');
       }
     } catch (e) {
-      debugPrint("Error creating conversation: $e");
+      debugPrint('║  ❌ Exception in createConversation: $e');
+      debugPrint('╚══════════════════════════════════════════════════════');
     }
     return null;
   }
 
   Future<List<Conversation>> getConversations() async {
+    debugPrint('[CHAT] getConversations: GET ${_apiClient.baseUrl}/chat/conversations/');
     try {
       final response = await _apiClient.get('/chat/conversations/', useCache: false);
+      debugPrint('[CHAT] getConversations: status=${response.statusCode}, count=${(response.data as List?)?.length ?? 0}');
       if (response.statusCode == 200 && response.data is List) {
         return (response.data as List)
             .map((e) => Conversation.fromJson(e as Map<String, dynamic>))
             .toList();
       }
     } catch (e) {
-      debugPrint("Error fetching conversations: $e");
+      debugPrint("[CHAT] getConversations ERROR: $e");
     }
     return [];
   }
 
   Future<ChatHistoryResponse?> getMessageHistory(String conversationId, {int limit = 40}) async {
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [CHAT] getMessageHistory');
+    debugPrint('║  conversationId = $conversationId');
+    debugPrint('║  limit          = $limit');
+    debugPrint('║  API endpoint   = GET ${_apiClient.baseUrl}/chat/conversations/$conversationId/messages/?limit=$limit');
+    debugPrint('╠══════════════════════════════════════════════════════');
     try {
       final response = await _apiClient.get(
         '/chat/conversations/$conversationId/messages/',
         queryParameters: {'limit': limit},
         useCache: false,
       );
+      debugPrint('║  Response status: ${response.statusCode}');
       if (response.statusCode == 200 && response.data != null) {
-        return ChatHistoryResponse.fromJson(response.data);
+        final history = ChatHistoryResponse.fromJson(response.data);
+        debugPrint('║  ✅ Loaded ${history.messages.length} messages, hasMore=${history.hasMore}');
+        debugPrint('╚══════════════════════════════════════════════════════');
+        return history;
+      } else {
+        debugPrint('║  ❌ Unexpected status: ${response.statusCode}');
+        debugPrint('╚══════════════════════════════════════════════════════');
       }
     } catch (e) {
-      debugPrint("Error fetching message history: $e");
+      debugPrint('║  ❌ Exception in getMessageHistory: $e');
+      debugPrint('╚══════════════════════════════════════════════════════');
     }
     return null;
   }
 
   Future<bool> markMessagesAsRead(String conversationId) async {
+    debugPrint('[CHAT] markMessagesAsRead: POST ${_apiClient.baseUrl}/chat/conversations/$conversationId/mark_read/');
     try {
       final response = await _apiClient.post('/chat/conversations/$conversationId/mark_read/');
+      debugPrint('[CHAT] markMessagesAsRead: status=${response.statusCode}');
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint("Error marking messages as read: $e");
+      debugPrint("[CHAT] markMessagesAsRead ERROR: $e");
       return false;
     }
   }
@@ -87,25 +129,37 @@ class ChatService {
   WebSocketChannel? connectWebSocket(String conversationId, {String? token}) {
     final host = _apiClient.baseUri.host;
     final scheme = _apiClient.baseUri.scheme == 'http' ? 'ws' : 'wss';
-    final wsUrl = Uri.parse('$scheme://$host/ws/chat/$conversationId/');
-    
-    // In many WS clients, we can pass headers. Using web_socket_channel we can pass headers on IO.
-    // However, as a fallback, we pass token in URL.
+    debugPrint('╔══════════════════════════════════════════════════════');
+    debugPrint('║ [CHAT] connectWebSocket');
+    debugPrint('║  conversationId = $conversationId');
+    debugPrint('║  host           = $host');
+    debugPrint('║  scheme         = $scheme');
+    debugPrint('║  token passed?  = ${token != null}');
+
     try {
+      late Uri wsUri;
       if (token != null) {
-         final uriWithToken = Uri.parse('$scheme://$host/ws/chat/$conversationId/?token=$token');
-         _channel = WebSocketChannel.connect(uriWithToken);
+        wsUri = Uri.parse('$scheme://$host/ws/chat/$conversationId/?token=$token');
+        debugPrint('║  Connecting with token in URL (fallback mode)');
       } else {
-         _channel = WebSocketChannel.connect(wsUrl);
+        wsUri = Uri.parse('$scheme://$host/ws/chat/$conversationId/');
+        debugPrint('║  Connecting WITHOUT token (cookie-based auth)');
       }
+      debugPrint('║  WebSocket URL  = $wsUri');
+      debugPrint('╠══════════════════════════════════════════════════════');
+      _channel = WebSocketChannel.connect(wsUri);
+      debugPrint('║  ✅ WebSocketChannel created (connection pending handshake)');
+      debugPrint('╚══════════════════════════════════════════════════════');
       return _channel;
     } catch (e) {
-      debugPrint("WebSocket Connection Error: $e");
+      debugPrint('║  ❌ WebSocket Connection Error: $e');
+      debugPrint('╚══════════════════════════════════════════════════════');
       return null;
     }
   }
 
   void disconnectWebSocket() {
+    debugPrint('[CHAT] disconnectWebSocket: closing channel');
     _channel?.sink.close();
     _channel = null;
   }
@@ -116,7 +170,10 @@ class ChatService {
         "type": "chat_message",
         "content": content,
       });
+      debugPrint('[CHAT] sendChatMessage → $payload');
       _channel!.sink.add(payload);
+    } else {
+      debugPrint('[CHAT] sendChatMessage SKIPPED — channel is null (WS not connected)');
     }
   }
 
@@ -125,7 +182,10 @@ class ChatService {
       final payload = jsonEncode({
         "type": "read_receipt",
       });
+      debugPrint('[CHAT] sendReadReceipt → $payload');
       _channel!.sink.add(payload);
+    } else {
+      debugPrint('[CHAT] sendReadReceipt SKIPPED — channel is null');
     }
   }
 
@@ -135,7 +195,11 @@ class ChatService {
         "type": "typing",
         "user_name": userName,
       });
+      debugPrint('[CHAT] sendTypingIndicator → $payload');
       _channel!.sink.add(payload);
+    } else {
+      debugPrint('[CHAT] sendTypingIndicator SKIPPED — channel is null');
     }
   }
 }
+
