@@ -9,6 +9,10 @@ class AppRoutes {
   static const String otpVerify = '/auth/otp-verify';
   static const String agentSignUpThankYou = '/sign-up/agent/thank-you';
 
+  // Customer sign-up flow
+  static const String customerSignUp = '/sign-up/customer';
+  static const String customerSignUpThankYou = '/sign-up/customer/thank-you';
+
   static const String tabHome = '/home';
   static const String tabSearch = '/search';
   static const String tabBooking = '/booking';

@@ -82,9 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted && cookies != null && cookies.isNotEmpty) {
       setState(() => _isLoggedIn = true);
       unawaited(_scheduleExpiryReminderDialog());
-      final profile = await _profileService.getAgencyProfile();
+      final raw = await _profileService.getCustomerProfile();
       if (mounted) {
-        setState(() => _profileImageUrl = profile?.image);
+        setState(() => _profileImageUrl = raw?['image'] as String?);
       }
     }
   }

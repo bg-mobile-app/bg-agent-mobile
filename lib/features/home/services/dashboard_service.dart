@@ -48,4 +48,25 @@ class DashboardService {
       rethrow;
     }
   }
+
+  /// Calls GET /filter/customer/stats/ with a period query parameter.
+  Future<CustomerDashboardStats> getCustomerDashboard(String period) async {
+    try {
+      final response = await _apiClient.get(
+        '/filter/customer/stats/',
+        queryParameters: {'period': period},
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return CustomerDashboardStats.fromJson(data);
+      }
+      if (data is Map) {
+        return CustomerDashboardStats.fromJson(Map<String, dynamic>.from(data));
+      }
+      return CustomerDashboardStats.empty();
+    } catch (e) {
+      debugPrint('Error fetching customer dashboard: $e');
+      rethrow;
+    }
+  }
 }

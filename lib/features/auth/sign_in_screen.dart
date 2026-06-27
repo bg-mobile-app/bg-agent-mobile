@@ -94,13 +94,13 @@ class _SignInScreenState extends State<SignInScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
 
-        if (!AgencyAccess.isAgencyAccount(data)) {
+        if (!AgencyAccess.isCustomerAccount(data)) {
           await apiClient.tokenStorage.clearCookies();
           if (mounted) {
             setState(() => _isLoading = false);
             _showWarningDialog(
               'Access Denied',
-              AgencyAccess.accessDeniedMessage,
+              AgencyAccess.customerAccessDeniedMessage,
             );
           }
           return;

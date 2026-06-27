@@ -8,15 +8,14 @@ import '../../common/theme/app_text_styles.dart';
 import '../../common/services/api_client.dart';
 import '../../common/services/auth_service.dart';
 import '../../common/services/profile_service.dart';
-import '../../common/services/agency_access.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/app_router.dart';
-import 'models/agency_profile.dart';
+import 'models/customer_profile.dart';
 import 'models/dashboard_models.dart';
 import 'services/dashboard_service.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, this.currentHref = '/dashboard/agency'});
+  const DashboardScreen({super.key, this.currentHref = '/dashboard/agent'});
 
   final String currentHref;
 
@@ -37,39 +36,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'Last 5 Years',
   ];
 
-  static final AgentDashboardStats _mockStats = const AgentDashboardStats(
+  static final CustomerDashboardStats _mockStats = const CustomerDashboardStats(
     total: 99,
     successFlight: 99,
     rejectFlight: 99,
     processing: 99,
     returnProcessing: 99,
+    totalAppointment: 99,
     totalAmount: 999999,
     paidAmount: 999999,
     dueAmount: 999999,
-    commissionAmount: 999999,
   );
 
   final DashboardService _dashboardService = DashboardService();
-  late Future<AgentDashboardStats> _dashboardFuture;
+  late Future<CustomerDashboardStats> _dashboardFuture;
   String _selectedPeriod = 'This Month';
 
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = _dashboardService.getAgentDashboard(_selectedPeriod);
+    _dashboardFuture = _dashboardService.getCustomerDashboard(_selectedPeriod);
   }
 
   void _changePeriod(String? period) {
     if (period == null || period == _selectedPeriod) return;
     setState(() {
       _selectedPeriod = period;
-      _dashboardFuture = _dashboardService.getAgentDashboard(_selectedPeriod);
+      _dashboardFuture =
+          _dashboardService.getCustomerDashboard(_selectedPeriod);
     });
   }
 
   Future<void> _refreshDashboard() async {
     setState(() {
-      _dashboardFuture = _dashboardService.getAgentDashboard(_selectedPeriod);
+      _dashboardFuture =
+          _dashboardService.getCustomerDashboard(_selectedPeriod);
     });
     await _dashboardFuture;
   }
@@ -83,14 +84,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: _refreshDashboard,
-            child: FutureBuilder<AgentDashboardStats>(
+            child: FutureBuilder<CustomerDashboardStats>(
               future: _dashboardFuture,
               builder: (context, snapshot) {
                 final isLoading =
                     snapshot.connectionState == ConnectionState.waiting;
-                final stats =
-                    snapshot.data ??
-                    (isLoading ? _mockStats : AgentDashboardStats.empty());
+                final stats = snapshot.data ??
+                    (isLoading ? _mockStats : CustomerDashboardStats.empty());
                 final hasError = snapshot.hasError;
                 return SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -104,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const _DashboardBreadcrumbs(),
                           const SizedBox(height: 14),
                           Text(
-                            'Agent Dashboard Overview',
+                            'Dashboard Overview',
                             style: AppTextStyles.headline1.copyWith(
                               fontSize: 25,
                               fontWeight: FontWeight.w800,
@@ -113,7 +113,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Live booking, payment, and commission data for your agent account.',
+                            'Track your bookings, appointments, and payment history.',
                             style: AppTextStyles.body2.copyWith(
                               color: AppPalette.textMuted,
                             ),
@@ -132,13 +132,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 16),
                           Skeletonizer(
                             enabled: isLoading && snapshot.data == null,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _DashboardCardGrid(
-                                  cards: _buildMyBookingCards(stats),
-                                ),
-                              ],
+                            child: _DashboardCardGrid(
+                              cards: _buildCards(stats),
                             ),
                           ),
                         ],
@@ -154,11 +149,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  List<DashboardSmallCard> _buildMyBookingCards(AgentDashboardStats stats) {
+  List<DashboardSmallCard> _buildCards(CustomerDashboardStats stats) {
     return [
       DashboardSmallCard(
-        label: 'My Booking',
-        icon: Icons.menu_book_outlined,
+        label: 'Total Applied Job',
+        icon: Icons.work_outline_rounded,
         value: '${stats.total}',
       ),
       DashboardSmallCard(
@@ -172,30 +167,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         value: '${stats.successFlight}',
       ),
       DashboardSmallCard(
+        label: 'Reject Flight',
+        icon: Icons.flight_land_rounded,
+        value: '${stats.rejectFlight}',
+        red: true,
+      ),
+      DashboardSmallCard(
         label: 'Return Passport',
         icon: Icons.assignment_return_outlined,
         value: '${stats.returnProcessing}',
       ),
       DashboardSmallCard(
-        label: 'Total Payment',
+        label: 'Total Appointment',
+        icon: Icons.calendar_month_outlined,
+        value: '${stats.totalAppointment}',
+      ),
+      DashboardSmallCard(
+        label: 'Total Amount',
         icon: Icons.payments_outlined,
         value: _formatMoney(stats.totalAmount),
       ),
       DashboardSmallCard(
-        label: 'Paid Payment',
+        label: 'Paid Amount',
         icon: Icons.account_balance_wallet_outlined,
         value: _formatMoney(stats.paidAmount),
       ),
       DashboardSmallCard(
-        label: 'Due Payment',
+        label: 'Due Amount',
         icon: Icons.money_off_csred_outlined,
         value: _formatMoney(stats.dueAmount),
         red: true,
-      ),
-      DashboardSmallCard(
-        label: 'Commission',
-        icon: Icons.savings_outlined,
-        value: _formatMoney(stats.commissionAmount),
       ),
     ];
   }
@@ -213,6 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return buffer.toString().split('').reversed.join();
   }
 }
+
+// ── Period selector ───────────────────────────────────────────────────────────
 
 class _PeriodSelector extends StatelessWidget {
   const _PeriodSelector({
@@ -270,6 +273,8 @@ class _PeriodSelector extends StatelessWidget {
   }
 }
 
+// ── Error banner ──────────────────────────────────────────────────────────────
+
 class _DashboardErrorBanner extends StatelessWidget {
   const _DashboardErrorBanner({required this.onRetry});
 
@@ -292,7 +297,7 @@ class _DashboardErrorBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Unable to load agency dashboard data. Please check your connection and try again.',
+              'Unable to load dashboard data. Please check your connection and try again.',
               style: AppTextStyles.body2.copyWith(color: AppPalette.danger),
             ),
           ),
@@ -303,30 +308,7 @@ class _DashboardErrorBanner extends StatelessWidget {
   }
 }
 
-class _DashboardSection extends StatelessWidget {
-  const _DashboardSection({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: AppTextStyles.subtitle1.copyWith(
-            fontSize: 19,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 12),
-        child,
-      ],
-    );
-  }
-}
+// ── Card grid ─────────────────────────────────────────────────────────────────
 
 class _DashboardCardGrid extends StatelessWidget {
   const _DashboardCardGrid({required this.cards});
@@ -349,13 +331,15 @@ class _DashboardCardGrid extends StatelessWidget {
   }
 }
 
+// ── Breadcrumbs ───────────────────────────────────────────────────────────────
+
 class _DashboardBreadcrumbs extends StatelessWidget {
   const _DashboardBreadcrumbs();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: const [
+    return const Row(
+      children: [
         Icon(Icons.home_outlined, size: 14, color: AppPalette.textMuted),
         SizedBox(width: 6),
         Text(
@@ -385,6 +369,8 @@ class _DashboardBreadcrumbs extends StatelessWidget {
     );
   }
 }
+
+// ── Sidebar links for customer ────────────────────────────────────────────────
 
 const List<SidebarLink> kDashboardSidebarLinks = [
   SidebarLink(name: 'Home', icon: Icons.home_outlined, href: '/home'),
@@ -419,11 +405,6 @@ const List<SidebarLink> kDashboardSidebarLinks = [
     href: '/dashboard/booking/appointment',
   ),
   SidebarLink(
-    name: 'Commission',
-    icon: Icons.account_balance_wallet_outlined,
-    href: '/dashboard/commission',
-  ),
-  SidebarLink(
     name: 'Check Status',
     icon: Icons.radio_button_checked,
     href: '/dashboard/agent/check-status',
@@ -450,6 +431,8 @@ const List<SidebarLink> kDashboardSidebarLinks = [
   ),
 ];
 
+// ── DashboardPageScaffold ─────────────────────────────────────────────────────
+
 class DashboardPageScaffold extends StatefulWidget {
   const DashboardPageScaffold({
     super.key,
@@ -466,139 +449,43 @@ class DashboardPageScaffold extends StatefulWidget {
 
 class _DashboardPageScaffoldState extends State<DashboardPageScaffold> {
   final ProfileService _profileService = ProfileService();
-  RecruitingAgencyMeDetailsProps? _profile;
-  Map<String, dynamic>? _userData;
+  CustomerProfileModel? _customerProfile;
 
   @override
   void initState() {
     super.initState();
-    _loadProfileAndUser();
+    _loadCustomerProfile();
   }
 
-  Future<void> _loadProfileAndUser() async {
+  Future<void> _loadCustomerProfile() async {
     try {
-      await AuthService().getCurrentUser();
-      _userData = AuthService.currentUserData;
-      
-      final isStaff = AgencyAccess.isAgencyStaffAccount(_userData);
-      if (!isStaff) {
-        final profile = await _profileService.getAgencyProfile();
-        if (mounted) {
-          setState(() {
-            _profile = profile;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _profile = null;
-          });
-        }
+      final raw = await _profileService.getCustomerProfile();
+      if (mounted && raw != null) {
+        setState(() {
+          _customerProfile = CustomerProfileModel.fromJson(raw);
+        });
       }
     } catch (e) {
-      debugPrint('Error fetching current user details in scaffold: $e');
+      debugPrint('Error fetching customer profile in scaffold: $e');
     }
-  }
-
-  List<SidebarLink> _getFilteredLinks() {
-    if (!AgencyAccess.isAgencyStaffAccount(_userData)) {
-      return kDashboardSidebarLinks;
-    }
-
-    final permissions = AgencyAccess.permissionsFrom(_userData);
-    final filtered = <SidebarLink>[];
-
-    for (final link in kDashboardSidebarLinks) {
-      bool isVisible = false;
-
-      switch (link.name) {
-        case 'Home':
-        case 'My Profile':
-        case 'Notifications':
-        case 'Change Password':
-        case 'Terms & Conditions':
-          isVisible = true;
-          break;
-        case 'Dashboard':
-          isVisible = false; // Staff doesn't see general dashboard
-          break;
-        case 'Create Ads':
-          isVisible = permissions.contains('ADS_CREATE');
-          break;
-        case 'My Ads':
-          isVisible = permissions.contains('ADS_LIST');
-          break;
-        case 'Receive Booking List':
-          isVisible = permissions.contains('BOOKING_LIST');
-          break;
-        case 'Passport Return List':
-          isVisible = permissions.contains('RETURN_LIST');
-          break;
-        case 'My Booking List':
-          isVisible = permissions.contains('OUR_BOOKING');
-          break;
-        case 'Appointment Booking':
-          isVisible = permissions.contains('APPOINTMENT_LIST');
-          break;
-        case 'User':
-          isVisible = permissions.contains('USER');
-          break;
-        case 'Reminder List':
-          isVisible = permissions.contains('REMINDER_LIST');
-          break;
-        case 'Check Status':
-          isVisible = permissions.contains('CHECK_STATUS');
-          break;
-        case 'My Payments':
-          isVisible = permissions.contains('PAYMENT_LIST');
-          break;
-        case 'Receive Payment':
-          isVisible = permissions.contains('RECEIVE_PAYMENT_LIST');
-          break;
-        case 'Refund Payment':
-          isVisible = permissions.contains('REFUND_PAYMENT');
-          break;
-        case 'Commission':
-          isVisible = permissions.contains('COMMISSION');
-          break;
-        default:
-          isVisible = true;
-      }
-
-      if (isVisible) {
-        filtered.add(link);
-      }
-    }
-
-    return filtered;
   }
 
   @override
   Widget build(BuildContext context) {
-    final owner = _profile?.owner;
-    final isStaff = AgencyAccess.isAgencyStaffAccount(_userData);
-    final displayName = isStaff
-        ? (_userData?['fullName'] ?? _userData?['full_name'] ?? owner?.fullName ?? _profile?.agencyName ?? 'Staff')
-        : (owner?.fullName ?? _profile?.agencyName ?? 'User');
-    final designation = isStaff ? (_userData?['designation'] ?? '') : '';
-    final formattedName = designation.isNotEmpty ? '$displayName ($designation)' : displayName;
-
-    final displayEmail = isStaff
-        ? (_userData?['email'] ?? owner?.email ?? 'N/A')
-        : (owner?.email ?? 'N/A');
-    final displayPhone = isStaff
-        ? (_userData?['phone'] ?? owner?.phone ?? _profile?.agencyPhone ?? 'N/A')
-        : (owner?.phone ?? _profile?.agencyPhone ?? 'N/A');
+    final displayName = _customerProfile?.user?.fullName ?? 'My Account';
+    final displayEmail = _customerProfile?.user?.email ?? '';
+    final displayPhone = _customerProfile?.user?.phone ?? '';
+    final profileImage = _customerProfile?.image;
 
     return Scaffold(
       backgroundColor: Colors.white,
       endDrawer: CustomerSidebarDrawer(
         currentHref: widget.currentHref,
-        fullName: formattedName,
+        fullName: displayName,
         email: displayEmail,
         phone: displayPhone,
-        profileImage: _profile?.image,
-        links: _getFilteredLinks(),
+        profileImage: profileImage,
+        links: kDashboardSidebarLinks,
       ),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -621,17 +508,17 @@ class _DashboardPageScaffoldState extends State<DashboardPageScaffold> {
             tooltip: 'Notifications',
           ),
           GestureDetector(
-            onTap: () => context.push('/dashboard/customer-profile'),
+            onTap: () => context.push('/dashboard/customer/profile'),
             child: Padding(
               padding: const EdgeInsets.only(right: 8),
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: const Color(0xFFD7E3FF),
-                backgroundImage:
-                    (_profile?.image != null && _profile!.image!.isNotEmpty)
-                    ? NetworkImage(_profile!.image!)
+                backgroundImage: (profileImage != null &&
+                        profileImage.isNotEmpty)
+                    ? NetworkImage(profileImage)
                     : null,
-                child: (_profile?.image == null || _profile!.image!.isEmpty)
+                child: (profileImage == null || profileImage.isEmpty)
                     ? const Icon(
                         Icons.person,
                         size: 18,
@@ -655,6 +542,8 @@ class _DashboardPageScaffoldState extends State<DashboardPageScaffold> {
     );
   }
 }
+
+// ── CustomerSidebarDrawer ─────────────────────────────────────────────────────
 
 class CustomerSidebarDrawer extends StatefulWidget {
   const CustomerSidebarDrawer({
@@ -738,7 +627,8 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
                       isOpen: _openKey == link.name,
                       onExpandToggle: () {
                         setState(() {
-                          _openKey = _openKey == link.name ? null : link.name;
+                          _openKey =
+                              _openKey == link.name ? null : link.name;
                         });
                       },
                       onTap: _handleNavigation,
@@ -759,7 +649,6 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
                 ),
                 onTap: () async {
                   Navigator.pop(context);
-                  // Instantly clear cookies and redirect to sign-in screen
                   final rootContext = rootNavigatorKey.currentContext;
                   await ApiClient().tokenStorage.clearCookies();
                   if (rootContext != null) {
@@ -771,7 +660,7 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
                       GoRouter.of(context).go(AppRoutes.login);
                     }
                   }
-                  
+
                   // Fire-and-forget backend logout request in background
                   _authService.getSingOut().catchError((_) {});
                 },
@@ -783,6 +672,8 @@ class _CustomerSidebarDrawerState extends State<CustomerSidebarDrawer> {
     );
   }
 }
+
+// ── Sidebar user info ─────────────────────────────────────────────────────────
 
 class _SidebarUserInfo extends StatelessWidget {
   const _SidebarUserInfo({
@@ -818,47 +709,57 @@ class _SidebarUserInfo extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.email_outlined,
-              size: 14,
-              color: Color(0xFF475569),
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                email,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-                overflow: TextOverflow.ellipsis,
+        if (email.isNotEmpty)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.email_outlined,
+                size: 14,
+                color: Color(0xFF475569),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  email,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF475569),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.phone_outlined,
-              size: 14,
-              color: Color(0xFF475569),
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                phone,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-                overflow: TextOverflow.ellipsis,
+        if (phone.isNotEmpty)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.phone_outlined,
+                size: 14,
+                color: Color(0xFF475569),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  phone,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF475569),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }
 }
+
+// ── Sidebar nav tile ──────────────────────────────────────────────────────────
 
 class _SidebarNavTile extends StatelessWidget {
   const _SidebarNavTile({
@@ -912,7 +813,8 @@ class _SidebarNavTile extends StatelessWidget {
             ),
           ),
           iconColor: activeColor,
-          collapsedIconColor: isActive ? activeColor : const Color(0xFF64748B),
+          collapsedIconColor:
+              isActive ? activeColor : const Color(0xFF64748B),
           children: link.children
               .map(
                 (child) => _SidebarChildLink(
@@ -997,6 +899,8 @@ class _SidebarChildLink extends StatelessWidget {
   }
 }
 
+// ── SidebarLink model ─────────────────────────────────────────────────────────
+
 class SidebarLink {
   const SidebarLink({
     required this.name,
@@ -1010,6 +914,8 @@ class SidebarLink {
   final IconData? icon;
   final List<SidebarLink> children;
 }
+
+// ── DashboardDummyScreen ──────────────────────────────────────────────────────
 
 class DashboardDummyScreen extends StatelessWidget {
   const DashboardDummyScreen({
@@ -1030,6 +936,8 @@ class DashboardDummyScreen extends StatelessWidget {
   }
 }
 
+// ── DashboardSmallCard ────────────────────────────────────────────────────────
+
 class DashboardSmallCard extends StatelessWidget {
   const DashboardSmallCard({
     super.key,
@@ -1046,10 +954,13 @@ class DashboardSmallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = red ? const Color(0xFFF6C6C6) : const Color(0xFFC9D1E8);
+    final borderColor =
+        red ? const Color(0xFFF6C6C6) : const Color(0xFFC9D1E8);
     final iconBg = red ? const Color(0xFFF8DDDD) : const Color(0xFFE7EEFF);
-    final iconColor = red ? const Color(0xFFB01414) : AppColors.primary;
-    final labelColor = red ? const Color(0xFFC11212) : const Color(0xFFB3BAD1);
+    final iconColor =
+        red ? const Color(0xFFB01414) : AppColors.primary;
+    final labelColor =
+        red ? const Color(0xFFC11212) : const Color(0xFFB3BAD1);
 
     return Container(
       decoration: BoxDecoration(

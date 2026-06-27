@@ -16,7 +16,9 @@ class AuthService {
     );
   }
 
-
+  Future<Response> registerCustomer(Map<String, dynamic> data) async {
+    return _apiClient.post('/user/register/customer/', data: data);
+  }
 
   Future<Response> resendOtp({required String username}) async {
     return _apiClient.post('/auth/otp/resend/', data: {'username': username});

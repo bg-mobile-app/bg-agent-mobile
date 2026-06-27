@@ -431,8 +431,8 @@ class _WorkPermitListScreenState extends State<WorkPermitListScreen> {
             child: Column(
               children: [
                 _searchBar(),
-                _buildServices(),
                 _buildActiveFilters(),
+                _buildServices(),
                 const SizedBox(height: AppSpacing.md),
                 _buildWorkPermitSection(),
               ],

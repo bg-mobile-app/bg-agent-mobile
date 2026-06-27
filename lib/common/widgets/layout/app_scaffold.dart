@@ -12,7 +12,6 @@ import '../../../features/booking/booking_documents_screen.dart';
 import '../../../features/chat/chat_list_screen.dart';
 import '../../../features/home/change_password_screen.dart';
 import '../../../features/home/check_status_screen.dart';
-import '../../../features/home/commission_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
 import '../../../features/home/customer_profile_edit_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
@@ -28,7 +27,9 @@ import '../../../common/theme/app_palette.dart';
 
 import '../../../routes/navigation_history.dart';
 
-class AppScaffold extends StatelessWidget {
+import 'sign_in_required_placeholder.dart';
+
+class AppScaffold extends StatefulWidget {
   const AppScaffold({super.key, required this.tabIndex, this.dashboardPath, this.queryParams});
 
   final int tabIndex;
@@ -36,17 +37,79 @@ class AppScaffold extends StatelessWidget {
   final Map<String, String>? queryParams;
 
   @override
+  State<AppScaffold> createState() => _AppScaffoldState();
+}
+
+class _AppScaffoldState extends State<AppScaffold> {
+  bool _isLoggedIn = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final cookies = await ApiClient().tokenStorage.getCookies();
+    final loggedIn = cookies != null && cookies.isNotEmpty;
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = loggedIn;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final currentPath = dashboardPath ?? _tabPath(tabIndex);
+    final currentPath = widget.dashboardPath ?? _tabPath(widget.tabIndex);
     AppNavigationHistory.recordVisit(currentPath);
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppPalette.brandBlue),
+          ),
+        ),
+      );
+    }
 
     final screens = [
       const HomeScreen(),
-      WorkPermitListScreen(queryParams: queryParams),
-      const AppointmentBookingScreen(),
-      const ChatListScreen(),
-      tabIndex == 4
-          ? _DashboardHostScreen(route: dashboardPath ?? '/profile')
+      WorkPermitListScreen(queryParams: widget.queryParams),
+      _isLoggedIn
+          ? const AppointmentBookingScreen()
+          : SignInRequiredPlaceholder(
+              title: 'View Your Bookings',
+              description: 'Sign in to keep track of your appointments, flight statuses, and passport handovers.',
+              icon: Icons.calendar_month_rounded,
+              onExploreHome: () => context.go('/home'),
+            ),
+      _isLoggedIn
+          ? const ChatListScreen()
+          : SignInRequiredPlaceholder(
+              title: 'Chat with Agents',
+              description: 'Sign in to message agents, discuss visa requirements, and receive real-time support.',
+              icon: Icons.chat_bubble_outline_rounded,
+              onExploreHome: () => context.go('/home'),
+            ),
+      widget.tabIndex == 4
+          ? (_isLoggedIn
+              ? _DashboardHostScreen(route: widget.dashboardPath ?? '/profile')
+              : SignInRequiredPlaceholder(
+                  title: 'Manage Your Profile',
+                  description: 'Sign in to view your profile details, manage documents, and configure app settings.',
+                  icon: Icons.person_outline_rounded,
+                  onExploreHome: () => context.go('/home'),
+                ))
           : const SizedBox.shrink(),
     ];
 
@@ -64,9 +127,9 @@ class AppScaffold extends StatelessWidget {
         }
       },
       child: Scaffold(
-        body: IndexedStack(index: tabIndex, children: screens),
+        body: IndexedStack(index: widget.tabIndex, children: screens),
         bottomNavigationBar: AppBottomNav(
-          currentIndex: tabIndex,
+          currentIndex: widget.tabIndex,
           onTap: (index) => context.go(_tabPath(index)),
         ),
       ),
@@ -210,8 +273,6 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return const ReturnPassportScreen();
       case '/dashboard/booking/appointment':
         return const AppointmentBookingScreen();
-      case '/dashboard/commission':
-        return const CommissionScreen();
       case '/dashboard/agent/check-status':
         return const CheckStatusScreen();
       case '/dashboard/my-payments':

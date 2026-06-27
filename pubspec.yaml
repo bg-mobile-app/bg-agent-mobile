@@ -122,20 +122,20 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/img/logo/bg_merchant_logo.png"
-  image_path_android: "assets/img/logo/bg_merchant_logo.png"
+  image_path: "assets/img/logo/customerIconbg.png"
+  image_path_android: "assets/img/logo/customerIconbg.png"
   remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/img/logo/bg_merchant_logo.png"
+  adaptive_icon_foreground: "assets/img/logo/customerIconbg.png"
   adaptive_icon_foreground_inset: 22
   web:
     generate: true
-    image_path: "assets/img/logo/bg_merchant_logo.png"
+    image_path: "assets/img/logo/customerIconbg.png"
     background_color: "#2563EB"
     theme_color: "#2563EB"
   windows:
     generate: true
-    image_path: "assets/img/logo/bg_merchant_logo.png"
+    image_path: "assets/img/logo/customerIconbg.png"
   macos:
     generate: true
-    image_path: "assets/img/logo/bg_merchant_logo.png"
+    image_path: "assets/img/logo/customerIconbg.png"

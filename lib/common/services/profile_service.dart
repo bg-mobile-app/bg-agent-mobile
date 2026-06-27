@@ -113,4 +113,70 @@ class ProfileService {
       rethrow;
     }
   }
+
+  // ── Customer Profile ───────────────────────────────────────────────────────
+
+  static const _customerProfileEndpoint = '/profile/customers/me/';
+
+  Map<String, dynamic>? _cachedCustomerRaw;
+  DateTime? _cachedCustomerAt;
+
+  /// Fetches GET /profile/customers/me/ with a 5-minute in-memory cache.
+  Future<Map<String, dynamic>?> getCustomerProfile() async {
+    final now = DateTime.now();
+    if (_cachedCustomerRaw != null &&
+        _cachedCustomerAt != null &&
+        now.difference(_cachedCustomerAt!) < _cacheDuration) {
+      return _cachedCustomerRaw;
+    }
+
+    try {
+      final response = await _apiClient.get(_customerProfileEndpoint);
+      if (response.statusCode == 200 && response.data != null) {
+        final raw = response.data;
+        final data = raw is String ? jsonDecode(raw) : raw;
+        if (data is Map<String, dynamic>) {
+          // Unwrap common envelope keys
+          for (final key in const ['data', 'profile', 'result']) {
+            final nested = data[key];
+            if (nested is Map<String, dynamic>) {
+              _cachedCustomerRaw = nested;
+              _cachedCustomerAt = now;
+              return _cachedCustomerRaw;
+            }
+          }
+          _cachedCustomerRaw = data;
+          _cachedCustomerAt = now;
+          return _cachedCustomerRaw;
+        }
+      }
+      return _cachedCustomerRaw;
+    } catch (e) {
+      debugPrint('Error fetching customer profile: $e');
+      return _cachedCustomerRaw;
+    }
+  }
+
+  /// Clears the customer profile cache so the next call re-fetches from API.
+  void invalidateCustomerCache() {
+    _cachedCustomerRaw = null;
+    _cachedCustomerAt = null;
+  }
+
+  Future<Map<String, dynamic>?> updateCustomerProfile(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiClient.patch(
+        _customerProfileEndpoint,
+        data: data,
+      );
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        invalidateCustomerCache();
+        return getCustomerProfile();
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error updating customer profile: $e');
+      rethrow;
+    }
+  }
 }

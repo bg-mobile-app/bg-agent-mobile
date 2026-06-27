@@ -295,3 +295,55 @@ class AgentDashboardStats {
   final int dueAmount;
   final int commissionAmount;
 }
+
+// ── Customer Dashboard Stats ──────────────────────────────────────────────────
+
+class CustomerDashboardStats {
+  const CustomerDashboardStats({
+    required this.total,
+    required this.successFlight,
+    required this.rejectFlight,
+    required this.processing,
+    required this.returnProcessing,
+    required this.totalAppointment,
+    required this.totalAmount,
+    required this.paidAmount,
+    required this.dueAmount,
+  });
+
+  factory CustomerDashboardStats.fromJson(Map<String, dynamic> json) {
+    return CustomerDashboardStats(
+      total: _asInt(json['total']),
+      successFlight: _asInt(json['successFlight']),
+      rejectFlight: _asInt(json['rejectFlight']),
+      processing: _asInt(json['processing']),
+      returnProcessing: _asInt(json['returnProcessing']),
+      totalAppointment: _asInt(json['totalAppointment'] ?? json['total_appointment']),
+      totalAmount: _asInt(json['totalAmount']),
+      paidAmount: _asInt(json['paidAmount']),
+      dueAmount: _asInt(json['dueAmount']),
+    );
+  }
+
+  factory CustomerDashboardStats.empty() => const CustomerDashboardStats(
+    total: 0,
+    successFlight: 0,
+    rejectFlight: 0,
+    processing: 0,
+    returnProcessing: 0,
+    totalAppointment: 0,
+    totalAmount: 0,
+    paidAmount: 0,
+    dueAmount: 0,
+  );
+
+  final int total;
+  final int successFlight;
+  final int rejectFlight;
+  final int processing;
+  final int returnProcessing;
+  final int totalAppointment;
+  final int totalAmount;
+  final int paidAmount;
+  final int dueAmount;
+}

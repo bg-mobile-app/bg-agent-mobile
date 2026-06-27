@@ -26,20 +26,18 @@ class _SplashScreenState extends State<SplashScreen> {
       final response = await authService.getCurrentUser();
 
       if (response.statusCode == 200) {
-        if (AgencyAccess.isAgencyAccount(response.data)) {
+        if (AgencyAccess.isCustomerAccount(response.data)) {
           if (mounted) context.go(AppRoutes.home);
           return;
         }
 
         await ApiClient().tokenStorage.clearCookies();
-        if (mounted) context.go(AppRoutes.login);
-      } else {
-        // Not authenticated
-        if (mounted) context.go(AppRoutes.login);
       }
     } catch (e) {
-      // Error or not authenticated
-      if (mounted) context.go(AppRoutes.login);
+      // Ignore exception, navigate to home as guest
+    }
+    if (mounted) {
+      context.go(AppRoutes.home);
     }
   }
 

@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../common/services/api_client.dart';
 import '../../routes/app_routes.dart';
@@ -97,87 +96,12 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _shareOption(
-                    icon: FontAwesomeIcons.whatsapp,
-                    label: 'WhatsApp',
-                    color: const Color(0xFF25D366),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final url = Uri.parse('https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}');
-                      debugPrint('║ [SHARE] WhatsApp launch requested');
-                      debugPrint('║  url = $url');
-                      try {
-                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
-                        debugPrint('║  launch result = $launched');
-                      } catch (e) {
-                        debugPrint('║  ❌ Could not launch WhatsApp: $e');
-                      }
-                    },
-                  ),
-                  _shareOption(
-                    icon: FontAwesomeIcons.facebook,
-                    label: 'Facebook',
-                    color: const Color(0xFF1877F2),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final url = Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(shareUrl)}');
-                      debugPrint('║ [SHARE] Facebook launch requested');
-                      debugPrint('║  url = $url');
-                      try {
-                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
-                        debugPrint('║  launch result = $launched');
-                      } catch (e) {
-                        debugPrint('║  ❌ Could not launch Facebook: $e');
-                      }
-                    },
-                  ),
-                  _shareOption(
-                    icon: FontAwesomeIcons.telegram,
-                    label: 'Telegram',
-                    color: const Color(0xFF0088CC),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final url = Uri.parse('https://t.me/share/url?url=${Uri.encodeComponent(shareUrl)}&text=${Uri.encodeComponent(shareText)}');
-                      debugPrint('║ [SHARE] Telegram launch requested');
-                      debugPrint('║  url = $url');
-                      try {
-                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
-                        debugPrint('║  launch result = $launched');
-                      } catch (e) {
-                        debugPrint('║  ❌ Could not launch Telegram: $e');
-                      }
-                    },
-                  ),
-                  _shareOption(
-                    icon: FontAwesomeIcons.twitter,
-                    label: 'Twitter',
-                    color: const Color(0xFF1DA1F2),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final url = Uri.parse('https://twitter.com/intent/tweet?text=${Uri.encodeComponent(shareText)}');
-                      debugPrint('║ [SHARE] Twitter launch requested');
-                      debugPrint('║  url = $url');
-                      try {
-                        final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
-                        debugPrint('║  launch result = $launched');
-                      } catch (e) {
-                        debugPrint('║  ❌ Could not launch Twitter: $e');
-                      }
-                    },
-                  ),
-                ],
-              ),
               const SizedBox(height: 20),
-              const Divider(color: _outline, height: 1),
-              const SizedBox(height: 8),
               // Share with Image — uses platform native share sheet
               if (imageUrl.isNotEmpty)
                 ListTile(
                   leading: const Icon(Icons.image_rounded, color: _brandBlue),
-                  title: const Text('Share with Image', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: const Text('Share in social media', style: TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: const Text('Opens native share sheet with image', style: TextStyle(fontSize: 12)),
                   onTap: () async {
                     Navigator.pop(context);
@@ -312,42 +236,6 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     }
   }
 
-  Widget _shareOption({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: FaIcon(icon, color: color, size: 24),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: _mutedText,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _checkLoginStatus() async {
     final cookies = await ApiClient().tokenStorage.getCookies();
@@ -1337,20 +1225,9 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
               fontWeight: FontWeight.w900,
             ),
           ),
-          if (agentSpending != null) ...[
-            const SizedBox(height: 14),
-            _privatePriceRow(
-              title: _tr('Total Agent Cost', 'এজেন্ট খরচ'),
-              value: 'BDT ${_formatMoney(agentSpending)}',
-              valueFontSize: 36,
-              valueOnSecondLine: true,
-            ),
-            const SizedBox(height: 14),
-            Container(height: 1, color: Colors.white24),
-            const SizedBox(height: 14),
-          ],
           // Timeline-style payment breakdown
           if (displayDetails.paymentSteps.isNotEmpty) ...[
+            const SizedBox(height: 24),
             Text(
               _tr('Payment System', 'পেমেন্ট পদ্ধতি'),
               style: const TextStyle(
@@ -1375,86 +1252,12 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
-            Container(height: 1, color: Colors.white24),
-            const SizedBox(height: 12),
-            if (agentSpending != null) ...[
-              _privatePriceRow(
-                title: _tr('Commission', 'কমিশন'),
-                value: 'BDT ${_formatMoney((displayDetails.customerPrice - agentSpending).toInt())}',
-                valueFontSize: 36,
-                valueOnSecondLine: true,
-              ),
-            ],
           ],
         ],
       ),
     );
   }
 
-  Widget _privatePriceRow({
-    required String title,
-    required String value,
-    double valueFontSize = 14,
-    bool valueOnSecondLine = false,
-  }) {
-    if (valueOnSecondLine) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xCCFFFFFF),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.left,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: valueFontSize,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xCCFFFFFF),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: valueFontSize,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   String _ageRangeValue() {
     final minAge = displayDetails.minAge;

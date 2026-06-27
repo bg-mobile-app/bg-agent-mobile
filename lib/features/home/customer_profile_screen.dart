@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:go_router/go_router.dart';
-import '../../routes/app_router.dart';
-import '../../routes/app_routes.dart';
 
 import '../../common/theme/app_palette.dart';
 import '../../common/services/profile_service.dart';
 import '../../common/services/api_client.dart';
-import '../../common/services/auth_service.dart';
-import '../../common/services/agency_access.dart';
-import 'models/agency_profile.dart';
+import '../../routes/app_router.dart';
+import '../../routes/app_routes.dart';
+import 'models/customer_profile.dart';
 import 'dashboard_screen.dart';
 
 class CustomerProfileScreen extends StatefulWidget {
@@ -22,9 +20,7 @@ class CustomerProfileScreen extends StatefulWidget {
 
 class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final ProfileService _profileService = ProfileService();
-  RecruitingAgencyMeDetailsProps? _agentProfileData;
-  Map<String, dynamic>? _staffProfileData;
-  bool _isStaff = false;
+  CustomerProfileModel? _profile;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -40,75 +36,24 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       _errorMessage = null;
     });
     try {
-      await AuthService().getCurrentUser();
-      final userData = AuthService.currentUserData;
-      final isStaff = AgencyAccess.isAgencyStaffAccount(userData);
-
-      if (isStaff) {
-        final staffListResponse = await _profileService.getAgencyStaffProfile();
-        if (!mounted) return;
-        if (staffListResponse != null && staffListResponse['results'] is List) {
-          final results = staffListResponse['results'] as List;
-          
-          final myEmail = userData?['email']?.toString() ?? userData?['user']?['email']?.toString();
-          final myId = userData?['id']?.toString() ?? userData?['userId']?.toString() ?? userData?['user']?['id']?.toString() ?? userData?['user']?['userId']?.toString();
-          final myUserCode = userData?['userCode']?.toString() ?? userData?['user_code']?.toString() ?? userData?['user']?['userCode']?.toString();
-          
-          Map<String, dynamic>? myRecord;
-          for (var item in results) {
-            if (item is Map<String, dynamic>) {
-              final itemUserId = item['userId']?.toString() ?? item['user_id']?.toString();
-              final itemEmail = item['email']?.toString();
-              final itemUserCode = item['userCode']?.toString() ?? item['user_code']?.toString();
-              
-              if ((myId != null && itemUserId == myId) ||
-                  (myEmail != null && itemEmail?.toLowerCase() == myEmail.toLowerCase()) ||
-                  (myUserCode != null && itemUserCode == myUserCode)) {
-                myRecord = item;
-                break;
-              }
-            }
-          }
-          
-          if (myRecord != null) {
-            setState(() {
-              _isStaff = true;
-              _staffProfileData = myRecord;
-              _isLoading = false;
-            });
-          } else {
-            setState(() {
-              _errorMessage = "Could not find matching staff record for logged-in user.";
-              _isLoading = false;
-            });
-          }
-        } else {
-          setState(() {
-            _errorMessage = "Failed to load staff profile data.";
-            _isLoading = false;
-          });
-        }
+      final raw = await _profileService.getCustomerProfile();
+      if (!mounted) return;
+      if (raw != null) {
+        setState(() {
+          _profile = CustomerProfileModel.fromJson(raw);
+          _isLoading = false;
+        });
       } else {
-        final data = await _profileService.getAgencyProfile();
-        if (!mounted) return;
-        if (data != null) {
-          setState(() {
-            _isStaff = false;
-            _agentProfileData = data;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = "Failed to load profile data.";
-            _isLoading = false;
-          });
-        }
+        setState(() {
+          _errorMessage = 'Failed to load profile data.';
+          _isLoading = false;
+        });
       }
     } catch (e) {
       debugPrint('EXCEPTION IN _fetchProfile: $e');
       if (!mounted) return;
       setState(() {
-        _errorMessage = "An error occurred while fetching profile: $e";
+        _errorMessage = 'An error occurred while fetching profile: $e';
         _isLoading = false;
       });
     }
@@ -116,118 +61,29 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isStaff) {
-      final staff = _staffProfileData ?? {
-        'fullName': 'Loading Staff Name',
-        'designation': 'Staff',
-        'email': 'loading@example.com',
-        'phone': 'N/A',
-        'userCode': 'AGS-00000',
-        'userId': 'usr_00000',
-        'userRole': 'agency_staff',
-        'isActive': true,
-        'permissions': const <String>[],
-      };
-
-      return DashboardPageScaffold(
-        currentHref: '/dashboard/customer/profile',
-        child: Container(
-          color: AppPalette.pageBackground,
-          child: SafeArea(
-            child: _errorMessage != null && !_isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontSize: 16),
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: _fetchProfile,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _fetchProfile,
-                    child: Skeletonizer(
-                      enabled: _isLoading,
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const _Breadcrumb(),
-                            const SizedBox(height: 8),
-                            const _PageHeading(),
-                            const SizedBox(height: 16),
-                            _StaffProfileHeaderCard(staffData: staff),
-                            const SizedBox(height: 18),
-                            const _SectionTitle(
-                              title: 'Staff Profile Details',
-                              subtitle: 'Personal and system access details',
-                            ),
-                            const SizedBox(height: 12),
-                            _StaffInfoCard(staffData: staff),
-                            const SizedBox(height: 12),
-                            _StaffPermissionsCard(staffData: staff),
-                            const SizedBox(height: 24),
-                            const _LogoutButton(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-      );
-    }
-
-    final placeholderAgencyProfile = RecruitingAgencyMeDetailsProps(
+    // Placeholder used while skeleton is shown
+    final placeholder = CustomerProfileModel(
       id: '0',
-      owner: AgentUser(
-        id: '0',
-        userCode: 'AGENCY-0000',
+      image: null,
+      dob: '1990-01-01',
+      gender: 'Male',
+      passportNo: 'AB1234567',
+      passportExpiry: '2030-01-01',
+      passportIssue: '2020-01-01',
+      address: 'Loading address...',
+      policeStation: const CustomerLocation(name: 'Police Station'),
+      district: const CustomerLocation(name: 'District'),
+      services: const ['Loading...'],
+      countries: const [CustomerNamedItem(name: 'Loading...')],
+      workTypes: const [CustomerNamedItem(name: 'Loading...')],
+      user: const CustomerUser(
         fullName: 'Loading Name',
         email: 'loading@example.com',
         phone: '01XXXXXXXXX',
-        status: 'Loading',
       ),
-      image: null,
-      gender: 'Loading',
-      dob: '1990-01-01',
-      agencyName: 'Agency Name Loading',
-      agencyPhone: '01XXXXXXXXX',
-      agencyAddress: 'Agency address loading',
-      address: 'Residential address loading',
-      policeStation: RecruitingAgencyLocation(name: 'Police Station'),
-      district: RecruitingAgencyLocation(name: 'District'),
-      bankInformation: [
-        RecruitingAgencyBankInformation(
-          bankName: 'Bank Name',
-          branchName: 'Branch Name',
-          accountName: 'Account Name',
-          accountNo: 'Account Number',
-          routingNo: 'Routing Number',
-        ),
-      ],
-      documents: [
-        RecruitingAgencyDocument(
-          id: '0',
-          rlNo: 'RL-0000',
-          nidImage: 'https://example.com/nid.jpg',
-          tradeLicenseImage: 'https://example.com/trade.jpg',
-          rlLicenseImage: 'https://example.com/rl.jpg',
-          civilAviationLicenseImage: 'https://example.com/civil-aviation.jpg',
-        ),
-      ],
     );
 
-    final profile = _agentProfileData ?? placeholderAgencyProfile;
+    final profile = _profile ?? placeholder;
 
     return DashboardPageScaffold(
       currentHref: '/dashboard/customer/profile',
@@ -236,23 +92,47 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         child: SafeArea(
           child: _errorMessage != null && !_isLoading
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 16),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _fetchProfile,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: AppPalette.danger,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppPalette.danger,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _fetchProfile,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppPalette.brandBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: _fetchProfile,
+                  onRefresh: () async {
+                    _profileService.invalidateCustomerCache();
+                    await _fetchProfile();
+                  },
                   child: Skeletonizer(
                     enabled: _isLoading,
                     child: SingleChildScrollView(
@@ -261,25 +141,24 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _Breadcrumb(),
+                          _Breadcrumb(),
                           const SizedBox(height: 8),
                           const _PageHeading(),
                           const SizedBox(height: 16),
-                          _ProfileHeaderCard(
-                            profile: profile,
-                          ),
+                          _ProfileHeaderCard(profile: profile),
                           const SizedBox(height: 18),
                           const _SectionTitle(
                             title: 'Profile Details',
-                            subtitle:
-                                'Personal and contact information for your profile',
+                            subtitle: 'Personal and contact information for your profile',
                           ),
                           const SizedBox(height: 12),
                           _BasicInfoCard(profile: profile),
                           const SizedBox(height: 12),
                           _ContactInfoCard(profile: profile),
                           const SizedBox(height: 12),
-                          _DocumentGalleryCard(profile: profile),
+                          _PassportInfoCard(profile: profile),
+                          const SizedBox(height: 12),
+                          _PersonalizedInfoCard(profile: profile),
                           const SizedBox(height: 24),
                           const _LogoutButton(),
                         ],
@@ -293,9 +172,9 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   }
 }
 
-class _Breadcrumb extends StatelessWidget {
-  const _Breadcrumb();
+// ── Breadcrumb ────────────────────────────────────────────────────────────────
 
+class _Breadcrumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BreadCrumb(
@@ -326,15 +205,17 @@ class _Breadcrumb extends StatelessWidget {
   }
 }
 
+// ── Page heading ──────────────────────────────────────────────────────────────
+
 class _PageHeading extends StatelessWidget {
   const _PageHeading();
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
+        const Text(
           'My Profile',
           style: TextStyle(
             fontSize: 25,
@@ -342,30 +223,44 @@ class _PageHeading extends StatelessWidget {
             color: AppPalette.textPrimary,
           ),
         ),
-        SizedBox(height: 4),
+        OutlinedButton.icon(
+          onPressed: () => context.push('/dashboard/customer/profile/edit'),
+          icon: const Icon(Icons.edit_outlined, size: 16),
+          label: const Text('Edit Profile'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppPalette.brandBlue,
+            side: const BorderSide(color: AppPalette.brandBlue),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            textStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _ProfileHeaderCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
+// ── Header card ───────────────────────────────────────────────────────────────
 
-  const _ProfileHeaderCard({
-    required this.profile,
-  });
+class _ProfileHeaderCard extends StatelessWidget {
+  final CustomerProfileModel profile;
+
+  const _ProfileHeaderCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
-    final String? image = profile.image;
-    final String title = profile.agencyName ?? profile.owner?.fullName ?? 'N/A';
-    final String subtitle =
-        profile.agencyPhone ?? profile.owner?.email ?? 'N/A';
-    final String status = profile.owner?.status ?? 'N/A';
+    final name = profile.user?.fullName ?? 'N/A';
+    final email = profile.user?.email ?? 'N/A';
+    final image = profile.image;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: _cardDecoration(),
       child: Column(
         children: [
@@ -382,10 +277,17 @@ class _ProfileHeaderCard extends StatelessWidget {
                 ),
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundImage: image != null && image.isNotEmpty
+                  backgroundColor: const Color(0xFFD7E3FF),
+                  backgroundImage: (image != null && image.isNotEmpty)
                       ? NetworkImage(image)
-                      : const AssetImage('assets/img/sign-in/login.jpg')
-                            as ImageProvider,
+                      : null,
+                  child: (image == null || image.isEmpty)
+                      ? const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Color(0xFF2563EB),
+                        )
+                      : null,
                 ),
               ),
               Positioned(
@@ -410,7 +312,7 @@ class _ProfileHeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            title,
+            name,
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 22,
@@ -418,33 +320,27 @@ class _ProfileHeaderCard extends StatelessWidget {
               color: AppPalette.textPrimary,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
-            subtitle,
-            style: const TextStyle(color: AppPalette.textMuted, fontSize: 14),
+            email,
+            style: const TextStyle(
+              color: AppPalette.textMuted,
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _Pill(
-                label: status.isNotEmpty ? status : 'N/A',
-                bg: const Color(0xFFE8F0FF),
-                fg: const Color(0xFF1E3A8A),
-              ),
-              const _Pill(
-                label: 'Agency Account',
-                bg: Color(0xFFEFF6FF),
-                fg: AppPalette.textStrongBlue,
-              ),
-            ],
+          const _Pill(
+            label: 'Customer Account',
+            bg: Color(0xFFEFF6FF),
+            fg: AppPalette.textStrongBlue,
           ),
         ],
       ),
     );
   }
 }
+
+// ── Section title ─────────────────────────────────────────────────────────────
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title, required this.subtitle});
@@ -479,8 +375,11 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
+// ── Info sections ─────────────────────────────────────────────────────────────
+
 class _BasicInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
+  final CustomerProfileModel profile;
+
   const _BasicInfoCard({required this.profile});
 
   @override
@@ -489,24 +388,17 @@ class _BasicInfoCard extends StatelessWidget {
       icon: Icons.person_outline,
       title: 'Basic Info',
       rows: [
-        _InfoRow(label: 'STATUS', value: _display(profile.owner?.status)),
-        _InfoRow(label: 'AGENT ID', value: _display(profile.owner?.userCode)),
-        _InfoRow(label: 'NAME', value: _display(profile.owner?.fullName)),
-        _InfoRow(label: 'GENDER', value: _display(profile.gender)),
-        _InfoRow(label: 'DATE OF BIRTH', value: _formatDob(profile.dob)),
-        _InfoRow(label: 'AGENCY NAME', value: _display(profile.agencyName)),
-        _InfoRow(
-          label: 'AGENCY ADDRESS',
-          value: _display(profile.agencyAddress),
-          isLast: true,
-        ),
+        _InfoRow(label: 'NAME', value: _disp(profile.user?.fullName)),
+        _InfoRow(label: 'DATE OF BIRTH', value: _formatDate(profile.dob)),
+        _InfoRow(label: 'GENDER', value: _disp(profile.gender), isLast: true),
       ],
     );
   }
 }
 
 class _ContactInfoCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
+  final CustomerProfileModel profile;
+
   const _ContactInfoCard({required this.profile});
 
   @override
@@ -515,16 +407,16 @@ class _ContactInfoCard extends StatelessWidget {
       icon: Icons.contact_mail_outlined,
       title: 'Contact Info',
       rows: [
-        _InfoRow(label: 'EMAIL ADDRESS', value: _display(profile.owner?.email)),
-        _InfoRow(label: 'PHONE NUMBER', value: _display(profile.owner?.phone)),
-        _InfoRow(label: 'ADDRESS', value: _display(profile.address)),
+        _InfoRow(label: 'EMAIL ADDRESS', value: _disp(profile.user?.email)),
+        _InfoRow(label: 'PHONE NUMBER', value: _disp(profile.user?.phone)),
+        _InfoRow(label: 'ADDRESS', value: _disp(profile.address)),
         _InfoRow(
           label: 'POLICE STATION',
-          value: _locationLabel(profile.policeStation),
+          value: _disp(profile.policeStation?.name),
         ),
         _InfoRow(
           label: 'DISTRICT',
-          value: _locationLabel(profile.district),
+          value: _disp(profile.district?.name),
           isLast: true,
         ),
       ],
@@ -532,27 +424,145 @@ class _ContactInfoCard extends StatelessWidget {
   }
 }
 
-class _DocumentGalleryCard extends StatelessWidget {
-  final RecruitingAgencyMeDetailsProps profile;
-  const _DocumentGalleryCard({required this.profile});
+class _PassportInfoCard extends StatelessWidget {
+  final CustomerProfileModel profile;
+
+  const _PassportInfoCard({required this.profile});
 
   @override
   Widget build(BuildContext context) {
-    final doc = profile.documents.isNotEmpty ? profile.documents.first : null;
     return _InfoCard(
-      icon: Icons.photo_library_outlined,
-      title: 'Image Gallery',
+      icon: Icons.article_outlined,
+      title: 'Passport Info',
       rows: [
-        _DocumentImageRow(label: 'NID IMAGE', imageUrl: doc?.nidImage),
-        _DocumentImageRow(
-          label: 'TRADE LICENSE IMAGE',
-          imageUrl: doc?.tradeLicenseImage,
+        _InfoRow(label: 'PASSPORT NUMBER', value: _disp(profile.passportNo)),
+        _InfoRow(
+          label: 'PASSPORT EXPIRE DATE',
+          value: _formatDate(profile.passportExpiry),
+        ),
+        _InfoRow(
+          label: 'PASSPORT ISSUE DATE',
+          value: _formatDate(profile.passportIssue),
           isLast: true,
         ),
       ],
     );
   }
 }
+
+class _PersonalizedInfoCard extends StatelessWidget {
+  final CustomerProfileModel profile;
+
+  const _PersonalizedInfoCard({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardTitle(
+            icon: Icons.favorite_border,
+            title: 'Personalized Info',
+          ),
+          const SizedBox(height: 12),
+          _ChipSection(
+            label: 'LIKED SERVICES',
+            items: profile.services,
+          ),
+          const Divider(height: 20),
+          _ChipSection(
+            label: 'LIKED COUNTRIES',
+            items: profile.countries.map((c) => c.name).toList(),
+          ),
+          const Divider(height: 20),
+          _ChipSection(
+            label: 'LIKED JOB TYPE',
+            items: profile.workTypes.map((w) => w.name).toList(),
+            isLast: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Chip section ──────────────────────────────────────────────────────────────
+
+class _ChipSection extends StatelessWidget {
+  const _ChipSection({
+    required this.label,
+    required this.items,
+    this.isLast = false,
+  });
+
+  final String label;
+  final List<String> items;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: AppPalette.textMuted,
+            letterSpacing: 0.7,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        items.isEmpty
+            ? const Text(
+                'N/A',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppPalette.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              )
+            : Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: items
+                    .where((s) => s.isNotEmpty)
+                    .map(
+                      (item) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: const Color(0xFFBFDBFE),
+                          ),
+                        ),
+                        child: Text(
+                          item,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppPalette.textStrongBlue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+      ],
+    );
+  }
+}
+
+// ── Shared card widget ────────────────────────────────────────────────────────
 
 class _InfoCard extends StatelessWidget {
   const _InfoCard({
@@ -670,164 +680,7 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _DocumentImageRow extends StatelessWidget {
-  const _DocumentImageRow({
-    required this.label,
-    required this.imageUrl,
-    this.isLast = false,
-  });
-
-  final String label;
-  final String? imageUrl;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isLast ? Colors.transparent : AppPalette.borderNeutral,
-          ),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                color: AppPalette.textMuted,
-                letterSpacing: 0.7,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: _DocumentPreview(imageUrl: imageUrl),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DocumentPreview extends StatelessWidget {
-  const _DocumentPreview({required this.imageUrl});
-
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    if (imageUrl == null || imageUrl!.trim().isEmpty) {
-      return const Text(
-        'N/A',
-        style: TextStyle(
-          fontSize: 15,
-          color: AppPalette.textPrimary,
-          fontWeight: FontWeight.w600,
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: () {
-        showDialog<void>(
-          context: context,
-          builder: (context) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 24,
-              ),
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Container(
-                      color: Colors.black,
-                      padding: const EdgeInsets.all(12),
-                      child: InteractiveViewer(
-                        panEnabled: true,
-                        minScale: 1.0,
-                        maxScale: 5.0,
-                        child: Image.network(
-                          imageUrl!,
-                          fit: BoxFit.contain,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.6,
-                                color: const Color(0xFF0F172A),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.broken_image_outlined,
-                                  color: Colors.white70,
-                                  size: 48,
-                                ),
-                              ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Material(
-                      color: Colors.black54,
-                      shape: const CircleBorder(),
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          imageUrl!,
-          width: 88,
-          height: 60,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            width: 88,
-            height: 60,
-            color: const Color(0xFFE2E8F0),
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.broken_image_outlined,
-              color: AppPalette.textMuted,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// ── Pill ──────────────────────────────────────────────────────────────────────
 
 class _Pill extends StatelessWidget {
   const _Pill({required this.label, required this.bg, required this.fg});
@@ -846,11 +699,17 @@ class _Pill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 12, color: fg, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontSize: 12,
+          color: fg,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 }
+
+// ── Logout button ─────────────────────────────────────────────────────────────
 
 class _LogoutButton extends StatelessWidget {
   const _LogoutButton();
@@ -907,6 +766,8 @@ class _LogoutButton extends StatelessWidget {
   }
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
 BoxDecoration _cardDecoration() {
   return BoxDecoration(
     color: AppPalette.surface,
@@ -916,212 +777,22 @@ BoxDecoration _cardDecoration() {
   );
 }
 
-String _display(String? value) {
-  final trimmed = value?.trim();
-  if (trimmed == null || trimmed.isEmpty) return 'N/A';
-  return trimmed;
+String _disp(String? value) {
+  final t = value?.trim();
+  return (t == null || t.isEmpty) ? 'N/A' : t;
 }
 
-
-
-String _locationLabel(RecruitingAgencyLocation? location) {
-  if (location == null) return 'N/A';
-  final name = location.name.trim();
-  final id = location.id?.toString().trim();
-  if (name.isEmpty && (id == null || id.isEmpty)) return 'N/A';
-  if (id == null || id.isEmpty) return name;
-  if (name.isEmpty) return 'ID $id';
-  return '$name (ID $id)';
-}
-
-String _formatDob(String? rawDob) {
-  if (rawDob == null || rawDob.trim().isEmpty) return 'N/A';
+String _formatDate(String? rawDate) {
+  if (rawDate == null || rawDate.trim().isEmpty) return 'N/A';
   try {
-    final parsed = DateTime.parse(rawDob);
+    final parsed = DateTime.parse(rawDate);
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     final day = parsed.day.toString().padLeft(2, '0');
     return '$day ${months[parsed.month - 1]} ${parsed.year}';
   } catch (_) {
-    return rawDob;
-  }
-}
-
-class _StaffProfileHeaderCard extends StatelessWidget {
-  final Map<String, dynamic> staffData;
-
-  const _StaffProfileHeaderCard({required this.staffData});
-
-  @override
-  Widget build(BuildContext context) {
-    final String fullName = staffData['fullName'] ?? staffData['full_name'] ?? 'N/A';
-    final String designation = staffData['designation'] ?? 'Staff Member';
-    final bool isActive = staffData['isActive'] == true || staffData['is_active'] == true;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppPalette.borderSoftBlue,
-                width: 3,
-              ),
-            ),
-            child: const CircleAvatar(
-              radius: 50,
-              backgroundColor: Color(0xFFD7E3FF),
-              child: Icon(Icons.person, size: 50, color: Color(0xFF2563EB)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            fullName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: AppPalette.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            designation,
-            style: const TextStyle(color: AppPalette.textMuted, fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _Pill(
-                label: isActive ? 'Active' : 'Inactive',
-                bg: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-                fg: isActive ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
-              ),
-              const _Pill(
-                label: 'Agency Staff',
-                bg: Color(0xFFEFF6FF),
-                fg: AppPalette.textStrongBlue,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StaffInfoCard extends StatelessWidget {
-  final Map<String, dynamic> staffData;
-
-  const _StaffInfoCard({required this.staffData});
-
-  @override
-  Widget build(BuildContext context) {
-    final String userCode = staffData['userCode'] ?? staffData['user_code'] ?? 'N/A';
-    final String userId = staffData['userId'] ?? staffData['user_id'] ?? 'N/A';
-    final String email = staffData['email'] ?? 'N/A';
-    final String phone = staffData['phone'] ?? 'N/A';
-    final String role = staffData['userRole'] ?? staffData['user_role'] ?? 'agency_staff';
-
-    return _InfoCard(
-      icon: Icons.badge_outlined,
-      title: 'Staff Member Details',
-      rows: [
-        _InfoRow(label: 'STAFF CODE', value: userCode),
-        _InfoRow(label: 'USER ID', value: userId),
-        _InfoRow(label: 'USER ROLE', value: role.replaceAll('_', ' ').toUpperCase()),
-        _InfoRow(label: 'EMAIL', value: email),
-        _InfoRow(label: 'PHONE', value: phone, isLast: true),
-      ],
-    );
-  }
-}
-
-class _StaffPermissionsCard extends StatelessWidget {
-  final Map<String, dynamic> staffData;
-
-  const _StaffPermissionsCard({required this.staffData});
-
-  @override
-  Widget build(BuildContext context) {
-    final permissionsRaw = staffData['permissions'];
-    final List<String> permissions = permissionsRaw is List
-        ? permissionsRaw.map((e) => e.toString()).toList()
-        : [];
-
-    final Map<String, String> permissionLabels = {
-      "ADS_CREATE": "Ads Create",
-      "ADS_LIST": "Ads List",
-      "BOOKING_LIST": "Booking List",
-      "RETURN_LIST": "Return List",
-      "OUR_BOOKING": "Our Booking",
-      "APPOINTMENT_LIST": "Appointment List",
-      "USER": "User",
-      "REMINDER_LIST": "Reminder List",
-      "CHECK_STATUS": "Check Status",
-      "COMMISSION": "Commission",
-      "PAYMENT_LIST": "Payment List",
-      "RECEIVE_PAYMENT_LIST": "Receive Payment List",
-      "REFUND_PAYMENT": "Refund Payment",
-    };
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardTitle(icon: Icons.lock_open_outlined, title: 'Assigned Permissions'),
-          const SizedBox(height: 14),
-          permissions.isEmpty
-              ? const Text(
-                  'No specific permissions assigned.',
-                  style: TextStyle(color: AppPalette.textMuted, fontSize: 14),
-                )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: permissions.map((perm) {
-                    final label = permissionLabels[perm] ?? perm;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          color: Color(0xFF334155),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-        ],
-      ),
-    );
+    return rawDate;
   }
 }

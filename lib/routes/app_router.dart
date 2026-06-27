@@ -5,6 +5,8 @@ import '../common/services/api_client.dart';
 import '../common/widgets/layout/app_scaffold.dart';
 import '../features/auth/agent_sign_up_screen.dart';
 import '../features/auth/agent_sign_up_thank_you_screen.dart';
+import '../features/auth/customer_sign_up_screen.dart';
+import '../features/auth/customer_sign_up_thank_you_screen.dart';
 import '../features/auth/sign_in_screen.dart';
 import '../features/auth/otp_verification_screen.dart';
 import '../features/onboarding/get_started_screen.dart';
@@ -43,9 +45,19 @@ Future<String?> _authRedirect(BuildContext context, GoRouterState state) async {
       location == AppRoutes.getStarted ||
       location == AppRoutes.agentSignUp ||
       location == AppRoutes.agentSignUpThankYou ||
+      location == AppRoutes.customerSignUp ||
+      location == AppRoutes.customerSignUpThankYou ||
       location == AppRoutes.otpVerify;
 
   if (isAuthRoute) return null;
+
+  final isPublicTab = location == AppRoutes.tabHome ||
+      location == AppRoutes.tabSearch ||
+      location == AppRoutes.tabBooking ||
+      location == AppRoutes.tabChat ||
+      location == AppRoutes.tabProfile;
+
+  if (isPublicTab) return null;
 
   final cookies = await ApiClient().tokenStorage.getCookies();
   final isLoggedIn = cookies != null && cookies.isNotEmpty;
@@ -76,6 +88,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.agentSignUpThankYou,
       builder: (context, state) => const AgentSignUpThankYouScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.customerSignUp,
+      builder: (context, state) => const CustomerSignUpScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.customerSignUpThankYou,
+      builder: (context, state) => const CustomerSignUpThankYouScreen(),
     ),
     GoRoute(
       path: AppRoutes.otpVerify,

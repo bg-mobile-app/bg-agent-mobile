@@ -4,6 +4,9 @@ class AgencyAccess {
   static const accessDeniedMessage =
       'Only agent accounts can log in to this app.';
 
+  static const customerAccessDeniedMessage =
+      'Only customer accounts can log in to this app.';
+
   static const Set<String> _agentRoles = {
     'AGENT',
   };
@@ -11,6 +14,13 @@ class AgencyAccess {
   static const Set<String> _agentStaffRoles = {
     // If agent staff exists in the future, add here
   };
+
+  static bool isCustomerAccount(Object? authPayload) {
+    final role = roleFrom(authPayload);
+    if (role == null) return false;
+
+    return _normalizeRole(role) == 'CUSTOMER';
+  }
 
   static bool isAgencyAccount(Object? authPayload) {
     final role = roleFrom(authPayload);
@@ -81,9 +91,6 @@ class AgencyAccess {
     }
     if (route == '/dashboard/customer/check-status') {
       return permissions.contains('CHECK_STATUS');
-    }
-    if (route == '/dashboard/commission') {
-      return permissions.contains('COMMISSION');
     }
     if (route == '/dashboard/my-payments') {
       return permissions.contains('PAYMENT_LIST');
