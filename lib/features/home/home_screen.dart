@@ -257,159 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ).showSnackBar(const SnackBar(content: Text('Working on this page')));
   }
 
-  Future<void> _showAdvancedFilterSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      builder: (context) {
-        final responsive = HomeResponsive.of(context);
-        final sheetGap = responsive.size(10, min: 8, max: 12);
 
-        final mediaQuery = MediaQuery.of(context);
-        final horizontalInset = responsive.size(
-          AppSpacing.md,
-          min: 12,
-          max: AppSpacing.md,
-        );
-        final bottomInset = responsive.size(
-          AppSpacing.md,
-          min: 12,
-          max: AppSpacing.md,
-        );
-
-        String sheetServiceType = _serviceType;
-        String sheetSelectionType = _selectionType;
-
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            void submitAdvancedFilters() {
-              setState(() {
-                _serviceType = sheetServiceType;
-                _selectionType = sheetSelectionType;
-              });
-              Navigator.pop(context);
-              _applyFilters();
-            }
-
-            return AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(
-                left: horizontalInset,
-                right: horizontalInset,
-                bottom: mediaQuery.viewInsets.bottom + bottomInset,
-              ),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(
-                  horizontal: responsive.size(AppSpacing.sm + 2, min: 10, max: 14),
-                  vertical: responsive.size(
-                    AppSpacing.md,
-                    min: 12,
-                    max: AppSpacing.md,
-                  ),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(
-                    responsive.size(16, min: 12, max: 16),
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x26000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _dropdown(
-                        value: sheetServiceType,
-                        hint: 'Service Type',
-                        items: const ['WORK_PERMIT'],
-                        height: responsive.size(56, min: 48, max: 56),
-                        horizontalPadding: responsive.size(10, min: 8, max: 10),
-                        fontSize: responsive.font(11, min: 10, max: 11),
-                        onChanged: (v) => setSheetState(
-                          () => sheetServiceType = v ?? 'WORK_PERMIT',
-                        ),
-                      ),
-                      SizedBox(height: sheetGap),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _textField(
-                              _minAgeController,
-                              'Min Age',
-                              onSubmitted: submitAdvancedFilters,
-                            ),
-                          ),
-                          SizedBox(width: responsive.size(8, min: 6, max: 8)),
-                          Expanded(
-                            child: _textField(
-                              _maxAgeController,
-                              'Max Age',
-                              onSubmitted: submitAdvancedFilters,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: sheetGap),
-                      _textField(
-                        _companyController,
-                        'Company Name',
-                        onSubmitted: submitAdvancedFilters,
-                      ),
-                      SizedBox(height: sheetGap),
-                      _dropdown(
-                        value: sheetSelectionType,
-                        hint: 'Selection Type',
-                        items: const [
-                          'All',
-                          'DELEGATE',
-                          'PUSHING',
-                          'ZOOM INTERVIEW',
-                          'CV SELECTION',
-                        ],
-                        height: responsive.size(56, min: 48, max: 56),
-                        horizontalPadding: responsive.size(10, min: 8, max: 10),
-                        fontSize: responsive.font(11, min: 10, max: 11),
-                        onChanged: (v) => setSheetState(
-                          () => sheetSelectionType = v ?? 'All',
-                        ),
-                      ),
-                      SizedBox(height: responsive.size(12, min: 10, max: 12)),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: submitAdvancedFilters,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _brandBlue,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: Text(
-                            'Search',
-                            style: TextStyle(
-                              fontSize: responsive.font(14, min: 12, max: 14),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -498,7 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 leadingBuilder: _countryOptionLeading,
                 onChanged: (v) {
                   setState(() => _country = v);
-                  _applyFilters();
                 },
               ),
             ),
@@ -513,13 +360,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontSize: dropdownFontSize,
                 onChanged: (v) {
                   setState(() => _workType = v);
-                  _applyFilters();
                 },
               ),
             ),
             SizedBox(width: gap),
             InkWell(
-              onTap: _showAdvancedFilterSheet,
+              onTap: _navigateToSearch,
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 height: filterButtonSize,
@@ -536,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 child: Icon(
-                  Icons.tune,
+                  Icons.search,
                   color: Colors.white,
                   size: responsive.size(20, min: 17, max: 20),
                 ),

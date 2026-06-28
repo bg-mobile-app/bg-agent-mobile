@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../features/home/models/agency_profile.dart';
+import '../../features/home/models/favourite_model.dart';
 import 'api_client.dart';
 import 'agency_access.dart';
 import 'auth_service.dart';
@@ -177,6 +178,42 @@ class ProfileService {
     } catch (e) {
       debugPrint('Error updating customer profile: $e');
       rethrow;
+    }
+  }
+
+  // ── Favourites ────────────────────────────────────────────────────────────
+
+  Future<List<FavouriteItem>> getFavourites() async {
+    try {
+      final response = await _apiClient.get('/profile/favorite/');
+      if (response.statusCode == 200 && response.data != null) {
+        final raw = response.data;
+        final data = raw is String ? jsonDecode(raw) : raw;
+        if (data is List) {
+          return data
+              .map((e) => FavouriteItem.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching favourites: $e');
+      return [];
+    }
+  }
+
+  Future<bool> toggleFavourite(int workPermitId) async {
+    try {
+      final response = await _apiClient.post(
+        '/profile/favorite/',
+        data: {'work_permit': workPermitId},
+      );
+      return response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300;
+    } catch (e) {
+      debugPrint('Error toggling favourite: $e');
+      return false;
     }
   }
 }

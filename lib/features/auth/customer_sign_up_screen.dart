@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../policy/policy_screen.dart';
 
 import '../../common/services/auth_service.dart';
 import '../../common/services/location_service.dart';
@@ -626,28 +629,18 @@ class _CustomerSignUpScreenState extends State<CustomerSignUpScreen> {
   Widget _buildDistrictDropdown() {
     return _FieldWrapper(
       label: 'District',
-      child: DropdownButtonFormField<DistrictOption>(
+      child: _SearchableDropdown<DistrictOption>(
         value: _selectedDistrict,
-        hint: _locationsLoading
-            ? const Text('Loading...')
-            : const Text('Select District'),
-        validator: (_) =>
-            _selectedDistrict == null ? 'Required' : null,
-        decoration: _inputDeco(),
-        items: _districts
-            .map(
-              (d) => DropdownMenuItem(
-                value: d,
-                child: Text(d.name),
-              ),
-            )
-            .toList(),
-        onChanged: _locationsLoading
-            ? null
-            : (d) {
-                setState(() => _selectedDistrict = d);
-                if (d != null) _loadPoliceStations(d.id);
-              },
+        hint: _locationsLoading ? 'Loading...' : 'Select one',
+        disabled: _locationsLoading,
+        items: _districts,
+        itemLabelBuilder: (d) => d.name,
+        validator: (_) => _selectedDistrict == null ? 'Required' : null,
+        inputDecoration: _inputDeco(),
+        onChanged: (d) {
+          setState(() => _selectedDistrict = d);
+          if (d != null) _loadPoliceStations(d.id);
+        },
       ),
     );
   }
@@ -656,27 +649,17 @@ class _CustomerSignUpScreenState extends State<CustomerSignUpScreen> {
     final disabled = _selectedDistrict == null || _locationsLoading;
     return _FieldWrapper(
       label: 'Police Station',
-      child: DropdownButtonFormField<PoliceStationOption>(
+      child: _SearchableDropdown<PoliceStationOption>(
         value: _selectedPoliceStation,
-        hint: Text(
-          disabled
-              ? (_locationsLoading ? 'Loading...' : 'Select District first')
-              : 'Select Police Station',
-        ),
-        validator: (_) =>
-            _selectedPoliceStation == null ? 'Required' : null,
-        decoration: _inputDeco(),
-        items: _policeStations
-            .map(
-              (p) => DropdownMenuItem(
-                value: p,
-                child: Text(p.name),
-              ),
-            )
-            .toList(),
-        onChanged: disabled
-            ? null
-            : (p) => setState(() => _selectedPoliceStation = p),
+        hint: disabled
+            ? (_locationsLoading ? 'Loading...' : 'Select District first')
+            : 'Select one',
+        disabled: disabled,
+        items: _policeStations,
+        itemLabelBuilder: (p) => p.name,
+        validator: (_) => _selectedPoliceStation == null ? 'Required' : null,
+        inputDecoration: _inputDeco(),
+        onChanged: (p) => setState(() => _selectedPoliceStation = p),
       ),
     );
   }
@@ -846,25 +829,51 @@ class _TermsCheckbox extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           onChanged: onChanged,
         ),
-        const Expanded(
+        Expanded(
           child: Text.rich(
             TextSpan(
               text: 'I agree with Bideshgami ',
-              style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
               children: [
-                TextSpan(
-                  text: 'Privacy Policy',
-                  style: TextStyle(
-                    color: _blue,
-                    fontWeight: FontWeight.w600,
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.baseline,
+                  baseline: TextBaseline.alphabetic,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PolicyScreen(type: PolicyType.privacy),
+                      ),
+                    ),
+                    child: const Text(
+                      'Privacy Policy',
+                      style: TextStyle(
+                        color: _blue,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                        decorationColor: _blue,
+                      ),
+                    ),
                   ),
                 ),
-                TextSpan(text: ' and '),
-                TextSpan(
-                  text: 'Terms & Conditions.',
-                  style: TextStyle(
-                    color: _blue,
-                    fontWeight: FontWeight.w600,
+                const TextSpan(text: ' and '),
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.baseline,
+                  baseline: TextBaseline.alphabetic,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PolicyScreen(type: PolicyType.terms),
+                      ),
+                    ),
+                    child: const Text(
+                      'Terms & Conditions.',
+                      style: TextStyle(
+                        color: _blue,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                        decorationColor: _blue,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -918,6 +927,167 @@ class _ResponsiveGrid extends StatelessWidget {
         }
 
         return Column(children: rows);
+      },
+    );
+  }
+}
+
+class _SearchableDropdown<T> extends StatefulWidget {
+  const _SearchableDropdown({
+    required this.value,
+    required this.items,
+    required this.itemLabelBuilder,
+    required this.onChanged,
+    required this.hint,
+    required this.validator,
+    required this.inputDecoration,
+    this.disabled = false,
+  });
+
+  final T? value;
+  final List<T> items;
+  final String Function(T) itemLabelBuilder;
+  final ValueChanged<T?> onChanged;
+  final String hint;
+  final FormFieldValidator<T> validator;
+  final InputDecoration inputDecoration;
+  final bool disabled;
+
+  @override
+  State<_SearchableDropdown<T>> createState() => _SearchableDropdownState<T>();
+}
+
+class _SearchableDropdownState<T> extends State<_SearchableDropdown<T>> {
+  @override
+  Widget build(BuildContext context) {
+    return FormField<T>(
+      initialValue: widget.value,
+      validator: widget.validator,
+      builder: (state) {
+        final displayText = widget.value != null
+            ? widget.itemLabelBuilder(widget.value as T)
+            : null;
+
+        return InkWell(
+          onTap: widget.disabled ? null : () => _showSearchSheet(state),
+          borderRadius: BorderRadius.circular(10),
+          child: InputDecorator(
+            decoration: widget.inputDecoration.copyWith(
+              errorText: state.errorText,
+              hintText: '',
+            ),
+            isEmpty: displayText == null,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    displayText ?? widget.hint,
+                    style: TextStyle(
+                      color: displayText == null
+                          ? const Color(0xFFB0BAC9) // Hint color
+                          : Colors.black87,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Icon(Icons.arrow_drop_down, color: Colors.black54),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSearchSheet(FormFieldState<T> state) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final filtered = widget.items.where((item) {
+              return widget.itemLabelBuilder(item)
+                  .toLowerCase()
+                  .contains(query.toLowerCase());
+            }).toList();
+
+            return Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.7,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              autofocus: true,
+                              decoration: InputDecoration(
+                                hintText: 'Search...',
+                                prefixIcon: const Icon(Icons.search),
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                              ),
+                              onChanged: (v) => setSheetState(() => query = v),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? const Center(
+                              child: Text('No results found',
+                                  style: TextStyle(color: Colors.black54)))
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final item = filtered[index];
+                                return ListTile(
+                                  title: Text(widget.itemLabelBuilder(item)),
+                                  onTap: () {
+                                    widget.onChanged(item);
+                                    state.didChange(item);
+                                    Navigator.pop(context);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       },
     );
   }

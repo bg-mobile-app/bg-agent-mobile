@@ -327,7 +327,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               cells: [
                 DataCell(
                   Text(
-                    '#${item.id}',
+                    '#INV-${item.id}',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -488,65 +488,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     const SizedBox(width: 14),
                     Expanded(
                       child: _detailTile(
-                        'PAYMENT TIME',
-                        _formatTime(item.collectedAt),
-                        Icons.schedule,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _detailTile(
                         'PASSPORT NO',
                         item.passportNo,
                         Icons.badge_outlined,
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _detailTile(
-                        'SERVICE TYPE',
-                        item.terminal,
-                        Icons.miscellaneous_services_outlined,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _detailTile(
-                        'TRANSACTION TYPE',
-                        item.transactionType,
-                        Icons.compare_arrows_rounded,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _detailTile(
-                        'STEP',
-                        item.step,
-                        Icons.linear_scale_rounded,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _detailTile(
-                        'STATUS',
-                        item.status.isEmpty ? item.step : item.status,
-                        Icons.verified_outlined,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(child: SizedBox()),
                   ],
                 ),
                 const SizedBox(height: 18),

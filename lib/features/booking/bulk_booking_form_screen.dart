@@ -4,6 +4,7 @@ import '../../common/services/api_exception.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../home/models/home_models.dart';
+import '../policy/policy_screen.dart';
 import 'services/booking_service.dart';
 
 const Color _brandBlue = Color(0xFF2563EB);
@@ -271,34 +272,86 @@ class _BulkBookingFormScreenState extends State<BulkBookingFormScreen> {
                 border: Border.all(color: _success.withOpacity(0.2)),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.check_circle_outline, color: _success, size: 20),
-                  const SizedBox(width: 12),
+                  Checkbox(
+                    value: _agreedTerms,
+                    onChanged: (v) =>
+                        setState(() => _agreedTerms = v ?? false),
+                    activeColor: _brandBlue,
+                    side: BorderSide(
+                      color: _brandBlue.withOpacity(0.5),
+                      width: 1.5,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  const SizedBox(width: 4),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _agreedTerms = !_agreedTerms),
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: _agreedTerms,
-                            onChanged: (v) =>
-                                setState(() => _agreedTerms = v ?? false),
-                            side: BorderSide(
-                              color: _brandBlue.withOpacity(0.5),
-                              width: 1.5,
-                            ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            color: _text,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                            height: 1.6,
                           ),
-                          Expanded(
-                            child: Text(
-                              'I agree to the Terms and Conditions for all applications.',
-                              style: TextStyle(
-                                color: _text,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
+                          children: [
+                            const TextSpan(text: 'I agree to the '),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const PolicyScreen(
+                                      type: PolicyType.terms,
+                                    ),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Terms & Conditions',
+                                  style: TextStyle(
+                                    color: _brandBlue,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: _brandBlue,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                            const TextSpan(text: ' and '),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const PolicyScreen(
+                                      type: PolicyType.privacy,
+                                    ),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Privacy Policy',
+                                  style: TextStyle(
+                                    color: _brandBlue,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: _brandBlue,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const TextSpan(
+                              text: ' for all applications.',
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

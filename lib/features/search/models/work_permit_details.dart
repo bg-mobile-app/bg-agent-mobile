@@ -115,7 +115,15 @@ class PaymentStepProps {
   static double _parseAmount(dynamic value) {
     if (value == null) return 0.0;
     if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
+    if (value is String) {
+      // Normalise Bangla numerals (০-৯) to ASCII digits before parsing
+      const bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      var normalized = value;
+      for (int i = 0; i < bangla.length; i++) {
+        normalized = normalized.replaceAll(bangla[i], '$i');
+      }
+      return double.tryParse(normalized) ?? 0.0;
+    }
     return 0.0;
   }
 
@@ -401,11 +409,27 @@ class WorkPermitDetails {
     );
   }
 
+  /// Converts Bangla numerals (০-৯) to ASCII digits (0-9).
+  /// The backend may return Bangla-localised numbers (e.g. "১৮") when
+  /// the work permit content is in Bangla. Dart's num parsers only
+  /// understand ASCII digits, so we normalise first.
+  static String _normalizeBanglaDigits(String value) {
+    const bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    var result = value;
+    for (int i = 0; i < bangla.length; i++) {
+      result = result.replaceAll(bangla[i], '$i');
+    }
+    return result;
+  }
+
   static int _parseInt(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
     if (value is double) return value.toInt();
-    if (value is String) return double.tryParse(value)?.toInt() ?? 0;
+    if (value is String) {
+      final normalized = _normalizeBanglaDigits(value);
+      return double.tryParse(normalized)?.toInt() ?? 0;
+    }
     return 0;
   }
 
@@ -413,7 +437,10 @@ class WorkPermitDetails {
     if (value == null) return null;
     if (value is int) return value;
     if (value is double) return value.toInt();
-    if (value is String) return double.tryParse(value)?.toInt();
+    if (value is String) {
+      final normalized = _normalizeBanglaDigits(value);
+      return double.tryParse(normalized)?.toInt();
+    }
     return null;
   }
 

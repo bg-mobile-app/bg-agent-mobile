@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../common/services/api_client.dart';
+import '../../common/services/profile_service.dart';
 import '../../routes/app_routes.dart';
 import '../home/models/home_models.dart';
 import '../home/widgets/work_permit_card.dart';
@@ -1264,11 +1265,11 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
     final maxAge = displayDetails.maxAge;
 
     if (minAge > 0 && maxAge > 0) {
-      return _tr('$minAge - $maxAge\nYears', '$minAge - $maxAge\nবছর');
+      return _tr('$minAge - $maxAge Years', '$minAge - $maxAge বছর');
     }
-    if (minAge > 0) return _tr('$minAge+\nYears', '$minAge+\nবছর');
+    if (minAge > 0) return _tr('$minAge+ Years', '$minAge+ বছর');
     if (maxAge > 0) {
-      return _tr('Up to $maxAge\nYears', '$maxAge বছর পর্যন্ত');
+      return _tr('Up to $maxAge Years', '$maxAge বছর পর্যন্ত');
     }
     return _tr('N/A', 'প্রযোজ্য নয়');
   }
@@ -1401,12 +1402,32 @@ class _WorkPermitDetailsScreenState extends State<WorkPermitDetailsScreen> {
                 ),
                 SizedBox(width: compact ? 8 : 12),
                 _ActionIconButton(
-                  icon: const FaIcon(FontAwesomeIcons.bookmark, size: 18),
-                  semanticLabel: _tr('Bookmark', 'বুকমার্ক'),
-                  onPressed: () => _showMessage(
-                    context,
-                    _tr('Saved to bookmarks', 'বুকমার্কে সংরক্ষণ করা হয়েছে'),
-                  ),
+                  icon: const FaIcon(FontAwesomeIcons.solidHeart, size: 18),
+                  semanticLabel: _tr('Favourite', 'পছন্দ'),
+                  onPressed: () async {
+                    if (!_isLoggedIn) {
+                      _showMessage(context, _tr('Please login first', 'দয়া করে আগে লগইন করুন'));
+                      return;
+                    }
+                    final service = ProfileService();
+                    final targetId = _details?.id ?? widget.item.id;
+                    if (targetId == null) return;
+                    
+                    final success = await service.toggleFavourite(targetId);
+                    if (mounted) {
+                      if (success) {
+                        _showMessage(
+                          context,
+                          _tr('Added to favourites', 'পছন্দের তালিকায় সংরক্ষণ করা হয়েছে'),
+                        );
+                      } else {
+                        _showMessage(
+                          context,
+                          _tr('Failed to save', 'সংরক্ষণ করতে ব্যর্থ হয়েছে'),
+                        );
+                      }
+                    }
+                  },
                 ),
               ],
             );
@@ -1804,7 +1825,7 @@ class _SpecValue extends StatelessWidget {
         Flexible(
           child: Text(
             item.value,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: alignRight ? TextAlign.right : TextAlign.left,
             style: const TextStyle(

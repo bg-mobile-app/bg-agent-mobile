@@ -1,0 +1,292 @@
+1. check assets > files >workdetails.md 
+
+according to that 
+you have to arrange data in search> work permit details screen 
+
+in there at the details 
+for age range 
+you have to show min and max age from the api 
+
+its not 
+
+what is the issue solve it 
+
+
+
+
+
+
+
+2.  raw response data = {id: 33, agency: {id: 2, agencyName: Abc travel, agencyPhone: 01856236907, userCode: BGP_00002, status: VERIFIED, documents: [{rlNo: 56}]}, workType: {id: 10, name: Heavy Vehicle Driver}, createdBy: Shofikul Islam (AGENCY_ADMIN), verifiedBy: null, availableQuota: 20, isAvailable: true, countryName: Saudi Arabia, paymentSteps: [{id: 232, step: ADVANCE, stepLabel: Advance Payment, amount: 50000.00, sequence: 1}, {id: 233, step: AFTER_VISA, stepLabel: After Visa, amount: 100000.00, sequence: 2}, {id: 234, step: BEFORE_FLIGHT, stepLabel: Before Flight, amount: 100000.00, sequence: 3}], customerPrice: 287500, customerCmPrice: 37500, agentPrice: 262500, agentCmPrice: 12500, currencyFlag: https://flagcdn.com/w40/sa.png, createdAt: 2026-06-28T00:40:30.407137+06:00, updatedAt: 2026-06-28T00:57:10.427994+06:00, verifiedAt: null, title: সৌদি আরবের নিয়োগ বিজ্ঞপ্তি, slug: সৌদি-আরবের-নিয়োগ-বিজ্ঞপ্তি-saudi-aI/flutter ( 7131): ╚══════════════════════════════════════════════════════
+I/flutter ( 7131): [WorkPermitDetails] Raw paymentSteps payload: [{id: 232, step: ADVANCE, stepLabel: Advance Payment, amount: 50000.00, sequence: 1}, {id: 233, step: AFTER_VISA, stepLabel: After Visa, amount: 100000.00, sequence: 2}, {id: 234, step: BEFORE_FLIGHT, stepLabel: Before Flight, amount: 100000.00, sequence: 3}]
+
+
+according to web application there is min and max age why we are unable to get that data
+
+ ║  raw response data = {id: 34, agency: {id: 2, agencyName: Abc travel, agencyPhone: 01856236907, userCode: BGP_00002, status: VERIFIED, documents: [{rlNo: 56}]}, workType: {id: 10, name: Heavy Vehicle Driver}, createdBy: Shofikul Islam (AGENCY_ADMIN), verifiedBy: null, availableQuota: 20, isAvailable: true, countryName: Saudi Arabia, paymentSteps: [{id: 230, step: AFTER_VISA, stepLabel: After Visa, amount: 50000.00, sequence: 1}, {id: 231, step: BEFORE_FLIGHT, stepLabel: Before Flight, amount: 200000.00, sequence: 2}], customerPrice: 287500, customerCmPrice: 37500, agentPrice: 262500, agentCmPrice: 12500, currencyFlag: https://flagcdn.com/w40/sa.png, createdAt: 2026-06-28T00:49:10.313253+06:00, updatedAt: 2026-06-28T00:51:34.339402+06:00, verifiedAt: null, title: Saudi Almarai company Recruitment circular, slug: saudi-almarai-company-recruitment-circular-saudi-arabia, description: for more information plz call bideshgami hotline number, companyName: Al Marai Company, companyAddress: Riyadh, visaSponsorNam
+I/flutter ( 7131): ╚══════════════════════════════════════════════════════
+I/flutter ( 7131): [WorkPermitDetails] Raw paymentSteps payload: [{id: 230, step: AFTER_VISA, stepLabel: After Visa, amount: 50000.00, sequence: 1}, {id: 231, step: BEFORE_FLIGHT, stepLabel: Before Flight, amount: 200000.00, sequence: 2}]
+
+in the case of english data we get min and max age 
+
+but in the case of bangla we don't get min max age even the api response doesn't have why
+I have identified the issue! It is caused by the backend's localization logic combined with how Dart (Flutter's language) parses numbers.
+
+When you request the data in Bangla, the backend translates the numbers in the JSON into Bangla numerals (e.g., instead of "18", it sends "১৮").
+
+The web application doesn't have an issue with this because it treats them as plain strings and just displays them on the screen. However, our Flutter app takes these values and specifically parses them into integers (numbers) to be properly handled by our models.
+
+Dart's int.tryParse only understands standard English/ASCII digits (0-9). When it tries to parse "১৮", it fails, resulting in null, which the app safely falls back to 0 (which is why they were hidden/not rendering).
+
+The Fix
+I have just updated the model in 
+work_permit_details.dart
+ to include a conversion utility. Now, whenever the app receives a string to parse into a number, it will first translate any Bangla numerals (০-৯) back into English digits (0-9) before attempting to parse them.
+
+This fixes the bug not just for minAge and maxAge, but for any numeric fields coming from the API that might have been automatically translated into Bangla digits!
+
+
+
+
+
+
+
+
+3. in the lib> feature >chat> chat conversation screen 
+
+sender will be blue color and in the right side 
+and receiver message will be white and in the left side 
+
+a complete oposite of before one
+
+and active attachment in here user should be able to send image, pdf or other things 
+for that read chatapi.md 
+
+at the header video call, audio call and three dot remove them 
+
+do it 
+
+
+
+
+
+4. use assets> files> termsprivacy.md file 
+
+and create the need screen 
+
+and connect the terms and condition and privacy screen 
+in the lib >features > booking > bulk booking form 
+
+in there 
+
+   if (!_formKey.currentState!.validate()) return;
+    if (!_agreedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please accept terms and conditions.')),
+      );
+      return;
+    }
+
+
+this terms and condition , privacy policy words will be linked with this screen 
+
+do it 
+
+
+
+
+
+
+
+
+
+5. in the lib> feature >chat> chat conversation screen 
+active attachment in here user should be able to send image, pdf or other things 
+for that read assets> files> chatapi.md 
+
+the attachment have no preview and we are unable to send the attachment from there
+
+
+
+
+
+
+6. in the lib> features > home> payments_screen 
+
+there are two types of data 
+one is card view and another is list view 
+
+the list view table header is not matching with card title 
+
+and in the card what is service type remove it 
+
+in the card only show what you show in the table 
+can you do that 
+
+
+
+
+7. the button for search work permits 
+
+i don't like the idea remove that button
+
+there is already a filter button on the lib > features > search > workpermitlist
+
+so in the lib> features> home> homescreen the filter button change that button to search button 
+only using icon 
+
+remove that filter button
+that will consistant the ui and manage the flow 
+
+no tags or chip should come because of selection of country and type of work
+the selection will be shown in the dropdown
+
+
+
+
+
+9. only when i'm using bottom navigation search button 
+
+and navigate to lib > features>search > work permit list screen 
+at that time in the service section the work aboard icon will not be selected 
+
+only in this way it won't be selected 
+
+
+
+
+10. continue 
+
+and in the lib > features > agent sign up screen
+
+the district , police station dropdown list doesn't have search bar 
+so that we can easily find the proper data 
+
+
+
+
+
+11. and in the lib > features > agent sign up screen
+
+the district , police station dropdown list doesn't have search bar 
+so that we can easily find the proper data 
+
+
+
+12.in the lib> features> auth > otp verification screen
+When I copy and paste the OTP, it only fills in one box instead of splitting across all boxes. Also, when deleting, I have to manually go to each box to delete the numbers.
+
+Please fix it so that pasting the OTP automatically fills all 6 boxes, and deleting a number automatically moves the cursor to the previous box
+
+
+
+
+
+13. in the sidebar after my profile 
+i want another button navigate to a screen 
+
+in that screen 
+breadcrumbs 
+header 
+then show the list using api 
+for api details check assets > files > favourite.md file 
+
+and show them 
+
+
+in the lib > features > search > work permit details screen 
+
+in the bottom there is a bookmark icon button 
+make the icon love icon
+
+and if we click the icon that will go in the favourite list using endpoint 
+for that read assets > files > favourite.md file ( add to favourite section ) 
+
+and manage it 
+
+
+
+
+in the lib> features> auth> sign up screen district and police station have 2 writtings
+remove them i need just 1 select one
+
+
+and in the privacy and terms and condtion 
+in the bottom the writting will be linked with the privacy , terms and condition screen 
+
+
+
+d:\Rayhan Work\bideshgami\bg-frontend-master\Favourite_Feature_API_Documentation.md
+
+--------------------------------------------------------done ----------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+15. 
+
+in the lib > features > home > home_screen 
+
+file 
+there are 2 dropdown in the up
+by selecting one it autmetically take us to the search > workpermit list screen
+
+so that user can't select 1 dropdown using search button they need to search 
+
+
+make it like you have to wait when selecting one dropdown
+when select both at that time only search autometically
+
+and for the search button 
+
+you remove filter button and then take search button here
+make that filter button and bottom sheets back again
+
+
+16.
+in the lib> features> work- permit details screen 
+
+the api come is 
+
+``` raw response data = {id: 34, agency: {id: 2, agencyName: Abc travel, agencyPhone: 01856236907, userCode: BGP_00002, status: VERIFIED, documents: [{rlNo: 56}]}, workType: {id: 10, name: Heavy Vehicle Driver}, createdBy: Shofikul Islam (AGENCY_ADMIN), verifiedBy: null, availableQuota: 20, isAvailable: true, countryName: Saudi Arabia, paymentSteps: [{id: 230, step: AFTER_VISA, stepLabel: After Visa, amount: 50000.00, sequence: 1}, {id: 231, step: BEFORE_FLIGHT, stepLabel: Before Flight, amount: 200000.00, sequence: 2}], customerPrice: 287500, customerCmPrice: 37500, agentPrice: 262500, agentCmPrice: 12500, currencyFlag: https://flagcdn.com/w40/sa.png, createdAt: 2026-06-28T00:49:10.313253+06:00, updatedAt: 2026-06-28T00:51:34.339402+06:00, verifiedAt: null, title: Saudi Almarai company Recruitment circular, slug: saudi-almarai-company-recruitment-circular-saudi-arabia, description: for more information plz call bideshgami hotline number, companyName: Al Marai Company, companyAddress: Riyadh, visaSponsorNam```
+
+like that 
+
+in here when you show paymentsteps 
+
+there are steps 
+
+in the first steps what ever the value is with that add customerCmPrice value and show
+in the frontend and show it can you do that 
+
+
+17. in the lib> features> work- permit details screen 
+
+in the bottom the love icon we used to favourite the work permit
+read  asstes > files >favourite.md
+
+and unfavourite when click on there again 
+and 
+
+the icon should be outline when not favourite 
+filled icon when its favourite . change the icon on that spot when user favourite it
+
+
+
+18.in the assets > file > passwordchage.md file 
+
+using this file 
+
+change the password 
+in the lib> features > home > change password screen
+
+using that why the password is not changing 
+use api change the password
+handle the error in this screen 
+and give user proper message what is the issue
+
+in the lib> features > home > change password screen

@@ -12,6 +12,7 @@ import '../../../features/booking/booking_documents_screen.dart';
 import '../../../features/chat/chat_list_screen.dart';
 import '../../../features/home/change_password_screen.dart';
 import '../../../features/home/check_status_screen.dart';
+import '../../../features/home/favourite_screen.dart';
 import '../../../features/home/customer_profile_screen.dart';
 import '../../../features/home/customer_profile_edit_screen.dart';
 import '../../../features/home/dashboard_screen.dart';
@@ -289,6 +290,8 @@ class _DashboardHostScreenState extends State<_DashboardHostScreen> {
         return const CustomerProfileScreen();
       case '/dashboard/customer/profile/edit':
         return const CustomerProfileEditScreen();
+      case '/dashboard/customer/favourite':
+        return const FavouriteScreen();
       case '/logout':
         return _buildLogoutScreen(context);
       default:

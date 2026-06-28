@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../common/services/auth_service.dart';
@@ -91,6 +92,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   void _onOtpChanged(int index, String value) {
     final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+    
+    // Handle pasting multiple digits
+    if (clean.length > 1) {
+      for (int i = 0; i < clean.length && (index + i) < 6; i++) {
+        _otpControllers[index + i].text = clean[i];
+      }
+      final nextIndex = (index + clean.length).clamp(0, 5);
+      _focusNodes[nextIndex].requestFocus();
+      if (_otpControllers[nextIndex].text.isNotEmpty) {
+         _otpControllers[nextIndex].selection = TextSelection.collapsed(offset: 1);
+      }
+      return;
+    }
+
     if (clean != value) {
       _otpControllers[index].text = clean;
       _otpControllers[index].selection = TextSelection.collapsed(
@@ -238,22 +253,34 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     children: List.generate(6, (index) {
                       return SizedBox(
                         width: 48,
-                        child: TextField(
-                          controller: _otpControllers[index],
-                          focusNode: _focusNodes[index],
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          maxLength: 1,
-                          decoration: InputDecoration(
-                            counterText: '',
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
+                        child: Focus(
+                          onKeyEvent: (node, event) {
+                            if (event is KeyDownEvent && 
+                                event.logicalKey == LogicalKeyboardKey.backspace) {
+                              if (_otpControllers[index].text.isEmpty && index > 0) {
+                                _focusNodes[index - 1].requestFocus();
+                                _otpControllers[index - 1].clear();
+                                return KeyEventResult.handled;
+                              }
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: TextField(
+                            controller: _otpControllers[index],
+                            focusNode: _focusNodes[index],
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              counterText: '',
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                            onChanged: (value) => _onOtpChanged(index, value),
                           ),
-                          onChanged: (value) => _onOtpChanged(index, value),
                         ),
                       );
                     }),
